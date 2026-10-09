@@ -1,0 +1,1 @@
+Finished a video and want more? Rabbit Hole is a Chrome extension that knows what you're watching on YouTube or Netflix, shows what Reddit is saying about it right now, and finds the Substack writing worth reading next — with a reason for every pick. It reads nothing until you open it: github.com/giriharsh77-pixel/rabbit-hole

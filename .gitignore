@@ -13,3 +13,9 @@ coverage/
 .vitest/
 __pycache__/
 *.pyc
+
+# /brag render intermediates — regenerate with brag-output/work/snapshot.mjs, synth.py, render.mjs
+brag-output/work/stills/
+brag-output/work/states/
+brag-output/work/*.wav
+brag-output/work/audio-check.png

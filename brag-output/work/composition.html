@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rabbit Hole — brag</title>
+<style>
+  :root { --bg: #0b0b0d; --ink: #f4f4f6; --ink2: #a9a9b3; --accent: #ff5a24; --accent2: #ff8a4c; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+  body { font-family: -apple-system, 'SF Pro Display', system-ui, 'Helvetica Neue', Arial, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  #stage { position: absolute; inset: 0; overflow: hidden; }
+  #glow { position: absolute; inset: -200px; background:
+      radial-gradient(900px 600px at 26% 18%, rgba(255, 90, 36, .20), transparent 65%),
+      radial-gradient(800px 600px at 88% 92%, rgba(255, 90, 36, .10), transparent 62%); }
+  #rings { position: absolute; inset: 0; }
+  .frame { position: absolute; left: 0; top: 0; width: 480px; height: 600px; transform-origin: 0 0; border-radius: 16px; overflow: hidden;
+           box-shadow: 0 0 0 1px rgba(255,255,255,.10), 0 40px 120px rgba(0,0,0,.65), 0 0 140px rgba(255, 90, 36, .10); background: #0e0e11; }
+  .frame iframe { position: absolute; left: 0; top: 0; width: 480px; height: 600px; border: 0; }
+  .frame .layer { position: absolute; inset: 0; }
+  .cap { position: absolute; left: 150px; top: 0; width: 600px; }
+  .kicker { font-size: 22px; font-weight: 700; letter-spacing: .24em; text-transform: uppercase; color: var(--accent2); margin-bottom: 22px; }
+  .line { font-size: 70px; line-height: 1.06; font-weight: 760; letter-spacing: -.028em; }
+  .w { display: inline-block; white-space: pre; will-change: transform, opacity, filter; }
+  .acc { color: var(--accent); }
+  .center { position: absolute; left: 0; right: 0; text-align: center; }
+  #hook .line { font-size: 118px; letter-spacing: -.035em; }
+  #brand { position: absolute; left: 150px; top: 330px; display: flex; align-items: center; gap: 26px; }
+  #brand .name { font-size: 64px; font-weight: 780; letter-spacing: -.03em; }
+  #outro .name { font-size: 132px; font-weight: 790; letter-spacing: -.04em; }
+  #outro .tag { font-size: 46px; font-weight: 560; color: #d6d6dc; letter-spacing: -.01em; margin-top: 18px; }
+  #outro .url { font-size: 27px; font-weight: 500; color: #8f8f99; margin-top: 34px; letter-spacing: .01em; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="glow"></div>
+  <canvas id="rings" width="1920" height="1080"></canvas>
+
+  <div id="frames"></div>
+
+  <div id="hook" class="center" style="top: 380px;">
+    <div class="line" data-words="Every video"></div>
+    <div class="line" data-words="has a [rabbit hole.]"></div>
+  </div>
+
+  <div id="brand">
+    <div id="brandLogo"></div>
+    <div class="name" data-words="Rabbit Hole"></div>
+  </div>
+  <div id="cap2" class="cap" style="top: 480px;"><div class="line" data-words="Knows what [you’re watching.]"></div></div>
+  <div id="cap3" class="cap" style="top: 330px;"><div class="kicker" data-words="Related reading"></div><div class="line" data-words="Finds the writing worth reading — and tells you [why.]"></div></div>
+  <div id="cap4" class="cap" style="top: 350px;"><div class="kicker" data-words="Trending Reddit"></div><div class="line" data-words="See what Reddit is talking about — [right now.]"></div></div>
+  <div id="cap5a" class="cap" style="top: 330px;"><div class="kicker" data-words="One click"></div><div class="line" data-words="Any thread → [deeper reading.]"></div></div>
+  <div id="cap5b" class="cap" style="top: 560px;"><div class="line" data-words="Any article → [the discussion.]"></div></div>
+  <div id="cap6" class="cap" style="top: 380px;"><div class="kicker" data-words="Private by design"></div><div class="line" data-words="Reads nothing until [you open it.]"></div></div>
+
+  <div id="outro" class="center" style="top: 300px;">
+    <div id="outroLogo" style="display:flex;justify-content:center;margin-bottom:34px"></div>
+    <div class="name" data-words="Rabbit Hole"></div>
+    <div class="tag" data-words="See what the internet is talking about. [Go deeper.]"></div>
+    <div class="url" data-words="Chrome extension  ·  github.com/giriharsh77-pixel/rabbit-hole"></div>
+  </div>
+</div>
+
+<script>
+// ───────────────────────── helpers ─────────────────────────
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (k) => 1 - Math.pow(1 - k, 3);
+const easeInOut = (k) => (k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const easeIn = (k) => k * k * k;
+const backOut = (k) => { const c = 1.7; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
+const smooth = (a, b, x) => { const k = clamp((x - a) / (b - a)); return k * k * (3 - 2 * k); };
+const pulse = (t, a, b) => (t < a || t > b ? 0 : Math.sin(Math.PI * (t - a) / (b - a)));
+
+const LOGO = (size) => `<svg width="${size}" height="${size}" viewBox="0 0 32 32"><defs><linearGradient id="lg${size}" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ff8a4c"/><stop offset="1" stop-color="#e0400d"/></linearGradient></defs><rect x="1" y="1" width="30" height="30" rx="9" fill="url(#lg${size})"/><g fill="none" stroke="#0b0b0d" stroke-linecap="round"><ellipse cx="16" cy="16.5" rx="10" ry="6.6" stroke-width="1.7" opacity="0.28"/><ellipse cx="16" cy="17.2" rx="6.6" ry="4.3" stroke-width="1.8" opacity="0.55"/><ellipse cx="16" cy="18" rx="3.2" ry="2" stroke-width="2" opacity="0.9" fill="#0b0b0d"/></g><ellipse cx="11.2" cy="10" rx="3.6" ry="1.4" fill="#fff" opacity="0.28" transform="rotate(-18 11.2 10)"/></svg>`;
+document.getElementById('brandLogo').innerHTML = LOGO(92);
+document.getElementById('outroLogo').innerHTML = LOGO(170);
+
+// split [bracketed] words into accent spans; every word becomes an animatable span
+for (const el of document.querySelectorAll('[data-words]')) {
+  const src = el.dataset.words;
+  const out = [];
+  let acc = false;
+  for (const tok of src.split(/(\[|\])/)) {
+    if (tok === '[') { acc = true; continue; }
+    if (tok === ']') { acc = false; continue; }
+    for (const piece of tok.split(/(\s+)/)) {
+      if (!piece) continue;
+      if (/^\s+$/.test(piece)) { out.push(piece.replace(/ /g, ' ')); continue; }
+      out.push(`<span class="w${acc ? ' acc' : ''}">${piece}</span>`);
+    }
+  }
+  el.innerHTML = out.join('');
+}
+
+/** Reveal words of `el` starting at `start`; hide them from `end`. Returns time the last word settles. */
+function words(el, t, start, end, { stagger = 0.065, dur = 0.4, rise = 38, outDur = 0.28 } = {}) {
+  const ws = el.querySelectorAll('.w');
+  ws.forEach((w, i) => {
+    const k = easeOut(prog(t, start + i * stagger, start + i * stagger + dur));
+    const o = end == null ? 0 : easeIn(prog(t, end + i * 0.018, end + i * 0.018 + outDur));
+    w.style.opacity = (k * (1 - o)).toFixed(3);
+    w.style.transform = `translateY(${((1 - k) * rise - o * 22).toFixed(2)}px)`;
+    w.style.filter = k < 1 || o > 0 ? `blur(${((1 - k) * 8 + o * 6).toFixed(2)}px)` : 'none';
+  });
+  return start + (ws.length - 1) * stagger + dur;
+}
+function show(el, on) { el.style.visibility = on ? 'visible' : 'hidden'; }
+
+// ───────────────────────── popup frames ─────────────────────────
+const STATES = ['reading', 'trending', 'thread', 'thread-result'];
+const F = {};       // name → { frame, doc, q(sel) }
+const CURSOR_SVG = '<svg width="22" height="30" viewBox="0 0 22 30"><path d="M2 2 L2 24 L8 18.5 L12 28 L16 26.3 L12 17 L20 17 Z" fill="#fff" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+
+async function loadStates() {
+  const host = document.getElementById('frames');
+  for (const name of STATES) {
+    const html = await (await fetch(`states/${name}.html`)).text();
+    const frame = document.createElement('div');
+    frame.className = 'frame';
+    const iframe = document.createElement('iframe');
+    frame.appendChild(iframe);
+    host.appendChild(frame);
+    await new Promise((r) => { iframe.onload = r; iframe.srcdoc = html; });
+    const doc = iframe.contentDocument;
+    const st = doc.createElement('style');
+    st.textContent = `*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent}
+      ::-webkit-scrollbar{display:none} .panel{scrollbar-width:none}
+      .rh-cursor{position:absolute;left:0;top:0;z-index:99999;pointer-events:none;transform-origin:2px 2px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+      .rh-ripple{position:absolute;z-index:99998;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;border:2px solid #ff6a2c;pointer-events:none}
+      .rh-burst{position:absolute;z-index:99997;border-radius:999px;pointer-events:none;box-shadow:0 0 0 2px rgba(255,106,44,.9)}`;
+    doc.head.appendChild(st);
+    const cur = doc.createElement('div'); cur.className = 'rh-cursor'; cur.innerHTML = CURSOR_SVG; doc.body.appendChild(cur);
+    const rip = doc.createElement('div'); rip.className = 'rh-ripple'; doc.body.appendChild(rip);
+    const burst = doc.createElement('div'); burst.className = 'rh-burst'; doc.body.appendChild(burst);
+    await doc.fonts.ready;
+    F[name] = { frame, iframe, doc, q: (s) => doc.querySelector(s), qa: (s) => [...doc.querySelectorAll(s)], cur, rip, burst };
+  }
+}
+
+/** Position a frame so popup point (px,py) sits at stage point (qx,qy) at scale s. */
+function place(fr, s, px, py, qx, qy, opacity = 1, extra = '') {
+  fr.frame.style.transform = `translate(${(qx - px * s).toFixed(2)}px, ${(qy - py * s).toFixed(2)}px) scale(${s.toFixed(4)}) ${extra}`;
+  fr.frame.style.opacity = opacity.toFixed(3);
+  fr.frame.style.visibility = opacity > 0.001 ? 'visible' : 'hidden';
+}
+const rectOf = (fr, el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; };
+
+function rise(el, t, start, { dur = 0.4, y = 18, scale = 1 } = {}) {
+  if (!el) return;
+  const k = easeOut(prog(t, start, start + dur));
+  el.style.opacity = k.toFixed(3);
+  el.style.transform = `translateY(${((1 - k) * y).toFixed(2)}px)${scale !== 1 ? ` scale(${lerp(scale, 1, k).toFixed(3)})` : ''}`;
+}
+function pop(el, t, start, dur = 0.42) {
+  if (!el) return;
+  const k = prog(t, start, start + dur);
+  el.style.opacity = easeOut(clamp(k * 2)).toFixed(3);
+  el.style.transform = `scale(${lerp(0.55, 1, backOut(k)).toFixed(3)})`;
+}
+function glow(el, amount, radius = 10) {
+  if (!el) return;
+  el.style.boxShadow = amount > 0.001 ? `0 0 0 ${(2 * amount).toFixed(2)}px rgba(255,106,44,${(0.95 * amount).toFixed(3)}), 0 0 ${(28 * amount).toFixed(1)}px rgba(255,90,36,${(0.45 * amount).toFixed(3)})` : '';
+  el.style.borderRadius = el.style.borderRadius || `${radius}px`;
+}
+function cursor(fr, t, path, clickAt) {
+  // path: [[time, x, y], ...] in popup coords
+  if (!path || t < path[0][0] - 0.25 || t > path[path.length - 1][0] + 0.6) { fr.cur.style.opacity = 0; fr.rip.style.opacity = 0; return; }
+  let x = path[0][1], y = path[0][2];
+  for (let i = 0; i < path.length - 1; i++) {
+    const [t0, x0, y0] = path[i], [t1, x1, y1] = path[i + 1];
+    if (t >= t0 && t <= t1) { const k = easeInOut(prog(t, t0, t1)); x = lerp(x0, x1, k); y = lerp(y0, y1, k); }
+    else if (t > t1) { x = x1; y = y1; }
+  }
+  const fadeIn = prog(t, path[0][0] - 0.25, path[0][0]);
+  const fadeOut = 1 - prog(t, path[path.length - 1][0] + 0.3, path[path.length - 1][0] + 0.6);
+  const press = clickAt != null ? pulse(t, clickAt - 0.06, clickAt + 0.12) : 0;
+  fr.cur.style.opacity = (fadeIn * fadeOut).toFixed(3);
+  fr.cur.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${(1 - 0.16 * press).toFixed(3)})`;
+  if (clickAt != null && t >= clickAt && t <= clickAt + 0.5) {
+    const k = prog(t, clickAt, clickAt + 0.5);
+    fr.rip.style.opacity = (1 - k).toFixed(3);
+    fr.rip.style.left = `${x + 2}px`; fr.rip.style.top = `${y + 2}px`;
+    fr.rip.style.transform = `scale(${(1 + 4.5 * easeOut(k)).toFixed(3)})`;
+  } else fr.rip.style.opacity = 0;
+}
+
+// ───────────────────────── rings ─────────────────────────
+const cv = document.getElementById('rings');
+const ctx = cv.getContext('2d');
+function rings(t, { phase, alpha, hole = 0, cx = 960, cy = 560, aspect = 1.55 }) {
+  ctx.clearRect(0, 0, 1920, 1080);
+  if (alpha <= 0.001) return;
+  const N = 16;
+  for (let k = N - 1; k >= 0; k--) {
+    const u = (k + (phase % 1)) / N;              // 0 far … 1 near
+    const rx = 34 * Math.pow(75, u);
+    const ry = rx / aspect;
+    const a = smooth(0, 0.18, u) * (1 - smooth(0.82, 1, u)) * alpha;
+    if (a < 0.003) continue;
+    const near = u;
+    const r = Math.round(lerp(120, 255, near)), g = Math.round(lerp(34, 112, near)), b = Math.round(lerp(10, 50, near));
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 40 * u, rx, ry, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${r},${g},${b},${a.toFixed(3)})`;
+    ctx.lineWidth = 1.2 + 16 * u * u;
+    ctx.stroke();
+  }
+  // the hole: dark centre that can swallow the screen
+  const hr = 70 + hole;
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, hr * 1.25);
+  const ha = Math.min(1, alpha * 1.4);
+  grad.addColorStop(0, `rgba(5,5,7,${ha})`); grad.addColorStop(0.75, `rgba(5,5,7,${(0.95 * ha).toFixed(3)})`); grad.addColorStop(1, 'rgba(5,5,7,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.ellipse(cx, cy, hr * 1.25, hr * 1.25 / aspect, 0, 0, Math.PI * 2); ctx.fill();
+}
+
+// ───────────────────────── timeline ─────────────────────────
+// Scene starts sit on 120 BPM beats (0.5 s grid); everything else is relative to them.
+const T = { s2: 2.5, s3: 5.5, s4: 10.0, s5: 13.5, s6: 17.0, s7: 19.5, end: 23.0 };
+const BASE = { s: 1.6, px: 240, py: 300, qx: 1300, qy: 540 };
+const Z3 = { s: 2.18, px: 240, py: 352, qx: 1320, qy: 560 };
+const Z6 = { s: 2.2, px: 240, py: 560, qx: 1360, qy: 690 };
+let geo = {};
+
+function measure() {
+  const R = F.reading, Tr = F.trending, Th = F.thread;
+  const card1 = R.q('#rh-panel-reading li.card');
+  const panelR = R.q('#rh-panel-reading');
+  geo.readScroll = Math.max(0, card1.offsetTop - panelR.offsetTop - 6);
+  geo.growth = [...Tr.doc.querySelectorAll('#rh-panel-reddit li.card *')].find((e) => /Growing rapidly/.test(e.textContent) && e.children.length <= 1 && e.getBoundingClientRect().height < 30);
+  const panelT = Tr.q('#rh-panel-reddit');
+  const firstCard = Tr.q('#rh-panel-reddit ul.list:not(.tight) > li.card');
+  geo.trendScroll = Math.max(0, (firstCard.offsetTop + firstCard.offsetHeight) - panelT.offsetTop - panelT.clientHeight + 14);
+  geo.tabReddit = rectOf(R, R.q('#rh-tab-reddit'));
+  geo.bridgeBtn = rectOf(Th, Th.q('#rh-panel-reading .bridge .btn'));
+}
+
+function renderAt(t) {
+  const R = F.reading, Tr = F.trending, Th = F.thread, TR = F['thread-result'];
+  const { s2, s3, s4, s5, s6, s7 } = T;
+
+  // ── background
+  const glowEl = document.getElementById('glow');
+  glowEl.style.opacity = (0.35 + 0.65 * smooth(s2 - 0.2, s2 + 0.7, t) * (1 - 0.5 * smooth(s7 - 0.3, s7 + 0.4, t))).toFixed(3);
+  glowEl.style.transform = `translate(${(Math.sin(t * 0.4) * 30).toFixed(1)}px, ${(Math.cos(t * 0.33) * 20).toFixed(1)}px)`;
+
+  // ── rings: hook tunnel + dive, then the outro
+  if (t < s2 + 0.05) {
+    const dive = prog(t, s2 - 0.45, s2);
+    rings(t, { phase: t * 0.85 + 7 * dive * dive, alpha: 1, hole: 3000 * easeIn(dive) });
+  } else if (t >= s7 - 0.2) {
+    rings(t, { phase: t * 0.3, alpha: 0.55 * smooth(s7 - 0.15, s7 + 0.5, t), hole: 0, cy: 470 });
+  } else ctx.clearRect(0, 0, 1920, 1080);
+
+  // ── hook text
+  const hook = document.getElementById('hook');
+  show(hook, t < s2);
+  if (t < s2) {
+    const lines = hook.querySelectorAll('.line');
+    words(lines[0], t, 0.0, null, { stagger: 0.05, dur: 0.3 });
+    words(lines[1], t, 0.12, null, { stagger: 0.05, dur: 0.3 });
+    const dive = easeIn(prog(t, s2 - 0.45, s2));
+    hook.style.transform = `scale(${(1 + 1.6 * dive).toFixed(3)})`;
+    hook.style.opacity = (1 - dive).toFixed(3);
+    hook.style.filter = dive > 0 ? `blur(${(dive * 14).toFixed(1)}px)` : 'none';
+  }
+
+  // ── brand + captions
+  const brand = document.getElementById('brand');
+  show(brand, t >= s2 && t < s3 + 0.1);
+  if (t >= s2 && t < s3 + 0.1) {
+    const k = easeOut(prog(t, s2 + 0.1, s2 + 0.55));
+    const out = easeIn(prog(t, s3 - 0.32, s3 + 0.02));
+    brand.style.opacity = (k * (1 - out)).toFixed(3);
+    brand.style.transform = `translateY(${((1 - k) * 30 - out * 20).toFixed(1)}px)`;
+    words(brand.querySelector('.name'), t, s2 + 0.16, null, { stagger: 0.07 });
+  }
+  const cap2 = document.getElementById('cap2'); show(cap2, t >= s2 && t < s3 + 0.2);
+  words(cap2.querySelector('.line'), t, s2 + 0.45, s3 - 0.3, { stagger: 0.055 });
+  const caps = [
+    ['cap3', s3 + 0.15, s4 - 0.4],
+    ['cap4', s4 + 0.12, s5 - 0.32],
+    ['cap5a', s5 + 0.12, s6 - 0.32],
+    ['cap5b', s5 + 1.35, s6 - 0.28],
+    ['cap6', s6 - 0.05, s7 - 0.25],
+  ];
+  for (const [id, a, b] of caps) {
+    const el = document.getElementById(id);
+    const on = t >= a - 0.05 && t < b + 0.6;
+    show(el, on);
+    if (!on) continue;
+    const kick = el.querySelector('.kicker');
+    if (kick) words(kick, t, a, b, { stagger: 0.03, dur: 0.3, rise: 16 });
+    words(el.querySelector('.line'), t, a + 0.06, b, { stagger: 0.055 });
+  }
+
+  // ── outro
+  const outro = document.getElementById('outro');
+  show(outro, t >= s7 - 0.05);
+  if (t >= s7 - 0.05) {
+    const lg = document.getElementById('outroLogo').firstElementChild;
+    const k = prog(t, s7 + 0.04, s7 + 0.6);
+    lg.style.transform = `scale(${lerp(0.5, 1, backOut(k)).toFixed(3)})`;
+    lg.style.opacity = easeOut(clamp(k * 1.8)).toFixed(3);
+    words(outro.querySelector('.name'), t, s7 + 0.08, null, { stagger: 0.08, dur: 0.45, rise: 44 });
+    words(outro.querySelector('.tag'), t, s7 + 0.15, null, { stagger: 0.045, dur: 0.38 });
+    words(outro.querySelector('.url'), t, s7 + 0.6, null, { stagger: 0.02, dur: 0.4, rise: 14 });
+  }
+
+  // ── popup camera (shared by every state frame)
+  const mix = (a, b, k) => ({ s: lerp(a.s, b.s, k), px: lerp(a.px, b.px, k), py: lerp(a.py, b.py, k), qx: lerp(a.qx, b.qx, k), qy: lerp(a.qy, b.qy, k) });
+  let cam = { ...BASE };
+  cam = mix(cam, Z3, easeInOut(prog(t, s3 + 0.25, s3 + 1.25)));
+  cam = mix(cam, BASE, easeInOut(prog(t, s4 - 0.65, s4 - 0.15)));
+  cam = mix(cam, Z6, easeInOut(prog(t, s6 + 0.05, s6 + 0.75)));
+  const enter = easeOut(prog(t, s2, s2 + 0.65));
+  const exit = easeIn(prog(t, s7 - 0.9, s7 - 0.52));
+  const popupAlpha = enter * (1 - exit);
+  const camS = cam.s * lerp(0.9, 1, enter) * lerp(1, 0.94, exit);
+  const camQy = cam.qy + (1 - enter) * 70 + exit * 40;
+
+  // which state is visible (swaps are staggered: old content out, then new in)
+  const vis = { reading: 0, trending: 0, thread: 0, 'thread-result': 0 };
+  if (t < s4 + 0.12) vis.reading = 1;
+  else if (t < s5 - 0.12) vis.trending = 1;
+  else if (t < s5 + 1.12) vis.thread = 1;
+  else vis['thread-result'] = 1;
+  for (const name of STATES) {
+    const fr = F[name];
+    if (!vis[name] || popupAlpha <= 0.001) { fr.frame.style.visibility = 'hidden'; continue; }
+    let qx = cam.qx, op = popupAlpha;
+    if (name === 'thread') { const k = easeOut(prog(t, s5 - 0.1, s5 + 0.3)); qx += (1 - k) * 160; op *= k; }
+    if (name === 'trending') { const k = easeIn(prog(t, s5 - 0.3, s5 - 0.12)); qx -= k * 90; op *= 1 - k; }
+    place(fr, camS, cam.px, cam.py, qx, camQy, op);
+  }
+
+  // ── reading (scenes 2–3)
+  {
+    const P = R.q('#rh-panel-reading');
+    const ctxBar = R.q('#rh-panel-reading .context-bar');
+    rise(ctxBar, t, s2 + 0.35);
+    rise(R.q('#rh-panel-reading .status-line'), t, s2 + 0.65, { y: 10 });
+    R.qa('#rh-panel-reading > .tag-row .chip').forEach((c, i) => pop(c, t, s2 + 0.8 + i * 0.14));
+    rise(R.q('#rh-panel-reading .banner'), t, s2 + 1.2, { y: 12 });
+    R.qa('#rh-panel-reading li.card').slice(0, 3).forEach((c, i) => rise(c, t, s2 + 1.35 + i * 0.12, { y: 26 }));
+    glow(ctxBar, pulse(t, s2 + 1.25, s2 + 2.7) * 0.9, 14);
+    P.scrollTop = geo.readScroll * easeInOut(prog(t, s3 + 0.5, s3 + 1.5));
+    const rel = R.q('#rh-panel-reading li.card .relevance');
+    rel.style.transform = `scale(${(1 + 0.22 * pulse(t, s3 + 1.25, s3 + 1.7)).toFixed(3)})`;
+    rel.style.transformOrigin = 'right center';
+    if (t >= s3 + 1.25 && t <= s3 + 1.85) {
+      const r = rectOf(R, rel); const k = prog(t, s3 + 1.25, s3 + 1.85);
+      Object.assign(R.burst.style, { left: `${r.x - 6 - 10 * k}px`, top: `${r.y - 6 - 10 * k}px`, width: `${r.w + 12 + 20 * k}px`, height: `${r.h + 12 + 20 * k}px`, opacity: (1 - k).toFixed(3) });
+    } else R.burst.style.opacity = 0;
+    glow(R.q('#rh-panel-reading li.card .why'), smooth(s3 + 1.85, s3 + 2.3, t) * (1 - smooth(s4 - 0.8, s4 - 0.4, t)), 12);
+    P.style.opacity = (1 - prog(t, s4, s4 + 0.12)).toFixed(3);
+    cursor(R, t, [[s4 - 0.55, 300, 330], [s4 - 0.08, geo.tabReddit.cx - 30, geo.tabReddit.cy - 4]], s4 - 0.03);
+  }
+
+  // ── trending (scene 4)
+  {
+    const P = Tr.q('#rh-panel-reddit');
+    const inK = easeOut(prog(t, s4 + 0.1, s4 + 0.34));
+    P.style.opacity = inK.toFixed(3);
+    P.style.transform = `translateY(${((1 - inK) * 14).toFixed(1)}px)`;
+    const ind = Tr.q('.tab-indicator');
+    if (ind) ind.style.transform = `translateX(${(224 * (1 - easeInOut(prog(t, s4, s4 + 0.28)))).toFixed(1)}px)`;
+    Tr.qa('#rh-panel-reddit section li').forEach((li, i) => rise(li, t, s4 + 0.18 + i * 0.1, { y: 14 }));
+    rise(Tr.q('#rh-panel-reddit .chip-row'), t, s4 + 0.36, { y: 10 });
+    rise(Tr.q('#rh-panel-reddit .segmented'), t, s4 + 0.44, { y: 10 });
+    rise(Tr.q('#rh-panel-reddit ul.list:not(.tight)'), t, s4 + 0.52, { y: 18 });
+    glow(Tr.q('#rh-panel-reddit section'), pulse(t, s4 + 0.5, s4 + 1.5) * 0.85, 12);
+    P.scrollTop = geo.trendScroll * easeInOut(prog(t, s4 + 1.25, s4 + 1.85));
+    Tr.qa('#rh-panel-reddit .seg').forEach((sg, i) => {
+      const a = s4 + 1.75 + i * 0.32;
+      const k = pulse(t, a, a + 0.42);
+      sg.style.transform = `scale(${(1 + 0.1 * k).toFixed(3)})`;
+      glow(sg, k, 8);
+    });
+    if (geo.growth) glow(geo.growth, smooth(s4 + 2.95, s4 + 3.2, t) * (1 - smooth(s5 - 0.5, s5 - 0.3, t)), 999);
+    cursor(Tr, t, null);
+  }
+
+  // ── thread → result (scene 5) and privacy (scene 6)
+  {
+    glow(Th.q('#rh-panel-reading .bridge'), pulse(t, s5 + 0.25, s5 + 1.0) * 0.9, 12);
+    const btn = geo.bridgeBtn;
+    cursor(Th, t, [[s5 + 0.35, 250, 420], [s5 + 0.95, btn.cx - 10, btn.cy - 2]], s5 + 1.02);
+    rise(TR.q('#rh-panel-reading .context-bar'), t, s5 + 1.16, { y: 16 });
+    rise(TR.q('#rh-panel-reading .status-line'), t, s5 + 1.36, { y: 10 });
+    TR.qa('#rh-panel-reading > .tag-row .chip').forEach((c, i) => pop(c, t, s5 + 1.46 + i * 0.12));
+    rise(TR.q('#rh-panel-reading .banner'), t, s5 + 1.62, { y: 12 });
+    TR.qa('#rh-panel-reading li.card').slice(0, 3).forEach((c, i) => rise(c, t, s5 + 1.72 + i * 0.12, { y: 22 }));
+    const foot = TR.q('footer');
+    const fk = smooth(s6 + 0.45, s6 + 0.85, t) * (1 - smooth(s7 - 1.15, s7 - 0.85, t));
+    foot.style.boxShadow = fk > 0.001 ? `inset 0 0 0 ${(2 * fk).toFixed(2)}px rgba(255,106,44,${(0.95 * fk).toFixed(3)}), inset 0 0 26px rgba(255,90,36,${(0.35 * fk).toFixed(3)})` : '';
+    foot.style.background = fk > 0.001 ? `rgba(255,90,36,${(0.10 * fk).toFixed(3)})` : '';
+    cursor(TR, t, null);
+  }
+}
+
+window.renderAt = renderAt;
+window.ready = (async () => { await loadStates(); measure(); renderAt(0); return true; })();
+</script>
+</body>
+</html>
