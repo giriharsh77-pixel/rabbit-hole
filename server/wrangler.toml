@@ -1,0 +1,17 @@
+# Cloudflare Workers config for the Rabbit Hole backend.
+#   cd server
+#   npx wrangler login
+#   npx wrangler secret put BRAVE_API_KEY          # Substack search
+#   npx wrangler secret put ANTHROPIC_API_KEY      # optional AI layer
+#   npx wrangler deploy
+name = "rabbit-hole-api"
+main = "src/worker.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[vars]
+# Comma-separated browser origins allowed to call the API (your extension's ID):
+#   ALLOWED_ORIGINS = "chrome-extension://abcdefghijklmnopabcdefghijklmnop"
+ALLOWED_ORIGINS = ""
+# ANTHROPIC_MODEL = "claude-opus-5-5"     # or claude-haiku-4-5 for lower cost/latency
+RATE_LIMIT_PER_MINUTE = "30"

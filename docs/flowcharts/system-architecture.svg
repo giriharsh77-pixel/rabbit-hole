@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1800" height="1290" viewBox="0 0 1800 1290"><rect width="1800" height="1290" fill="#ffffff"/><text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="40" y="58.6">Rabbit Hole — system architecture</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="40" y="88.3">Manifest V3 · all network access lives in the background worker · pages and content scripts never talk to the internet</tspan></text>
+<rect x="40" y="120" width="380" height="1000" rx="16" fill="#faf9f6" stroke="#d9d6cf" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#8a8a94" text-anchor="start" letter-spacing="0.12em"><tspan x="58" y="143.0">BROWSER TABS</tspan></text>
+<rect x="70" y="170" width="320" height="160" rx="12" fill="#ffffff" stroke="#d9d6cf" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="90" y="199.9">YouTube</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="90" y="224.3">watch pages and Shorts</tspan></text>
+<rect x="90" y="246" width="280" height="62" rx="9" fill="#fdeee8" stroke="#d63a0b" stroke-width="1.2"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#d63a0b" text-anchor="start"><tspan x="104" y="266.3">content/youtube.ts</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="104" y="287.0">idle: answers one message, no observers</tspan></text>
+<rect x="70" y="358" width="320" height="160" rx="12" fill="#ffffff" stroke="#d9d6cf" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="90" y="387.9">Netflix</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="90" y="412.3">watch and title pages</tspan></text>
+<rect x="90" y="434" width="280" height="62" rx="9" fill="#fdeee8" stroke="#d63a0b" stroke-width="1.2"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#d63a0b" text-anchor="start"><tspan x="104" y="454.3">content/netflix.ts</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="104" y="475.0">idle: answers one message, no observers</tspan></text>
+<rect x="70" y="546" width="320" height="160" rx="12" fill="#ffffff" stroke="#d9d6cf" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="90" y="575.9">Reddit</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="90" y="600.3">thread pages</tspan></text>
+<rect x="90" y="622" width="280" height="62" rx="9" fill="#fdeee8" stroke="#d63a0b" stroke-width="1.2"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#d63a0b" text-anchor="start"><tspan x="104" y="642.3">content/reddit.ts</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="104" y="663.0">idle: answers one message, no observers</tspan></text>
+<rect x="70" y="734" width="320" height="160" rx="12" fill="#ffffff" stroke="#d9d6cf" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="90" y="763.9">Substack</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="90" y="788.3">*.substack.com articles</tspan></text>
+<rect x="90" y="810" width="280" height="62" rx="9" fill="#fdeee8" stroke="#d63a0b" stroke-width="1.2"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#d63a0b" text-anchor="start"><tspan x="104" y="830.3">content/generic.ts (static)</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="104" y="851.0">idle: answers one message, no observers</tspan></text>
+<rect x="70" y="922" width="320" height="160" rx="12" fill="#ffffff" stroke="#d9d6cf" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="90" y="951.9">Any other website</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="90" y="976.3">read only after “Use this page”</tspan></text>
+<rect x="90" y="998" width="280" height="62" rx="9" fill="#fdeee8" stroke="#d63a0b" stroke-width="1.2"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#d63a0b" text-anchor="start"><tspan x="104" y="1018.3">content/generic.ts (on demand)</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="104" y="1039.0">injected via activeTab + scripting</tspan></text>
+<rect x="500" y="120" width="760" height="190" rx="16" fill="#e8eefc" stroke="#2f5fd0" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#8a8a94" text-anchor="start" letter-spacing="0.12em"><tspan x="518" y="143.0">EXTENSION PAGES (REACT 19 · TYPESCRIPT · PLAIN CSS)</tspan></text>
+<rect x="520" y="168" width="225" height="112" rx="12" fill="#ffffff" stroke="#2f5fd0" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="536" y="195.1">Popup</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="536" y="220.3">480 × 600 · tabs · search ·</tspan><tspan x="536" y="236.3">cards</tspan></text>
+<rect x="765" y="168" width="225" height="112" rx="12" fill="#ffffff" stroke="#2f5fd0" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="781" y="195.1">Dashboard</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="781" y="220.3">same app in a tab · two</tspan><tspan x="781" y="236.3">columns</tspan></text>
+<rect x="1010" y="168" width="225" height="112" rx="12" fill="#ffffff" stroke="#2f5fd0" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="1026" y="195.1">Settings</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="1026" y="220.3">privacy · keys · data ·</tspan><tspan x="1026" y="236.3">theme</tspan></text>
+<rect x="500" y="370" width="760" height="600" rx="16" fill="#fbfaf8" stroke="#d9d6cf" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#8a8a94" text-anchor="start" letter-spacing="0.12em"><tspan x="518" y="393.0">BACKGROUND SERVICE WORKER (MANIFEST V3, ES MODULE)</tspan></text>
+<rect x="520" y="410" width="720" height="78" rx="12" fill="#0b0b0d" stroke="#0b0b0d" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="start"><tspan x="542" y="436.3">RPC server — typed messages over a chrome.runtime port</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#cfcfd6" text-anchor="start"><tspan x="542" y="460.3">cancellable · aborts work when the page closes · accepts connections from the extension’s own pages only</tspan></text>
+<rect x="520" y="508" width="350" height="100" rx="12" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<rect x="520" y="520" width="5" height="76" rx="2.5" fill="#d63a0b" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="542" y="534.3">ContextManager</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="542" y="558.3">active tab → content script → ContentContext;</tspan><tspan x="542" y="574.8">per-tab RAM cache, dropped on navigation</tspan></text>
+<rect x="520" y="618" width="350" height="100" rx="12" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<rect x="520" y="630" width="5" height="76" rx="2.5" fill="#d63a0b" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="542" y="644.3">Context pipeline</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="542" y="668.3">platform → metadata → topics → entities →</tspan><tspan x="542" y="684.8">concept expansion → search queries</tspan></text>
+<rect x="520" y="728" width="350" height="100" rx="12" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<rect x="520" y="740" width="5" height="76" rx="2.5" fill="#0b8a55" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="542" y="754.3">CacheService</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="542" y="778.3">TTL 5 / 10 / 30 min · stale-if-error ·</tspan><tspan x="542" y="794.8">in-flight de-duplication · ref-counted cancel</tspan></text>
+<rect x="520" y="838" width="350" height="100" rx="12" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<rect x="520" y="850" width="5" height="76" rx="2.5" fill="#0b8a55" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="542" y="864.3">Settings &amp; Secrets</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="542" y="888.3">validated preferences; API keys are write-only</tspan><tspan x="542" y="904.8">(masked status only)</tspan></text>
+<rect x="890" y="508" width="350" height="100" rx="12" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<rect x="890" y="520" width="5" height="76" rx="2.5" fill="#2f5fd0" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="912" y="534.3">RedditService</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="912" y="558.3">providers: OAuth → public JSON → Atom feed ·</tspan><tspan x="912" y="574.8">circuit breaker · snapshots Δ · trending score</tspan></text>
+<rect x="890" y="618" width="350" height="100" rx="12" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<rect x="890" y="630" width="5" height="76" rx="2.5" fill="#2f5fd0" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="912" y="644.3">SubstackService</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="912" y="668.3">search API / backend / RSS feeds → merge &amp;</tspan><tspan x="912" y="684.8">validate → relevance score → diversity</tspan></text>
+<rect x="890" y="728" width="350" height="100" rx="12" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<rect x="890" y="740" width="5" height="76" rx="2.5" fill="#2f5fd0" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="912" y="754.3">AiService (optional, opt-in)</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="912" y="778.3">topics, queries, relevance judging; structured</tspan><tspan x="912" y="794.8">JSON; refusal fallbacks</tspan></text>
+<rect x="890" y="838" width="350" height="100" rx="12" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<rect x="890" y="850" width="5" height="76" rx="2.5" fill="#2f5fd0" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="912" y="864.3">Backend client</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="912" y="888.3">uses the optional proxy so keys never live in</tspan><tspan x="912" y="904.8">the extension</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#8a8a94" text-anchor="start"><tspan x="520" y="953.4">+ tab tracker · ● toolbar badge · refresh alarm (only while the extension is in use)</tspan></text>
+<rect x="500" y="1010" width="760" height="190" rx="16" fill="#faf9f6" stroke="#d9d6cf" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#8a8a94" text-anchor="start" letter-spacing="0.12em"><tspan x="518" y="1033.0">STORAGE (LOCAL TO THIS BROWSER)</tspan></text>
+<path d="M530,1064 A165,8 0 0 1 860,1064 V1172 A165,8 0 0 1 530,1172 Z" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/><path d="M530,1064 A165,8 0 0 0 860,1064" fill="none" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#16161a" text-anchor="middle"><tspan x="695" y="1115.9">chrome.storage.local</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#8a8a94" text-anchor="middle"><tspan x="695" y="1133.8">settings · API keys you add (never synced)</tspan></text>
+<path d="M900,1064 A165,8 0 0 1 1230,1064 V1172 A165,8 0 0 1 900,1172 Z" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/><path d="M900,1064 A165,8 0 0 0 1230,1064" fill="none" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#16161a" text-anchor="middle"><tspan x="1065" y="1115.9">chrome.storage.session</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#8a8a94" text-anchor="middle"><tspan x="1065" y="1133.8">RAM-only caches &amp; snapshots (wiped on exit)</tspan></text>
+<rect x="1380" y="120" width="380" height="1080" rx="16" fill="#fdf1dc" stroke="#a96400" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#8a8a94" text-anchor="start" letter-spacing="0.12em"><tspan x="1398" y="143.0">EXTERNAL SERVICES (HTTPS + HOST PERMISSIONS)</tspan></text>
+<rect x="1400" y="170" width="340" height="170" rx="12" fill="#ffffff" stroke="#a96400" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="1420" y="199.1">Reddit</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="1420" y="226.3">OAuth API (client id) · public JSON ·</tspan><tspan x="1420" y="242.3">official Atom feeds</tspan></text>
+<rect x="1400" y="370" width="340" height="170" rx="12" fill="#ffffff" stroke="#a96400" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="1420" y="399.1">Substack</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="1420" y="426.3">publication RSS feeds (newest 12 items) ·</tspan><tspan x="1420" y="442.3">article pages open in a new tab</tspan></text>
+<rect x="1400" y="570" width="340" height="170" rx="12" fill="#ffffff" stroke="#a96400" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="1420" y="599.1">Brave Search API</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="1420" y="626.3">site:substack.com queries — key in Settings</tspan><tspan x="1420" y="642.3">or on the backend</tspan></text>
+<rect x="1400" y="770" width="340" height="170" rx="12" fill="#ffffff" stroke="#a96400" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="1420" y="799.1">Anthropic API (optional)</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="1420" y="826.3">claude-opus-5-5 by default; topics, judging,</tspan><tspan x="1420" y="842.3">explanations</tspan></text>
+<rect x="1400" y="970" width="340" height="170" rx="12" fill="#ffffff" stroke="#a96400" stroke-width="1.5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="1420" y="999.1">Backend proxy (optional)</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="1420" y="1026.3">Cloudflare Worker / Node. Holds the Brave +</tspan><tspan x="1420" y="1042.3">Anthropic keys, validates, rate-limits</tspan></text>
+<path d="M420,536 L509,536" fill="none" stroke="#d63a0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M520,536 L509,541.5 L509,530.5 Z" fill="#d63a0b"/>
+<path d="M520,580 L431,580" fill="none" stroke="#0b8a55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M420,580 L431,574.5 L431,585.5 Z" fill="#0b8a55"/>
+<rect x="410.64" y="491.875" width="102.72" height="32.25" rx="8" fill="#faf9f6" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#d63a0b" text-anchor="middle"><tspan x="462" y="505.1">tabs.sendMessage</tspan><tspan x="462" y="518.2">“rh/extract”</tspan></text>
+<rect x="433.32" y="595.875" width="57.36" height="32.25" rx="8" fill="#faf9f6" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#0b8a55" text-anchor="middle"><tspan x="462" y="609.1">RawPage-</tspan><tspan x="462" y="622.2">Metadata</tspan></text>
+<path d="M1010,310 L1010,399" fill="none" stroke="#2f5fd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010,410 L1004.5,399 L1015.5,399 Z" fill="#2f5fd0"/>
+<path d="M1040,410 L1040,321" fill="none" stroke="#2f5fd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1040,310 L1045.5,321 L1034.5,321 Z" fill="#2f5fd0"/>
+<rect x="1126.48" y="350.125" width="107.04" height="19.75" rx="8" fill="#fff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="500" fill="#2f5fd0" text-anchor="middle"><tspan x="1180" y="363.9">typed RPC (port)</tspan></text>
+<path d="M880,488 L880,508" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1240,558 L1290,558 Q1300,558 1300,548 L1300,265 Q1300,255 1310,255 L1389,255" fill="none" stroke="#2f5fd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1400,255 L1389,260.5 L1389,249.5 Z" fill="#2f5fd0"/>
+<path d="M1240,656 L1310,660 Q1320,650 1320,640 L1320,465 Q1320,455 1330,455 L1389,455" fill="none" stroke="#2f5fd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1400,455 L1389,460.5 L1389,449.5 Z" fill="#2f5fd0"/>
+<path d="M1240,682 L1330,680 Q1340,690 1340,680 L1340,665 Q1340,655 1350,655 L1389,655" fill="none" stroke="#2f5fd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1400,655 L1389,660.5 L1389,649.5 Z" fill="#2f5fd0"/>
+<path d="M1240,778 L1290,778 Q1300,778 1300,788 L1300,845 Q1300,855 1310,855 L1389,855" fill="none" stroke="#2f5fd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1400,855 L1389,860.5 L1389,849.5 Z" fill="#2f5fd0"/>
+<path d="M1240,888 L1310,888 Q1320,888 1320,898 L1320,1045 Q1320,1055 1330,1055 L1389,1055" fill="none" stroke="#2f5fd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1400,1055 L1389,1060.5 L1389,1049.5 Z" fill="#2f5fd0"/>
+<rect x="1257.145" y="395.4375" width="85.71000000000001" height="19.125" rx="8" fill="#fff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#2f5fd0" text-anchor="middle"><tspan x="1300" y="408.7">fetch (HTTPS)</tspan></text>
+<path d="M690,970 L690,1045" fill="none" stroke="#0b8a55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M690,1056 L684.5,1045 L695.5,1045 Z" fill="#0b8a55"/>
+<path d="M1060,970 L1060,1045" fill="none" stroke="#0b8a55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1060,1056 L1054.5,1045 L1065.5,1045 Z" fill="#0b8a55"/>
+<rect x="641.475" y="996.4375" width="97.05000000000001" height="19.125" rx="8" fill="#fbfaf8" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#0b8a55" text-anchor="middle"><tspan x="690" y="1009.7">settings · keys</tspan></text>
+<rect x="1002.97" y="996.4375" width="114.06" height="19.125" rx="8" fill="#fbfaf8" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#0b8a55" text-anchor="middle"><tspan x="1060" y="1009.7">caches · snapshots</tspan></text></svg>

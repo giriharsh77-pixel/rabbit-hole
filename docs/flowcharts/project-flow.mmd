@@ -1,0 +1,40 @@
+%% Rabbit Hole — project flowchart
+flowchart TD
+  A([START: user clicks the toolbar icon]) --> B[Popup renders skeletons and opens an RPC port]
+  B --> C[Background reads settings and resolves the active tab]
+  C --> D{Detection on and page supported?}
+  D -- No --> I[Idle: manual search / Use this page on click] --> CTX
+  D -- Yes --> E[Content script reads the page once]
+  E --> F{Metadata identified?}
+  F -- No --> U[Could not identify + manual search box] --> CTX
+  F -- Yes --> G[Topic, entity and keyword extraction + concept expansion]
+  G --> H[Build ContentContext and 3-5 queries] --> CTX[/ContentContext or manual query/]
+
+  CTX --> L1[Generate focused queries]
+  L1 --> L2{Search provider configured?}
+  L2 -- Yes --> L3[Query search API with site:substack.com]
+  L2 -- No --> L4[Read curated Substack RSS feeds]
+  L3 --> L5[Merge, validate, de-duplicate]
+  L4 --> L5
+  L5 --> L6[Relevance 0-100: semantic .45, keyword .20, entity .15, recency .10, source .10]
+  L6 --> L7{AI layer enabled?}
+  L7 -- Yes --> L8[LLM judges relevance and writes why-relevant]
+  L7 -- No --> L9[Template explanation from matched topics]
+  L8 --> L10[Min relevance, diversity cap, limit N]
+  L9 --> L10 --> L11[/Render article cards/]
+
+  CTX --> R1{Fresh cache under 5 min?}
+  R1 -- Yes --> R2[Serve cached threads, re-rank]
+  R1 -- No --> R3[Provider chain: OAuth, public JSON, Atom feed]
+  R3 --> R4{Any provider succeeded?}
+  R4 -- No --> R5[Stale cache flagged or friendly error] --> R9
+  R4 -- Yes --> R6[Merge, drop NSFW, measure growth delta]
+  R2 --> R7
+  R6 --> R7[Trending score = recency x velocity x comments x popularity x growth]
+  R7 --> R8[Hot / Rising / Discussed / Across] --> R9[/Render thread cards/]
+
+  L11 --> N{What next?}
+  R9 --> N
+  N -->|Open article or thread| E1([END: new tab])
+  N -->|Find deeper reading / See what Reddit thinks / new search| CTX
+  N -->|Close popup| E2([END: requests cancelled])

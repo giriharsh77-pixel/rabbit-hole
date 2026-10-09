@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2260" height="2760" viewBox="0 0 2260 2760"><rect width="2260" height="2760" fill="#ffffff"/><text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#16161a" text-anchor="start"><tspan x="60" y="64.6">Rabbit Hole — project flowchart</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="60" y="94.3">What happens from the moment the toolbar icon is clicked until the user opens an article or thread</tspan></text>
+<rect x="820" y="130" width="360" height="74" rx="37" fill="#0b0b0d" stroke="#0b0b0d" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#fff" text-anchor="middle"><tspan x="1000" y="163.2">START — user clicks the Rabbit Hole toolbar</tspan><tspan x="1000" y="179.9">icon (or opens the dashboard)</tspan></text>
+<rect x="805" y="238" width="390" height="74" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1000" y="271.2">Popup renders instantly with skeleton loaders and</tspan><tspan x="1000" y="287.9">opens an RPC port to the background service worker</tspan></text>
+<rect x="825" y="346" width="350" height="66" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1000" y="375.2">Background worker reads settings and resolves</tspan><tspan x="1000" y="391.9">the active tab</tspan></text>
+<polygon points="1000,446 1210,521 1000,596 790,521" fill="#fdf1dc" stroke="#a96400" stroke-width="1.6" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1000" y="508.9">Detection enabled AND page</tspan><tspan x="1000" y="525.6">is YouTube / Netflix /</tspan><tspan x="1000" y="542.2">Reddit thread / Substack?</tspan></text>
+<rect x="825" y="636" width="350" height="78" rx="9" fill="#e8eefc" stroke="#2f5fd0" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1000" y="671.2">Content script (idle until asked) reads the</tspan><tspan x="1000" y="687.9">page once: DOM, JSON-LD, Media Session</tspan></text>
+<polygon points="1000,748 1165,812 1000,876 835,812" fill="#fdf1dc" stroke="#a96400" stroke-width="1.6" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1000" y="816.5">Metadata identified?</tspan></text>
+<rect x="825" y="914" width="350" height="78" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1000" y="949.2">Topic, entity &amp; keyword extraction; expand</tspan><tspan x="1000" y="965.9">concepts with the ontology (or the AI layer)</tspan></text>
+<rect x="825" y="1026" width="350" height="66" rx="6" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<line x1="835" y1="1026" x2="835" y2="1092" stroke="#16161a" stroke-width="1.6"/><line x1="1165" y1="1026" x2="1165" y2="1092" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1000" y="1063.5">Build ContentContext + 3–5 search queries</tspan></text>
+<polygon points="818,1128 1200,1128 1182,1198 800,1198" fill="#fdeee8" stroke="#d63a0b" stroke-width="1.6" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1000" y="1167.5">ContentContext ready (or a manual search query)</tspan></text>
+<rect x="1330" y="477" width="340" height="88" rx="9" fill="#f6f5f2" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1500" y="508.9">Idle: nothing is read. Offer manual search</tspan><tspan x="1500" y="525.6">and “Use this page” (only on the user’s</tspan><tspan x="1500" y="542.2">click)</tspan></text>
+<rect x="1330" y="768" width="340" height="88" rx="9" fill="#f6f5f2" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1500" y="808.2">Show “We couldn’t automatically identify</tspan><tspan x="1500" y="824.9">what you’re watching” + manual search box</tspan></text>
+<path d="M1000,204 L1000,227" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1000,238 L994.5,227 L1005.5,227 Z" fill="#6b6b78"/>
+<path d="M1000,312 L1000,335" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1000,346 L994.5,335 L1005.5,335 Z" fill="#6b6b78"/>
+<path d="M1000,412 L1000,435" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1000,446 L994.5,435 L1005.5,435 Z" fill="#6b6b78"/>
+<path d="M1000,596 L1000,625" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1000,636 L994.5,625 L1005.5,625 Z" fill="#6b6b78"/>
+<rect x="985.09" y="606.125" width="29.82" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#0b8a55" text-anchor="middle"><tspan x="1000" y="619.9">Yes</tspan></text>
+<path d="M1210,521 L1319,521" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1330,521 L1319,526.5 L1319,515.5 Z" fill="#6b6b78"/>
+<rect x="1258.06" y="511.125" width="23.880000000000003" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#d63a0b" text-anchor="middle"><tspan x="1270" y="524.9">No</tspan></text>
+<path d="M1000,714 L1000,737" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1000,748 L994.5,737 L1005.5,737 Z" fill="#6b6b78"/>
+<path d="M1000,876 L1000,903" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1000,914 L994.5,903 L1005.5,903 Z" fill="#6b6b78"/>
+<rect x="985.09" y="886.125" width="29.82" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#0b8a55" text-anchor="middle"><tspan x="1000" y="899.9">Yes</tspan></text>
+<path d="M1165,812 L1319,812" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1330,812 L1319,817.5 L1319,806.5 Z" fill="#6b6b78"/>
+<rect x="1235.56" y="802.125" width="23.880000000000003" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#d63a0b" text-anchor="middle"><tspan x="1247.5" y="815.9">No</tspan></text>
+<path d="M1000,992 L1000,1015" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1000,1026 L994.5,1015 L1005.5,1015 Z" fill="#6b6b78"/>
+<path d="M1000,1092 L1000,1117" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1000,1128 L994.5,1117 L1005.5,1117 Z" fill="#6b6b78"/>
+<path d="M1670,521 L1720,521 Q1730,521 1730,531 L1730,1153 Q1730,1163 1720,1163 L1211,1163" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/><path d="M1200,1163 L1211,1157.5 L1211,1168.5 Z" fill="#6b6b78"/>
+<path d="M1670,812 L1690,812 Q1700,812 1700,822 L1700,1153 Q1700,1163 1690,1163 L1211,1163" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/><path d="M1200,1163 L1211,1157.5 L1211,1168.5 Z" fill="#6b6b78"/>
+<rect x="470" y="1252" width="1060" height="8" rx="4" fill="#16161a" stroke="none" stroke-width="1"/>
+<rect x="875.2" y="1216.125" width="249.60000000000002" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="500" fill="#55555f" text-anchor="middle"><tspan x="1000" y="1229.8">two independent branches run in parallel</tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#d63a0b" text-anchor="start" letter-spacing="0.1em"><tspan x="40" y="1292.7">BRANCH A — RELATED READING (Substack)</tspan></text>
+<rect x="320" y="1310" width="300" height="74" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="470" y="1334.9">Generate 3–5 focused queries (entity +</tspan><tspan x="470" y="1351.5">topic + concept; AI queries first when</tspan><tspan x="470" y="1368.2">enabled)</tspan></text>
+<polygon points="470,1414 630,1477 470,1540 310,1477" fill="#fdf1dc" stroke="#a96400" stroke-width="1.6" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="470" y="1465.8">Search provider</tspan><tspan x="470" y="1481.2">configured? (backend or</tspan><tspan x="470" y="1496.6">Brave key)</tspan></text>
+<rect x="40" y="1580" width="290" height="78" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="185" y="1606.9">Query the search API with</tspan><tspan x="185" y="1623.5">site:substack.com (several queries in</tspan><tspan x="185" y="1640.2">parallel)</tspan></text>
+<rect x="610" y="1580" width="290" height="78" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="755" y="1615.2">Read curated Substack RSS feeds</tspan><tspan x="755" y="1631.9">(newest 12 items each, streamed)</tspan></text>
+<rect x="320" y="1700" width="300" height="78" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="470" y="1735.2">Merge · validate (HTTPS, hosts, dates)</tspan><tspan x="470" y="1751.9">· de-duplicate by canonical URL</tspan></text>
+<rect x="300" y="1812" width="340" height="110" rx="6" fill="#fdeee8" stroke="#d63a0b" stroke-width="1.6"/>
+<line x1="310" y1="1812" x2="310" y2="1922" stroke="#d63a0b" stroke-width="1.6"/><line x1="630" y1="1812" x2="630" y2="1922" stroke="#d63a0b" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="470" y="1855.8">Relevance 0–100 = 0.45 semantic + 0.20</tspan><tspan x="470" y="1871.2">keyword + 0.15 entity + 0.10 recency + 0.10</tspan><tspan x="470" y="1886.6">source quality</tspan></text>
+<polygon points="470,1956 630,2016 470,2076 310,2016" fill="#fdf1dc" stroke="#a96400" stroke-width="1.6" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="470" y="2020.5">AI layer enabled?</tspan></text>
+<rect x="40" y="2112" width="290" height="74" rx="9" fill="#e8eefc" stroke="#2f5fd0" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="185" y="2136.9">LLM judges relevance and writes “Why</tspan><tspan x="185" y="2153.6">this is relevant” (grounded in</tspan><tspan x="185" y="2170.2">title/excerpt)</tspan></text>
+<rect x="610" y="2112" width="290" height="74" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="755" y="2145.2">Template explanation built from the</tspan><tspan x="755" y="2161.9">topics that actually matched</tspan></text>
+<rect x="320" y="2220" width="300" height="74" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="470" y="2253.2">Apply minimum relevance, diversity cap</tspan><tspan x="470" y="2269.9">(≤ 2 per publication) and result limit</tspan></text>
+<polygon points="318,2328 640,2328 622,2408 300,2408" fill="#e4f5ec" stroke="#0b8a55" stroke-width="1.6" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="470" y="2364.2">Render article cards: label · excerpt ·</tspan><tspan x="470" y="2380.9">tags · “Why this is relevant”</tspan></text>
+<path d="M1000,1198 L1000,1242 Q1000,1252 990,1252 L480,1252 Q470,1252 470,1262 L470,1299" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M470,1310 L464.5,1299 L475.5,1299 Z" fill="#6b6b78"/>
+<path d="M470,1384 L470,1403" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M470,1414 L464.5,1403 L475.5,1403 Z" fill="#6b6b78"/>
+<path d="M310,1477 L195,1477 Q185,1477 185,1487 L185,1569" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M185,1580 L179.5,1569 L190.5,1569 Z" fill="#6b6b78"/>
+<rect x="235.09" y="1467.125" width="29.82" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#0b8a55" text-anchor="middle"><tspan x="250" y="1480.8">Yes</tspan></text>
+<path d="M630,1477 L745,1477 Q755,1477 755,1487 L755,1569" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M755,1580 L749.5,1569 L760.5,1569 Z" fill="#6b6b78"/>
+<rect x="648.36" y="1467.125" width="83.28" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#d63a0b" text-anchor="middle"><tspan x="690" y="1480.8">No (keyless)</tspan></text>
+<path d="M185,1658 L185,1729 Q185,1739 195,1739 L309,1739" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M320,1739 L309,1744.5 L309,1733.5 Z" fill="#6b6b78"/>
+<path d="M755,1658 L755,1729 Q755,1739 745,1739 L631,1739" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M620,1739 L631,1733.5 L631,1744.5 Z" fill="#6b6b78"/>
+<rect x="110.96" y="1683.875" width="148.08" height="32.25" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#8a8a94" text-anchor="middle"><tspan x="185" y="1697.1">thin results (&lt; 8)? also</tspan><tspan x="185" y="1710.2">read feeds</tspan></text>
+<path d="M470,1778 L470,1801" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M470,1812 L464.5,1801 L475.5,1801 Z" fill="#6b6b78"/>
+<path d="M470,1922 L470,1945" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M470,1956 L464.5,1945 L475.5,1945 Z" fill="#6b6b78"/>
+<path d="M310,2016 L195,2016 Q185,2016 185,2026 L185,2101" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M185,2112 L179.5,2101 L190.5,2101 Z" fill="#6b6b78"/>
+<rect x="235.09" y="2006.125" width="29.82" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#0b8a55" text-anchor="middle"><tspan x="250" y="2019.8">Yes</tspan></text>
+<path d="M630,2016 L745,2016 Q755,2016 755,2026 L755,2101" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M755,2112 L749.5,2101 L760.5,2101 Z" fill="#6b6b78"/>
+<rect x="678.06" y="2006.125" width="23.880000000000003" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#d63a0b" text-anchor="middle"><tspan x="690" y="2019.8">No</tspan></text>
+<path d="M185,2186 L185,2247 Q185,2257 195,2257 L309,2257" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M320,2257 L309,2262.5 L309,2251.5 Z" fill="#6b6b78"/>
+<path d="M755,2186 L755,2247 Q755,2257 745,2257 L631,2257" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M620,2257 L631,2251.5 L631,2262.5 Z" fill="#6b6b78"/>
+<path d="M470,2294 L470,2317" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M470,2328 L464.5,2317 L475.5,2317 Z" fill="#6b6b78"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#d63a0b" text-anchor="start" letter-spacing="0.1em"><tspan x="1100" y="1292.7">BRANCH B — TRENDING REDDIT</tspan></text>
+<polygon points="1530,1310 1700,1374 1530,1438 1360,1374" fill="#fdf1dc" stroke="#a96400" stroke-width="1.6" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1530" y="1370.5">Fresh cache (&lt; 5 min) for</tspan><tspan x="1530" y="1385.9">this topic?</tspan></text>
+<rect x="1760" y="1341" width="250" height="66" rx="9" fill="#e4f5ec" stroke="#0b8a55" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1885" y="1378.5">Serve cached threads instantly</tspan></text>
+<rect x="1370" y="1478" width="320" height="92" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1530" y="1511.9">Provider chain with circuit breaker: 1</tspan><tspan x="1530" y="1528.5">OAuth API → 2 public JSON → 3 official</tspan><tspan x="1530" y="1545.2">Atom feed</tspan></text>
+<polygon points="1530,1608 1700,1670 1530,1732 1360,1670" fill="#fdf1dc" stroke="#a96400" stroke-width="1.6" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1530" y="1674.5">Any provider succeeded?</tspan></text>
+<rect x="1760" y="1624" width="250" height="92" rx="9" fill="#fdf1ee" stroke="#d63a0b" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1885" y="1657.9">Show last cached data (flagged</tspan><tspan x="1885" y="1674.5">stale) or a friendly error with</tspan><tspan x="1885" y="1691.2">“Try again”</tspan></text>
+<rect x="1370" y="1770" width="320" height="80" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1530" y="1806.2">Merge listings · drop NSFW / stickied ·</tspan><tspan x="1530" y="1822.9">measure Δ upvotes vs. last snapshot</tspan></text>
+<rect x="1350" y="1888" width="360" height="100" rx="6" fill="#fdeee8" stroke="#d63a0b" stroke-width="1.6"/>
+<line x1="1360" y1="1888" x2="1360" y2="1988" stroke="#d63a0b" stroke-width="1.6"/><line x1="1700" y1="1888" x2="1700" y2="1988" stroke="#d63a0b" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1530" y="1934.5">Trending = recency × upvote velocity × comment</tspan><tspan x="1530" y="1949.9">velocity × popularity × growth</tspan></text>
+<rect x="1370" y="2026" width="320" height="70" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1530" y="2057.2">Rank into 4 sections: Hot · Rising ·</tspan><tspan x="1530" y="2073.9">Discussed · Across</tspan></text>
+<polygon points="1368,2134 1710,2134 1692,2216 1350,2216" fill="#e4f5ec" stroke="#0b8a55" stroke-width="1.6" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1530" y="2171.2">Render thread cards: ↑ comments · growth</tspan><tspan x="1530" y="2187.9">label · “Find deeper reading →”</tspan></text>
+<path d="M1000,1198 L1000,1242 Q1000,1252 1010,1252 L1520,1252 Q1530,1252 1530,1262 L1530,1299" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1530,1310 L1524.5,1299 L1535.5,1299 Z" fill="#6b6b78"/>
+<path d="M1700,1374 L1749,1374" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1760,1374 L1749,1379.5 L1749,1368.5 Z" fill="#6b6b78"/>
+<rect x="1715.09" y="1364.125" width="29.82" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#0b8a55" text-anchor="middle"><tspan x="1730" y="1377.8">Yes</tspan></text>
+<path d="M1530,1438 L1530,1467" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1530,1478 L1524.5,1467 L1535.5,1467 Z" fill="#6b6b78"/>
+<rect x="1518.06" y="1448.125" width="23.880000000000003" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#d63a0b" text-anchor="middle"><tspan x="1530" y="1461.8">No</tspan></text>
+<path d="M1530,1570 L1530,1597" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1530,1608 L1524.5,1597 L1535.5,1597 Z" fill="#6b6b78"/>
+<path d="M1700,1670 L1749,1670" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1760,1670 L1749,1675.5 L1749,1664.5 Z" fill="#6b6b78"/>
+<rect x="1718.06" y="1660.125" width="23.880000000000003" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#d63a0b" text-anchor="middle"><tspan x="1730" y="1673.8">No</tspan></text>
+<path d="M1530,1732 L1530,1759" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1530,1770 L1524.5,1759 L1535.5,1759 Z" fill="#6b6b78"/>
+<rect x="1515.09" y="1742.125" width="29.82" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#0b8a55" text-anchor="middle"><tspan x="1530" y="1755.8">Yes</tspan></text>
+<path d="M1530,1850 L1530,1877" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1530,1888 L1524.5,1877 L1535.5,1877 Z" fill="#6b6b78"/>
+<path d="M1530,1988 L1530,2015" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1530,2026 L1524.5,2015 L1535.5,2015 Z" fill="#6b6b78"/>
+<path d="M1530,2096 L1530,2123" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1530,2134 L1524.5,2123 L1535.5,2123 Z" fill="#6b6b78"/>
+<path d="M2010,1374 L2040,1374 Q2050,1374 2050,1384 L2050,1928 Q2050,1938 2040,1938 L1721,1938" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/><path d="M1710,1938 L1721,1932.5 L1721,1943.5 Z" fill="#6b6b78"/>
+<rect x="1992.97" y="1503.875" width="114.06" height="32.25" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#8a8a94" text-anchor="middle"><tspan x="2050" y="1517.1">re-ranked with the</tspan><tspan x="2050" y="1530.2">current time</tspan></text>
+<path d="M2010,1670 L2080,1670 Q2090,1670 2090,1680 L2090,2165 Q2090,2175 2080,2175 L1721,2175" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/><path d="M1710,2175 L1721,2169.5 L1721,2180.5 Z" fill="#6b6b78"/>
+<polygon points="1000,2470 1190,2555 1000,2640 810,2555" fill="#fdf1dc" stroke="#a96400" stroke-width="1.6" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="1000" y="2550.9">What does the user do</tspan><tspan x="1000" y="2568.9">next?</tspan></text>
+<path d="M470,2408 L470,2430 Q470,2440 480,2440 L1000,2440" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1530,2216 L1530,2430 Q1530,2440 1520,2440 L1000,2440" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1000,2440 L1000,2459" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1000,2470 L994.5,2459 L1005.5,2459 Z" fill="#6b6b78"/>
+<rect x="240" y="2528" width="360" height="54" rx="27" fill="#0b0b0d" stroke="#0b0b0d" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#fff" text-anchor="middle"><tspan x="420" y="2559.6">END — article / thread opens in a new tab</tspan></text>
+<rect x="820" y="2672" width="360" height="54" rx="27" fill="#0b0b0d" stroke="#0b0b0d" stroke-width="1.6"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#fff" text-anchor="middle"><tspan x="1000" y="2695.2">END — popup closed; in-flight requests</tspan><tspan x="1000" y="2711.9">cancelled</tspan></text>
+<path d="M810,2555 L611,2555" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M600,2555 L611,2549.5 L611,2560.5 Z" fill="#6b6b78"/>
+<rect x="654.45" y="2538.25" width="101.10000000000001" height="33.5" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="500" fill="#55555f" text-anchor="middle"><tspan x="705" y="2552.0">Open article or</tspan><tspan x="705" y="2565.7">thread</tspan></text>
+<path d="M1000,2640 L1000,2661" fill="none" stroke="#6b6b78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1000,2672 L994.5,2661 L1005.5,2661 Z" fill="#6b6b78"/>
+<rect x="979.15" y="2646.125" width="41.7" height="19.75" rx="8" fill="#ffffff" stroke="none" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="500" fill="#55555f" text-anchor="middle"><tspan x="1000" y="2659.8">Close</tspan></text>
+<path d="M1190,2555 L2150,2555 Q2160,2555 2160,2545 L2160,1173 Q2160,1163 2150,1163 L1211,1163" fill="none" stroke="#d63a0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 5"/><path d="M1200,1163 L1211,1157.5 L1211,1168.5 Z" fill="#d63a0b"/>
+<rect x="2076.375" y="1468.25" width="167.25" height="63.5" rx="8" fill="#ffffff" stroke="#d63a0b" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="600" fill="#d63a0b" text-anchor="middle"><tspan x="2160" y="1482.5">“Find deeper reading →”</tspan><tspan x="2160" y="1496.8">“See what Reddit thinks</tspan><tspan x="2160" y="1511.2">→”</tspan><tspan x="2160" y="1525.6">new search · topic filter</tspan></text>
+<rect x="60" y="150" width="330" height="258" rx="14" fill="#faf9f6" stroke="#d9d6cf" stroke-width="1"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#8a8a94" text-anchor="start" letter-spacing="0.12em"><tspan x="78" y="175.0">LEGEND</tspan></text>
+<rect x="80" y="194" width="88" height="28" rx="14" fill="#0b0b0d" stroke="#0b0b0d" stroke-width="1.3"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#fff" text-anchor="middle"><tspan x="124" y="212.6"></tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="184" y="212.6">Start / end</tspan></text>
+<rect x="80" y="234" width="88" height="28" rx="9" fill="#ffffff" stroke="#16161a" stroke-width="1.3"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="124" y="252.6"></tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="184" y="252.6">Process step</tspan></text>
+<polygon points="124,274 168,288 124,302 80,288" fill="#fdf1dc" stroke="#a96400" stroke-width="1.3" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="124" y="292.6"></tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="184" y="292.6">Decision</tspan></text>
+<polygon points="98,314 168,314 150,342 80,342" fill="#e4f5ec" stroke="#0b8a55" stroke-width="1.3" stroke-linejoin="round"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="124" y="332.6"></tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="184" y="332.6">User-visible output</tspan></text>
+<rect x="80" y="354" width="88" height="28" rx="6" fill="#fdeee8" stroke="#d63a0b" stroke-width="1.3"/>
+<line x1="90" y1="354" x2="90" y2="382" stroke="#d63a0b" stroke-width="1.3"/><line x1="158" y1="354" x2="158" y2="382" stroke="#d63a0b" stroke-width="1.3"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#16161a" text-anchor="middle"><tspan x="124" y="372.6"></tspan></text>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="184" y="372.6">Algorithm / sub-process</tspan></text>
+<path d="M80,400 L168,400" stroke="#d63a0b" stroke-width="2" stroke-dasharray="7 5"/>
+<text font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#55555f" text-anchor="start"><tspan x="184" y="404.7">Loop / fallback path</tspan></text></svg>

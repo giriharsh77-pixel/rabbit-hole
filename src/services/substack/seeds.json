@@ -1,0 +1,971 @@
+{
+  "_comment": "Curated, keyless fallback directory. Every feed was checked live on 2026-10-07 (HTTP 200, recent posts). Run `npm run seeds:verify` to re-check. Editorial 'tier' (1-3) is only a small source-quality prior; it is never shown to users as a rating.",
+  "version": 1,
+  "verifiedOn": "2026-10-07",
+  "publications": [
+    {
+      "id": "importai",
+      "name": "Import AI",
+      "feedUrl": "https://importai.substack.com/feed",
+      "homeUrl": "https://importai.substack.com",
+      "tier": 3,
+      "tags": [
+        "ai",
+        "artificial intelligence",
+        "machine learning",
+        "ai research",
+        "ai policy",
+        "frontier ai",
+        "ai safety",
+        "llm",
+        "technology"
+      ]
+    },
+    {
+      "id": "thezvi",
+      "name": "Don't Worry About the Vase",
+      "feedUrl": "https://thezvi.substack.com/feed",
+      "homeUrl": "https://thezvi.substack.com",
+      "tier": 3,
+      "tags": [
+        "ai",
+        "ai safety",
+        "ai alignment",
+        "llm",
+        "rationality",
+        "technology",
+        "economics",
+        "policy"
+      ]
+    },
+    {
+      "id": "garymarcus",
+      "name": "Marcus on AI",
+      "feedUrl": "https://garymarcus.substack.com/feed",
+      "homeUrl": "https://garymarcus.substack.com",
+      "tier": 2,
+      "tags": [
+        "ai",
+        "artificial intelligence",
+        "llm",
+        "ai policy",
+        "deep learning",
+        "agi",
+        "technology"
+      ]
+    },
+    {
+      "id": "natesnewsletter",
+      "name": "Nate's Substack",
+      "feedUrl": "https://natesnewsletter.substack.com/feed",
+      "homeUrl": "https://natesnewsletter.substack.com",
+      "tier": 2,
+      "tags": [
+        "ai",
+        "ai strategy",
+        "llm",
+        "ai agents",
+        "product management",
+        "productivity",
+        "technology",
+        "work"
+      ]
+    },
+    {
+      "id": "thesequence",
+      "name": "TheSequence",
+      "feedUrl": "https://thesequence.substack.com/feed",
+      "homeUrl": "https://thesequence.substack.com",
+      "tier": 2,
+      "tags": [
+        "ai",
+        "machine learning",
+        "ai research",
+        "llm",
+        "ai agents",
+        "ai infrastructure",
+        "startups"
+      ]
+    },
+    {
+      "id": "gradientflow",
+      "name": "Gradient Flow",
+      "feedUrl": "https://gradientflow.substack.com/feed",
+      "homeUrl": "https://gradientflow.substack.com",
+      "tier": 2,
+      "tags": [
+        "ai",
+        "machine learning",
+        "data",
+        "ai engineering",
+        "llm",
+        "ai agents",
+        "enterprise ai"
+      ]
+    },
+    {
+      "id": "theaiedge",
+      "name": "The AI Edge",
+      "feedUrl": "https://theaiedge.substack.com/feed",
+      "homeUrl": "https://theaiedge.substack.com",
+      "tier": 1,
+      "tags": [
+        "ai",
+        "machine learning",
+        "deep learning",
+        "llm",
+        "ai engineering"
+      ]
+    },
+    {
+      "id": "simonw",
+      "name": "Simon Willison's Newsletter",
+      "feedUrl": "https://simonw.substack.com/feed",
+      "homeUrl": "https://simonw.substack.com",
+      "tier": 3,
+      "tags": [
+        "ai",
+        "llm",
+        "programming",
+        "software development",
+        "python",
+        "open source",
+        "ai coding",
+        "developer tools",
+        "ai agents"
+      ]
+    },
+    {
+      "id": "asteriskmag",
+      "name": "Asterisk Magazine",
+      "feedUrl": "https://asteriskmag.substack.com/feed",
+      "homeUrl": "https://asteriskmag.substack.com",
+      "tier": 3,
+      "tags": [
+        "science",
+        "policy",
+        "ai",
+        "effective altruism",
+        "economics",
+        "technology",
+        "progress"
+      ]
+    },
+    {
+      "id": "dynomight",
+      "name": "Dynomight",
+      "feedUrl": "https://dynomight.substack.com/feed",
+      "homeUrl": "https://dynomight.substack.com",
+      "tier": 2,
+      "tags": [
+        "science",
+        "statistics",
+        "data",
+        "ai",
+        "health",
+        "nutrition"
+      ]
+    },
+    {
+      "id": "erictopol",
+      "name": "Ground Truths",
+      "feedUrl": "https://erictopol.substack.com/feed",
+      "homeUrl": "https://erictopol.substack.com",
+      "tier": 3,
+      "tags": [
+        "medicine",
+        "health",
+        "ai in medicine",
+        "science",
+        "longevity",
+        "biology",
+        "research"
+      ]
+    },
+    {
+      "id": "annehelen",
+      "name": "Culture Study",
+      "feedUrl": "https://annehelen.substack.com/feed",
+      "homeUrl": "https://annehelen.substack.com",
+      "tier": 3,
+      "tags": [
+        "culture",
+        "media",
+        "work",
+        "television",
+        "internet",
+        "pop culture",
+        "society",
+        "film"
+      ]
+    },
+    {
+      "id": "heathercoxrichardson",
+      "name": "Letters from an American",
+      "feedUrl": "https://heathercoxrichardson.substack.com/feed",
+      "homeUrl": "https://heathercoxrichardson.substack.com",
+      "tier": 3,
+      "tags": [
+        "politics",
+        "history",
+        "united states",
+        "democracy",
+        "world news",
+        "government"
+      ]
+    },
+    {
+      "id": "paulkrugman",
+      "name": "Paul Krugman",
+      "feedUrl": "https://paulkrugman.substack.com/feed",
+      "homeUrl": "https://paulkrugman.substack.com",
+      "tier": 3,
+      "tags": [
+        "economics",
+        "economy",
+        "inflation",
+        "trade",
+        "tariffs",
+        "finance",
+        "politics",
+        "interest rates"
+      ]
+    },
+    {
+      "id": "lawfare",
+      "name": "Lawfare",
+      "feedUrl": "https://lawfare.substack.com/feed",
+      "homeUrl": "https://lawfare.substack.com",
+      "tier": 3,
+      "tags": [
+        "national security",
+        "law",
+        "cybersecurity",
+        "geopolitics",
+        "policy",
+        "courts",
+        "technology policy"
+      ]
+    },
+    {
+      "id": "thewirechina",
+      "name": "The Wire China",
+      "feedUrl": "https://thewirechina.substack.com/feed",
+      "homeUrl": "https://thewirechina.substack.com",
+      "tier": 2,
+      "tags": [
+        "china",
+        "business",
+        "geopolitics",
+        "trade",
+        "technology",
+        "semiconductors",
+        "economy"
+      ]
+    },
+    {
+      "id": "adamtooze",
+      "name": "Chartbook",
+      "feedUrl": "https://adamtooze.substack.com/feed",
+      "homeUrl": "https://adamtooze.substack.com",
+      "tier": 3,
+      "tags": [
+        "economics",
+        "geopolitics",
+        "history",
+        "finance",
+        "climate",
+        "energy",
+        "china",
+        "world news"
+      ]
+    },
+    {
+      "id": "austinkleon",
+      "name": "Austin Kleon",
+      "feedUrl": "https://austinkleon.substack.com/feed",
+      "homeUrl": "https://austinkleon.substack.com",
+      "tier": 1,
+      "tags": [
+        "creativity",
+        "art",
+        "writing",
+        "culture",
+        "books",
+        "music"
+      ]
+    },
+    {
+      "id": "phillipspobrien",
+      "name": "Phillips's Newsletter",
+      "feedUrl": "https://phillipspobrien.substack.com/feed",
+      "homeUrl": "https://phillipspobrien.substack.com",
+      "tier": 2,
+      "tags": [
+        "ukraine",
+        "russia",
+        "war",
+        "geopolitics",
+        "military",
+        "world news",
+        "defense"
+      ]
+    },
+    {
+      "id": "yourlocalepidemiologist",
+      "name": "Your Local Epidemiologist",
+      "feedUrl": "https://yourlocalepidemiologist.substack.com/feed",
+      "homeUrl": "https://yourlocalepidemiologist.substack.com",
+      "tier": 3,
+      "tags": [
+        "public health",
+        "health",
+        "vaccines",
+        "pandemic",
+        "medicine",
+        "science"
+      ]
+    },
+    {
+      "id": "kyla",
+      "name": "Kyla's Newsletter",
+      "feedUrl": "https://kyla.substack.com/feed",
+      "homeUrl": "https://kyla.substack.com",
+      "tier": 2,
+      "tags": [
+        "economy",
+        "finance",
+        "markets",
+        "investing",
+        "culture",
+        "inflation",
+        "consumer"
+      ]
+    },
+    {
+      "id": "oneusefulthing",
+      "name": "One Useful Thing",
+      "feedUrl": "https://www.oneusefulthing.org/feed",
+      "homeUrl": "https://www.oneusefulthing.org",
+      "tier": 3,
+      "tags": [
+        "ai",
+        "llm",
+        "education",
+        "work",
+        "productivity",
+        "research",
+        "generative ai"
+      ]
+    },
+    {
+      "id": "bigtechnology",
+      "name": "Big Technology",
+      "feedUrl": "https://www.bigtechnology.com/feed",
+      "homeUrl": "https://www.bigtechnology.com",
+      "tier": 3,
+      "tags": [
+        "technology",
+        "big tech",
+        "ai",
+        "startups",
+        "silicon valley",
+        "business",
+        "openai",
+        "social media"
+      ]
+    },
+    {
+      "id": "noahpinion",
+      "name": "Noahpinion",
+      "feedUrl": "https://www.noahpinion.blog/feed",
+      "homeUrl": "https://www.noahpinion.blog",
+      "tier": 3,
+      "tags": [
+        "economics",
+        "economy",
+        "technology",
+        "china",
+        "politics",
+        "finance",
+        "manufacturing"
+      ]
+    },
+    {
+      "id": "lennysnewsletter",
+      "name": "Lenny's Newsletter",
+      "feedUrl": "https://www.lennysnewsletter.com/feed",
+      "homeUrl": "https://www.lennysnewsletter.com",
+      "tier": 3,
+      "tags": [
+        "product management",
+        "startups",
+        "growth",
+        "software development",
+        "careers",
+        "saas",
+        "ai",
+        "product"
+      ]
+    },
+    {
+      "id": "exponentialview",
+      "name": "Exponential View",
+      "feedUrl": "https://www.exponentialview.co/feed",
+      "homeUrl": "https://www.exponentialview.co",
+      "tier": 3,
+      "tags": [
+        "ai",
+        "technology",
+        "economy",
+        "future",
+        "climate",
+        "energy",
+        "society"
+      ]
+    },
+    {
+      "id": "understandingai",
+      "name": "Understanding AI",
+      "feedUrl": "https://www.understandingai.org/feed",
+      "homeUrl": "https://www.understandingai.org",
+      "tier": 3,
+      "tags": [
+        "ai",
+        "llm",
+        "ai industry",
+        "self-driving",
+        "robotics",
+        "technology",
+        "openai"
+      ]
+    },
+    {
+      "id": "thealgorithmicbridge",
+      "name": "The Algorithmic Bridge",
+      "feedUrl": "https://www.thealgorithmicbridge.com/feed",
+      "homeUrl": "https://www.thealgorithmicbridge.com",
+      "tier": 2,
+      "tags": [
+        "ai",
+        "llm",
+        "openai",
+        "chatgpt",
+        "ai industry",
+        "technology",
+        "society"
+      ]
+    },
+    {
+      "id": "honest-broker",
+      "name": "The Honest Broker",
+      "feedUrl": "https://www.honest-broker.com/feed",
+      "homeUrl": "https://www.honest-broker.com",
+      "tier": 3,
+      "tags": [
+        "music",
+        "culture",
+        "media",
+        "film",
+        "books",
+        "creativity",
+        "internet",
+        "pop culture"
+      ]
+    },
+    {
+      "id": "joshbarro",
+      "name": "Very Serious",
+      "feedUrl": "https://www.joshbarro.com/feed",
+      "homeUrl": "https://www.joshbarro.com",
+      "tier": 2,
+      "tags": [
+        "politics",
+        "economics",
+        "media",
+        "policy",
+        "housing",
+        "culture"
+      ]
+    },
+    {
+      "id": "afterbabel",
+      "name": "After Babel",
+      "feedUrl": "https://www.afterbabel.com/feed",
+      "homeUrl": "https://www.afterbabel.com",
+      "tier": 3,
+      "tags": [
+        "psychology",
+        "social media",
+        "mental health",
+        "children",
+        "technology and society",
+        "education"
+      ]
+    },
+    {
+      "id": "thebulwark",
+      "name": "The Bulwark",
+      "feedUrl": "https://www.thebulwark.com/feed",
+      "homeUrl": "https://www.thebulwark.com",
+      "tier": 2,
+      "tags": [
+        "politics",
+        "united states",
+        "democracy",
+        "world news",
+        "elections",
+        "government"
+      ]
+    },
+    {
+      "id": "heated",
+      "name": "HEATED",
+      "feedUrl": "https://heated.world/feed",
+      "homeUrl": "https://heated.world",
+      "tier": 2,
+      "tags": [
+        "climate change",
+        "energy",
+        "environment",
+        "climate",
+        "policy",
+        "renewable energy"
+      ]
+    },
+    {
+      "id": "sebastianraschka",
+      "name": "Ahead of AI",
+      "feedUrl": "https://magazine.sebastianraschka.com/feed",
+      "homeUrl": "https://magazine.sebastianraschka.com",
+      "tier": 3,
+      "tags": [
+        "ai",
+        "machine learning",
+        "llm",
+        "deep learning",
+        "ai research",
+        "python",
+        "ai engineering"
+      ]
+    },
+    {
+      "id": "astralcodexten",
+      "name": "Astral Codex Ten",
+      "feedUrl": "https://www.astralcodexten.com/feed",
+      "homeUrl": "https://www.astralcodexten.com",
+      "tier": 3,
+      "tags": [
+        "science",
+        "psychology",
+        "ai",
+        "rationality",
+        "philosophy",
+        "medicine",
+        "politics",
+        "economics",
+        "culture"
+      ]
+    },
+    {
+      "id": "slowboring",
+      "name": "Slow Boring",
+      "feedUrl": "https://www.slowboring.com/feed",
+      "homeUrl": "https://www.slowboring.com",
+      "tier": 3,
+      "tags": [
+        "politics",
+        "economics",
+        "policy",
+        "housing",
+        "united states",
+        "government"
+      ]
+    },
+    {
+      "id": "notboring",
+      "name": "Not Boring",
+      "feedUrl": "https://www.notboring.co/feed",
+      "homeUrl": "https://www.notboring.co",
+      "tier": 3,
+      "tags": [
+        "startups",
+        "technology",
+        "business",
+        "strategy",
+        "venture capital",
+        "markets",
+        "finance",
+        "ai"
+      ]
+    },
+    {
+      "id": "construction-physics",
+      "name": "Construction Physics",
+      "feedUrl": "https://www.construction-physics.com/feed",
+      "homeUrl": "https://www.construction-physics.com",
+      "tier": 3,
+      "tags": [
+        "construction",
+        "manufacturing",
+        "housing",
+        "infrastructure",
+        "technology",
+        "industry",
+        "economics",
+        "energy"
+      ]
+    },
+    {
+      "id": "worksinprogress",
+      "name": "Works in Progress",
+      "feedUrl": "https://www.worksinprogress.news/feed",
+      "homeUrl": "https://www.worksinprogress.news",
+      "tier": 3,
+      "tags": [
+        "economics",
+        "science",
+        "technology",
+        "progress",
+        "policy",
+        "housing",
+        "energy",
+        "history",
+        "innovation"
+      ]
+    },
+    {
+      "id": "chinatalk",
+      "name": "ChinaTalk",
+      "feedUrl": "https://www.chinatalk.media/feed",
+      "homeUrl": "https://www.chinatalk.media",
+      "tier": 3,
+      "tags": [
+        "china",
+        "geopolitics",
+        "technology",
+        "semiconductors",
+        "ai",
+        "taiwan",
+        "policy",
+        "trade"
+      ]
+    },
+    {
+      "id": "elenaverna",
+      "name": "Elena's Growth Scoop",
+      "feedUrl": "https://www.elenaverna.com/feed",
+      "homeUrl": "https://www.elenaverna.com",
+      "tier": 2,
+      "tags": [
+        "growth",
+        "product",
+        "startups",
+        "marketing",
+        "saas",
+        "product management"
+      ]
+    },
+    {
+      "id": "aakashg",
+      "name": "Product Growth",
+      "feedUrl": "https://www.news.aakashg.com/feed",
+      "homeUrl": "https://www.news.aakashg.com",
+      "tier": 2,
+      "tags": [
+        "product management",
+        "ai",
+        "startups",
+        "careers",
+        "growth",
+        "product"
+      ]
+    },
+    {
+      "id": "popcrave",
+      "name": "Pop Crave",
+      "feedUrl": "https://www.popcrave.com/feed",
+      "homeUrl": "https://www.popcrave.com",
+      "tier": 1,
+      "tags": [
+        "music",
+        "film",
+        "television",
+        "pop culture",
+        "celebrity",
+        "streaming"
+      ]
+    },
+    {
+      "id": "pragmaticengineer",
+      "name": "The Pragmatic Engineer",
+      "feedUrl": "https://newsletter.pragmaticengineer.com/feed",
+      "homeUrl": "https://newsletter.pragmaticengineer.com",
+      "tier": 3,
+      "tags": [
+        "software engineering",
+        "software development",
+        "engineering management",
+        "big tech",
+        "startups",
+        "ai coding",
+        "developer tools",
+        "careers"
+      ]
+    },
+    {
+      "id": "bytebytego",
+      "name": "ByteByteGo",
+      "feedUrl": "https://blog.bytebytego.com/feed",
+      "homeUrl": "https://blog.bytebytego.com",
+      "tier": 3,
+      "tags": [
+        "system design",
+        "software engineering",
+        "backend",
+        "architecture",
+        "cloud",
+        "databases",
+        "software development"
+      ]
+    },
+    {
+      "id": "semianalysis",
+      "name": "SemiAnalysis",
+      "feedUrl": "https://newsletter.semianalysis.com/feed",
+      "homeUrl": "https://newsletter.semianalysis.com",
+      "tier": 3,
+      "tags": [
+        "semiconductors",
+        "gpus",
+        "nvidia",
+        "ai infrastructure",
+        "datacenters",
+        "ai",
+        "chips"
+      ]
+    },
+    {
+      "id": "doomberg",
+      "name": "Doomberg",
+      "feedUrl": "https://newsletter.doomberg.com/feed",
+      "homeUrl": "https://newsletter.doomberg.com",
+      "tier": 2,
+      "tags": [
+        "energy",
+        "geopolitics",
+        "commodities",
+        "chemistry",
+        "markets",
+        "oil",
+        "nuclear"
+      ]
+    },
+    {
+      "id": "apricitas",
+      "name": "Apricitas Economics",
+      "feedUrl": "https://www.apricitas.io/feed",
+      "homeUrl": "https://www.apricitas.io",
+      "tier": 2,
+      "tags": [
+        "economics",
+        "economy",
+        "data",
+        "inflation",
+        "labor market",
+        "markets",
+        "finance"
+      ]
+    },
+    {
+      "id": "netinterest",
+      "name": "Net Interest",
+      "feedUrl": "https://www.netinterest.co/feed",
+      "homeUrl": "https://www.netinterest.co",
+      "tier": 2,
+      "tags": [
+        "banking",
+        "finance",
+        "fintech",
+        "payments",
+        "markets",
+        "regulation"
+      ]
+    },
+    {
+      "id": "sinocism",
+      "name": "Sinocism",
+      "feedUrl": "https://sinocism.com/feed",
+      "homeUrl": "https://sinocism.com",
+      "tier": 3,
+      "tags": [
+        "china",
+        "geopolitics",
+        "politics",
+        "trade",
+        "economy",
+        "taiwan"
+      ]
+    },
+    {
+      "id": "blackfilmarchive",
+      "name": "Black Film Archive",
+      "feedUrl": "https://blackfilmarchive.substack.com/feed",
+      "homeUrl": "https://blackfilmarchive.substack.com",
+      "tier": 2,
+      "tags": [
+        "film",
+        "movies",
+        "cinema",
+        "film history",
+        "black cinema",
+        "streaming"
+      ]
+    },
+    {
+      "id": "thebestmovie",
+      "name": "The Best Movie Substack",
+      "feedUrl": "https://thebestmovie.substack.com/feed",
+      "homeUrl": "https://thebestmovie.substack.com",
+      "tier": 2,
+      "tags": [
+        "movies",
+        "film",
+        "film reviews",
+        "cinema",
+        "film criticism"
+      ]
+    },
+    {
+      "id": "timgoodman",
+      "name": "Tim Goodman / Bastard Machine",
+      "feedUrl": "https://timgoodman.substack.com/feed",
+      "homeUrl": "https://timgoodman.substack.com",
+      "tier": 3,
+      "tags": [
+        "television",
+        "tv",
+        "tv criticism",
+        "streaming",
+        "netflix",
+        "culture",
+        "series"
+      ]
+    },
+    {
+      "id": "theankler",
+      "name": "The Ankler",
+      "feedUrl": "https://theankler.substack.com/feed",
+      "homeUrl": "https://theankler.substack.com",
+      "tier": 3,
+      "tags": [
+        "hollywood",
+        "film industry",
+        "entertainment",
+        "streaming",
+        "box office",
+        "studios",
+        "television",
+        "movies"
+      ]
+    },
+    {
+      "id": "thebestnewsletter",
+      "name": "The Best Newsletter",
+      "feedUrl": "https://thebestnewsletter.substack.com/feed",
+      "homeUrl": "https://thebestnewsletter.substack.com",
+      "tier": 1,
+      "tags": [
+        "media",
+        "culture",
+        "television",
+        "film",
+        "books",
+        "pop culture",
+        "streaming"
+      ]
+    },
+    {
+      "id": "infinitelives",
+      "name": "Infinite Lives",
+      "feedUrl": "https://infinitelives.substack.com/feed",
+      "homeUrl": "https://infinitelives.substack.com",
+      "tier": 2,
+      "tags": [
+        "video games",
+        "games",
+        "gaming",
+        "game industry",
+        "game design"
+      ]
+    },
+    {
+      "id": "sportsvrse",
+      "name": "Sportsvrse",
+      "feedUrl": "https://sportsvrse.substack.com/feed",
+      "homeUrl": "https://sportsvrse.substack.com",
+      "tier": 1,
+      "tags": [
+        "sports"
+      ]
+    },
+    {
+      "id": "matchquarters",
+      "name": "MatchQuarters",
+      "feedUrl": "https://www.matchquarters.com/feed",
+      "homeUrl": "https://www.matchquarters.com",
+      "tier": 2,
+      "tags": [
+        "nfl",
+        "american football",
+        "football",
+        "sports",
+        "sports analysis"
+      ]
+    },
+    {
+      "id": "joeposnanski",
+      "name": "Joe Posnanski",
+      "feedUrl": "https://www.joeposnanski.com/feed",
+      "homeUrl": "https://www.joeposnanski.com",
+      "tier": 3,
+      "tags": [
+        "baseball",
+        "mlb",
+        "sports",
+        "sports writing",
+        "history"
+      ]
+    },
+    {
+      "id": "thegamebusiness",
+      "name": "The Game Business",
+      "feedUrl": "https://www.thegamebusiness.com/feed",
+      "homeUrl": "https://www.thegamebusiness.com",
+      "tier": 3,
+      "tags": [
+        "video games",
+        "game industry",
+        "gaming",
+        "games business",
+        "esports",
+        "industry"
+      ]
+    },
+    {
+      "id": "newcomer",
+      "name": "Newcomer",
+      "feedUrl": "https://www.newcomer.co/feed",
+      "homeUrl": "https://www.newcomer.co",
+      "tier": 3,
+      "tags": [
+        "venture capital",
+        "startups",
+        "funding",
+        "tech industry",
+        "ai",
+        "silicon valley"
+      ]
+    }
+  ]
+}

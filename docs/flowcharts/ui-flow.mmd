@@ -1,0 +1,33 @@
+%% Rabbit Hole — UI flow. Paste into mermaid.live, or use FigJam's "Mermaid to FigJam" / the Figma MCP generate_diagram.
+flowchart LR
+  start([User clicks the toolbar icon]) --> page{What is on the page?}
+  page -->|YouTube video / Short or Netflix title found| S1[S1 Related Reading - watching]
+  page -->|Netflix, player label hidden| S2[S2 Netflix not detected + manual search]
+  page -->|Detection off in Settings| S3[S3 Detection switched off]
+  page -->|Reddit thread| S4[S4 Reddit thread - Find deeper reading]
+  page -->|Substack article| S5[S5 Substack article - See what Reddit thinks]
+  page -->|Any other website| S6[S6 Idle - Use this page]
+
+  S1 -->|Tab: Trending Reddit| T[Trending Reddit]
+  S1 -->|Read on Substack| X1([Substack article in a new tab])
+  S1 -->|See what Reddit thinks| RR[What Reddit thinks]
+  S2 -->|Type title + Find related writing| L[Searching - skeleton loading]
+  S3 -->|Turn on detection| S1
+  S3 -->|Or search a topic| L
+  S6 -->|Type a topic| L
+  S6 -->|Use this page| PG[Reading - this page]
+  S4 -->|Find deeper reading| BR[Reading - from the thread]
+  S5 -->|See what Reddit thinks| RR
+  L -->|Results arrive| R[Search results]
+  R -->|Trending Reddit tab| RQ[Reddit results for the query]
+  R -->|Read on Substack| X1
+  T -->|Open Reddit| X2([Reddit thread in a new tab])
+  T -->|Find deeper reading| BR
+  T -.->|All Reddit providers fail| ERR[Error state - Try again]
+  ERR -->|Try again| T
+
+  gear([Header gear or footer link]) --> SET[Settings]
+  SET --> PRIV[Privacy]
+  SET --> INT[API and Integrations]
+  SET --> THEME[Appearance - Dark / Light / System]
+  expand([Header expand icon]) --> DASH[Full dashboard - two columns]
