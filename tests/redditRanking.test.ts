@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { categorize, crossSubredditCounts, mergePosts, rankReddit, scorePosts } from '../src/services/rankingService';
+import { crossSubredditCounts, mergePosts, scorePosts } from '../src/services/rankingService';
 import { NOW, post } from './helpers';
 
 const ctx = { now: NOW };
 
-describe('trending score', () => {
+describe('momentum score (orders Reddit search results)', () => {
   it('prefers a fresh, fast-growing thread over an older thread with a bigger total', () => {
     const fresh = post({ id: 'fresh', ageHours: 2, score: 3000, numComments: 400 });
     const old = post({ id: 'old', ageHours: 22, score: 40000, numComments: 3000 });
@@ -80,44 +80,6 @@ describe('cross-subreddit popularity', () => {
   });
 });
 
-describe('categories', () => {
-  const posts = [
-    post({ id: 'rocket', ageHours: 1, score: 8000, numComments: 300, subreddit: 'a', feeds: ['hot', 'rising'] }),
-    post({ id: 'talker', ageHours: 9, score: 4000, numComments: 6000, subreddit: 'b' }),
-    post({ id: 'ancient', ageHours: 40, score: 90000, numComments: 2000, subreddit: 'c' }),
-    post({ id: 'tiny', ageHours: 1, score: 3, numComments: 0, subreddit: 'd' }),
-    post({ id: 'quiet', ageHours: 5, score: 900, numComments: 4, subreddit: 'e' }),
-  ];
-
-  it('builds the four sections', () => {
-    const c = rankReddit(posts, ctx, 10);
-    expect(c.hot[0]!.id).toBe('rocket');
-    expect(c.rising.map((p) => p.id)).toContain('rocket');
-    expect(c.rising.map((p) => p.id)).not.toContain('ancient'); // too old to be "rising"
-    expect(c.rising.map((p) => p.id)).not.toContain('tiny'); // below the noise floor
-    expect(c.discussed[0]!.id).toBe('talker');
-    expect(c.discussed.map((p) => p.id)).not.toContain('quiet'); // < 25 comments
-  });
-
-  it('puts cross-posted stories first in "Across Reddit" and keeps one thread per community', () => {
-    const shared = 'https://example.com/story';
-    const set = [
-      post({ id: 'x1', subreddit: 'a', url: shared, isSelf: false, score: 100 }),
-      post({ id: 'x2', subreddit: 'b', url: shared, isSelf: false, score: 100 }),
-      post({ id: 'y1', subreddit: 'c', score: 9000 }),
-      post({ id: 'y2', subreddit: 'c', score: 8000 }),
-    ];
-    const { across } = rankReddit(set, ctx, 10);
-    expect(across.slice(0, 2).map((p) => p.id).sort()).toEqual(['x1', 'x2']);
-    expect(across.filter((p) => p.subreddit === 'c')).toHaveLength(1);
-  });
-
-  it('respects the requested limit', () => {
-    const many = Array.from({ length: 40 }, (_, i) => post({ id: `p${i}`, subreddit: `sub${i}`, score: 100 + i }));
-    expect(rankReddit(many, ctx, 12).hot).toHaveLength(12);
-  });
-});
-
 describe('feed-only mode (no counts)', () => {
   const feedPosts = [0, 1, 2, 3].map((i) =>
     post({ id: `f${i}`, rank: i, ageHours: 2 + i }) as ReturnType<typeof post>,
@@ -126,14 +88,14 @@ describe('feed-only mode (no counts)', () => {
     return rest;
   });
 
-  it('ranks by Reddit order and says so instead of inventing numbers', () => {
+  it('keeps Reddit’s order and says so instead of inventing numbers', () => {
     const scored = scorePosts(feedPosts, ctx);
     expect(scored.every((p) => p.statsEstimated)).toBe(true);
+    expect(scored.every((p) => p.score === undefined && p.numComments === undefined)).toBe(true);
     expect(scored[0]!.growth).toBe('unknown');
     expect(scored[0]!.growthLabel).toBe('Trending on Reddit');
-    const cats = categorize(scored, ctx, 10);
-    expect(cats.hot[0]!.id).toBe('f0');
-    expect(cats.discussed).toEqual([]); // comment counts genuinely unavailable
+    const byScore = [...scored].sort((a, b) => b.trendingScore - a.trendingScore);
+    expect(byScore[0]!.id).toBe('f0');
   });
 });
 

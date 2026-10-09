@@ -1,6 +1,7 @@
 /**
- * Reddit trending engine.  Pure functions — no I/O — so the formula is easy to
- * test and tune.
+ * Reddit momentum score — how *alive* a thread is.  Used to order search
+ * results (after relevance).  Pure functions — no I/O — so the formula is easy
+ * to test and tune.
  *
  *   trendingScore = recency × engagementVelocity × commentVelocity
  *                   × popularityMultiplier × growthBoost
@@ -15,12 +16,7 @@
  *
  * Tune the constants in WEIGHTS; the shape of the formula stays the same.
  */
-import type {
-  GrowthLevel,
-  RedditCategories,
-  RedditPost,
-  ScoredRedditPost,
-} from '../../types/reddit';
+import type { GrowthLevel, RedditPost, ScoredRedditPost } from '../../types/reddit';
 import { canonicalizeUrl } from '../../utils/sanitize';
 import { phraseKey } from '../../utils/text';
 
@@ -180,81 +176,6 @@ export function scorePosts(posts: readonly RedditPost[], ctx: RankContext): Scor
     if (delta) scored.delta = delta;
     return scored;
   });
-}
-
-function takeDistinct<T extends ScoredRedditPost>(sorted: T[], limit: number, perSubreddit = Infinity): T[] {
-  const out: T[] = [];
-  const counts = new Map<string, number>();
-  for (const p of sorted) {
-    const key = p.subreddit.toLowerCase();
-    const n = counts.get(key) ?? 0;
-    if (n >= perSubreddit) continue;
-    counts.set(key, n + 1);
-    out.push(p);
-    if (out.length >= limit) break;
-  }
-  return out;
-}
-
-/** Splits scored posts into the four sections of the Trending tab. */
-export function categorize(scored: readonly ScoredRedditPost[], ctx: RankContext, limit: number): RedditCategories {
-  const hasStats = scored.some((p) => !p.statsEstimated);
-
-  const hot = takeDistinct(
-    [...scored].sort((a, b) => b.trendingScore - a.trendingScore),
-    limit,
-    hasStats ? 4 : 3,
-  );
-
-  // 📈 Rising Fast — young posts with the steepest upvote curve
-  const young = scored.filter((p) => ageHours(p, ctx.now) <= 12);
-  const risingPool = hasStats ? young.filter((p) => (p.score ?? 0) >= 15) : young.filter((p) => p.feeds.includes('rising'));
-  const rising = takeDistinct(
-    [...risingPool].sort((a, b) => {
-      const boost = (p: ScoredRedditPost) => (p.feeds.includes('rising') ? 1.5 : 1) * (p.growth === 'surging' ? 1.3 : 1);
-      return hasStats
-        ? b.scoreVelocity * boost(b) - a.scoreVelocity * boost(a)
-        : a.rank - b.rank;
-    }),
-    limit,
-    3,
-  );
-
-  // 💬 Most Discussed — comment volume, softly weighted toward recent activity
-  const discussed = hasStats
-    ? takeDistinct(
-        scored
-          .filter((p) => (p.numComments ?? 0) >= 25)
-          .sort((a, b) => discussionScore(b, ctx.now) - discussionScore(a, ctx.now)),
-        limit,
-        3,
-      )
-    : [];
-
-  // 🌎 Across Reddit — stories that broke out of one community, then a diverse fill
-  const crossPosted = scored
-    .filter((p) => p.crossSubredditCount > 0)
-    .sort((a, b) => b.crossSubredditCount - a.crossSubredditCount || b.trendingScore - a.trendingScore);
-  const across = takeDistinct(
-    [...crossPosted, ...[...scored].sort((a, b) => b.trendingScore - a.trendingScore)].filter(
-      (p, i, arr) => arr.findIndex((q) => q.id === p.id) === i,
-    ),
-    limit,
-    1,
-  );
-
-  return { hot, rising, discussed, across };
-}
-
-function discussionScore(p: ScoredRedditPost, now: number): number {
-  const age = ageHours(p, now);
-  const freshness = 0.4 + 0.6 * 0.5 ** (age / 18);
-  return (p.numComments ?? 0) * freshness * (1 + 0.5 * log10(1 + p.commentVelocity));
-}
-
-/** Convenience: score + categorize in one call. */
-export function rankReddit(posts: readonly RedditPost[], ctx: RankContext, limit: number): RedditCategories {
-  return categorize(scorePosts(posts, ctx), ctx, limit);
 }
 
 /** Merge listings fetched from several feeds: union by id, remember where each was seen. */

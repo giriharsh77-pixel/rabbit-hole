@@ -41,14 +41,13 @@ const event = () => {
 describe.skipIf(!existsSync(dist))('built service worker (dist/background.js)', () => {
   it('boots with no DOM, registers its listeners, and serves RPC', async () => {
     const ext = 'chrome-extension://testid/';
-    const events = { onConnect: event(), onInstalled: event(), onStartup: event(), tabsActivated: event(), tabsUpdated: event(), tabsRemoved: event(), alarm: event(), storageChanged: event() };
+    const events = { onConnect: event(), onInstalled: event(), onStartup: event(), tabsActivated: event(), tabsUpdated: event(), tabsRemoved: event(), storageChanged: event() };
     const local = fakeArea();
     const session = fakeArea();
     vi.stubGlobal('chrome', {
       runtime: { id: 'testid', getURL: (p: string) => `${ext}${p}`, getManifest: () => ({ version: '1.0.0' }), onConnect: events.onConnect, onInstalled: events.onInstalled, onStartup: events.onStartup },
       storage: { local, session, onChanged: events.storageChanged },
       tabs: { onActivated: events.tabsActivated, onUpdated: events.tabsUpdated, onRemoved: events.tabsRemoved, get: vi.fn(), query: vi.fn(async () => []) },
-      alarms: { onAlarm: events.alarm, create: vi.fn(), clear: vi.fn() },
       action: { setBadgeText: vi.fn(), setBadgeBackgroundColor: vi.fn() },
       permissions: { contains: vi.fn(async () => false) },
       scripting: { executeScript: vi.fn() },
@@ -59,7 +58,7 @@ describe.skipIf(!existsSync(dist))('built service worker (dist/background.js)', 
     await import(/* @vite-ignore */ pathToFileURL(dist).href);
 
     // top-level, synchronous listener registration (an MV3 requirement)
-    for (const e of [events.onConnect, events.onInstalled, events.onStartup, events.tabsActivated, events.tabsUpdated, events.tabsRemoved, events.alarm, events.storageChanged]) {
+    for (const e of [events.onConnect, events.onInstalled, events.onStartup, events.tabsActivated, events.tabsUpdated, events.tabsRemoved, events.storageChanged]) {
       expect(e.listeners.length).toBeGreaterThan(0);
     }
 
@@ -97,7 +96,7 @@ describe.skipIf(!existsSync(dist))('built service worker (dist/background.js)', 
     expect(secret.data).toMatchObject({ braveApiKey: { configured: true, masked: '••••3456' } });
 
     const status = await ask(4, 'status/get');
-    expect(status.data).toMatchObject({ substack: { providers: ['brave', 'feeds'], limitedCoverage: false } });
+    expect(status.data).toMatchObject({ substack: { providers: ['brave', 'feeds', 'medium'], limitedCoverage: false } });
 
     // a page that isn't ours gets nothing
     const evil = { ...port, sender: { url: 'https://evil.example/' }, disconnect: vi.fn() };

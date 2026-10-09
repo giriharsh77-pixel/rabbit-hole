@@ -15,7 +15,7 @@ describe('manifest (Manifest V3)', () => {
   });
 
   it('requests only the permissions that are genuinely needed', () => {
-    expect([...m.permissions].sort()).toEqual(['activeTab', 'alarms', 'scripting', 'storage']);
+    expect([...m.permissions].sort()).toEqual(['activeTab', 'scripting', 'storage']);
     expect(m.permissions).not.toContain('tabs');
     expect(m.permissions).not.toContain('history');
     expect(m.permissions).not.toContain('webRequest');

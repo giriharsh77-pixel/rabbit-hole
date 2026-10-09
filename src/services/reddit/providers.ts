@@ -11,17 +11,10 @@
  *
  * Nothing here scrapes HTML.  All responses are validated in ./parse.ts.
  */
-import type { FeedKind, RedditPost, RedditProviderId } from '../../types/reddit';
+import type { RedditPost, RedditProviderId } from '../../types/reddit';
 import { AppError } from '../../utils/errors';
 import { httpJson, httpText } from '../../utils/http';
 import { parseAtom, parseListing } from './parse';
-
-export interface ListingRequest {
-  /** Empty = all of Reddit. */
-  subreddits: string[];
-  feed: Extract<FeedKind, 'hot' | 'rising' | 'top'>;
-  limit: number;
-}
 
 export interface SearchRequest {
   query: string;
@@ -35,7 +28,6 @@ export interface RedditProvider {
   readonly id: RedditProviderId;
   /** Whether the provider returns upvote/comment counts. */
   readonly hasStats: boolean;
-  fetchListing(req: ListingRequest, signal?: AbortSignal): Promise<RedditPost[]>;
   search(req: SearchRequest, signal?: AbortSignal): Promise<RedditPost[]>;
 }
 
@@ -45,7 +37,6 @@ export interface ProviderOptions {
   useBrowserSession?: boolean;
 }
 
-const multi = (subs: string[]) => (subs.length ? `r/${subs.join('+')}` : 'r/all');
 
 // ─── public JSON ────────────────────────────────────────────────────────────
 
@@ -63,11 +54,6 @@ export class JsonProvider implements RedditProvider {
     });
   }
 
-  async fetchListing(req: ListingRequest, signal?: AbortSignal): Promise<RedditPost[]> {
-    const t = req.feed === 'top' ? '&t=day' : '';
-    const url = `https://www.reddit.com/${multi(req.subreddits)}/${req.feed}.json?limit=${req.limit}&raw_json=1${t}`;
-    return parseListing(await this.get(url, signal), req.feed);
-  }
 
   async search(req: SearchRequest, signal?: AbortSignal): Promise<RedditPost[]> {
     const scope = req.subreddits.length ? `r/${req.subreddits.join('+')}/search.json?restrict_sr=1&` : 'search.json?';
@@ -155,11 +141,6 @@ export class OAuthProvider implements RedditProvider {
     }
   }
 
-  async fetchListing(req: ListingRequest, signal?: AbortSignal): Promise<RedditPost[]> {
-    const t = req.feed === 'top' ? '&t=day' : '';
-    const path = `${multi(req.subreddits)}/${req.feed}?limit=${req.limit}&raw_json=1${t}`;
-    return parseListing(await this.get(path, signal), req.feed);
-  }
 
   async search(req: SearchRequest, signal?: AbortSignal): Promise<RedditPost[]> {
     const scope = req.subreddits.length ? `r/${req.subreddits.join('+')}/search?restrict_sr=1&` : 'search?';
@@ -185,11 +166,6 @@ export class RssProvider implements RedditProvider {
     });
   }
 
-  async fetchListing(req: ListingRequest, signal?: AbortSignal): Promise<RedditPost[]> {
-    const t = req.feed === 'top' ? '&t=day' : '';
-    const url = `https://www.reddit.com/${multi(req.subreddits)}/${req.feed}/.rss?limit=${req.limit}${t}`;
-    return parseAtom(await this.get(url, signal), req.feed);
-  }
 
   async search(req: SearchRequest, signal?: AbortSignal): Promise<RedditPost[]> {
     const scope = req.subreddits.length ? `r/${req.subreddits.join('+')}/search.rss?restrict_sr=on&` : 'search.rss?';

@@ -1,8 +1,5 @@
 export type FeedKind = 'hot' | 'rising' | 'top' | 'new' | 'search';
 
-/** The four sections shown in the Trending Reddit tab. */
-export type RedditCategoryId = 'hot' | 'rising' | 'discussed' | 'across';
-
 /** A normalised Reddit thread, whichever provider it came from. */
 export interface RedditPost {
   /** Base-36 id without the `t3_` prefix. */
@@ -55,21 +52,6 @@ export interface ScoredRedditPost extends RedditPost {
   statsEstimated: boolean;
 }
 
-export interface RedditCategories {
-  hot: ScoredRedditPost[];
-  rising: ScoredRedditPost[];
-  discussed: ScoredRedditPost[];
-  across: ScoredRedditPost[];
-}
-
-export interface TopicFilter {
-  id: string;
-  label: string;
-  emoji: string;
-  /** Empty = all of Reddit (r/all). */
-  subreddits: string[];
-}
-
 export type RedditProviderId = 'oauth' | 'json' | 'rss';
 
 export interface RedditFetchMeta {
@@ -77,14 +59,6 @@ export interface RedditFetchMeta {
   fetchedAt: number;
   /** Providers that were tried first and failed, with why. */
   degradedFrom?: { provider: RedditProviderId; code: string }[];
-}
-
-export interface TrendingResponse {
-  categories: RedditCategories;
-  meta: RedditFetchMeta;
-  topicId: string;
-  /** True when served from cache that has passed its TTL (refresh in flight). */
-  stale?: boolean;
 }
 
 export interface RedditSearchResponse {

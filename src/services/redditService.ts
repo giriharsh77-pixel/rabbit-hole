@@ -1,34 +1,26 @@
 /**
- * redditService — discovery of what Reddit is talking about *right now*.
+ * redditService — finds Reddit threads about a subject (what the user is
+ * watching, a search, an article).
  *
  *   providers (OAuth → public JSON → Atom feed)  — graceful degradation
- *   → merge + filter → snapshot deltas → rank → four categories
+ *   → merge + filter → relevance + momentum ranking
  *
  * Failure handling: a provider that is blocked or rate-limited is skipped for
  * a cool-down period (circuit breaker) so we never hammer Reddit; if every
  * provider fails the last good data is served as stale, otherwise a typed
  * AppError reaches the UI.
  */
-import type {
-  RedditFetchMeta,
-  RedditPost,
-  RedditProviderId,
-  RedditSearchResponse,
-  TrendingResponse,
-} from '../types/reddit';
+import type { RedditFetchMeta, RedditPost, RedditProviderId, RedditSearchResponse } from '../types/reddit';
 import type { Settings } from '../types/settings';
 import { AppError, toAppError } from '../utils/errors';
 import { clamp } from '../utils/format';
 import { hashString, normalizeText, phraseKey, uniqueBy } from '../utils/text';
 import { CacheService, TTL } from './cacheService';
-import { mergePosts, rankReddit, scorePosts, type PostDelta } from './ranking/reddit';
-import { JsonProvider, OAuthProvider, RssProvider, type ListingRequest, type RedditProvider, type SearchRequest } from './reddit/providers';
-import type { SnapshotStore } from './reddit/snapshots';
-import { subredditsFor } from './reddit/topics';
+import { mergePosts, scorePosts } from './ranking/reddit';
+import { JsonProvider, OAuthProvider, RssProvider, type RedditProvider, type SearchRequest } from './reddit/providers';
 
 export interface RedditServiceDeps {
   cache: CacheService;
-  snapshots: SnapshotStore;
   getSettings: () => Promise<Settings>;
   /** Public Reddit installed-app client id, if configured. */
   getClientId: () => Promise<string | undefined>;
@@ -36,9 +28,8 @@ export interface RedditServiceDeps {
   fetchImpl?: typeof fetch;
 }
 
-interface CachedTrending {
+interface CachedSearch {
   posts: RedditPost[];
-  deltas: Record<string, PostDelta>;
   meta: RedditFetchMeta;
 }
 
@@ -134,93 +125,6 @@ export class RedditService {
     throw firstError ?? new AppError('UNAVAILABLE', 'No Reddit provider is available', { provider: 'reddit' });
   }
 
-  // ─── trending ─────────────────────────────────────────────────────────────
-
-  private trendingKey(settings: Settings, topicId: string, subs: string[]): string {
-    return `reddit:trending:${topicId}:${hashString(subs.join(','))}:${settings.reddit.postCount}:${settings.reddit.includeNsfw ? 1 : 0}`;
-  }
-
-  private respond(
-    cached: CachedTrending,
-    topicId: string,
-    settings: Settings,
-    stale: boolean,
-  ): TrendingResponse {
-    const categories = rankReddit(
-      cached.posts,
-      { now: this.now(), deltas: cached.deltas, preferredSubreddits: settings.reddit.preferredSubreddits },
-      settings.reddit.postCount,
-    );
-    return { categories, meta: cached.meta, topicId, ...(stale ? { stale: true } : {}) };
-  }
-
-  /**
-   * @param cacheOnly return whatever is cached (even stale) or null — lets the
-   *                  popup paint instantly, then refresh.
-   */
-  async getTrending(opts: {
-    topicId: string;
-    refresh?: boolean;
-    cacheOnly?: boolean;
-    signal?: AbortSignal;
-  }): Promise<TrendingResponse | null> {
-    const settings = await this.deps.getSettings();
-    const subs = subredditsFor(opts.topicId, settings.reddit.preferredSubreddits);
-    if (opts.topicId === 'custom' && subs.length === 0) {
-      throw new AppError('NOT_CONFIGURED', 'Add subreddits in Settings to use the Custom filter', { retryable: false });
-    }
-    const key = this.trendingKey(settings, opts.topicId, subs);
-
-    if (opts.cacheOnly) {
-      const hit = await this.deps.cache.peek<CachedTrending>(key);
-      return hit ? this.respond(hit.value, opts.topicId, settings, !hit.fresh) : null;
-    }
-
-    const result = await this.deps.cache.getOrFetch<CachedTrending>(
-      key,
-      TTL.redditTrending,
-      (signal) => this.fetchTrending(subs, opts.topicId, settings, signal),
-      { ...(opts.refresh !== undefined ? { force: opts.refresh } : {}), ...(opts.signal ? { signal: opts.signal } : {}), allowStale: true },
-    );
-    return this.respond(result.value, opts.topicId, settings, result.stale);
-  }
-
-  private async fetchTrending(
-    subs: string[],
-    topicId: string,
-    settings: Settings,
-    signal: AbortSignal,
-  ): Promise<CachedTrending> {
-    const providers = await this.providers(settings);
-    const sample = clamp(settings.reddit.postCount * 2, 25, 100);
-
-    const { value, provider, degradedFrom } = await this.runChain(providers, async (p) => {
-      const feeds: ListingRequest['feed'][] = p.hasStats ? ['hot', 'rising', 'top'] : ['hot', 'rising'];
-      const settled = await Promise.allSettled(
-        feeds.map((feed) => p.fetchListing({ subreddits: subs, feed, limit: sample }, signal)),
-      );
-      const hot = settled[0];
-      if (!hot || hot.status === 'rejected') throw hot?.reason ?? new AppError('UNAVAILABLE', 'No data');
-      // Secondary feeds are a bonus: a failure there must not discard the primary listing.
-      return settled.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
-    });
-
-    let posts = mergePosts(value).filter((p) => !p.stickied);
-    if (!settings.reddit.includeNsfw) posts = posts.filter((p) => !p.over18);
-    const maxAgeHours = 72;
-    const now = this.now();
-    posts = posts.filter((p) => (now / 1000 - p.createdUtc) / 3600 <= maxAgeHours);
-    if (posts.length === 0) throw new AppError('UNAVAILABLE', 'Reddit returned no threads', { provider: `reddit:${provider.id}` });
-
-    const deltas = provider.hasStats ? await this.deps.snapshots.rollForward(`${topicId}:${subs.length}`, posts) : {};
-    const meta: RedditFetchMeta = {
-      provider: provider.id,
-      fetchedAt: now,
-      ...(degradedFrom.length ? { degradedFrom } : {}),
-    };
-    return { posts, deltas, meta };
-  }
-
   // ─── search ───────────────────────────────────────────────────────────────
 
   async search(opts: {
@@ -245,7 +149,7 @@ export class RedditService {
     const time = opts.time ?? 'month';
     const key = `reddit:search:${hashString(queries.join('|'))}:${hashString(subs.join(','))}:${time}:${settings.reddit.includeNsfw ? 1 : 0}`;
 
-    const result = await this.deps.cache.getOrFetch<CachedTrending>(
+    const result = await this.deps.cache.getOrFetch<CachedSearch>(
       key,
       TTL.redditSearch,
       async (signal) => {
@@ -260,7 +164,6 @@ export class RedditService {
         if (!settings.reddit.includeNsfw) posts = posts.filter((p) => !p.over18);
         return {
           posts,
-          deltas: {},
           meta: {
             provider: provider.id,
             fetchedAt: this.now(),
@@ -276,7 +179,9 @@ export class RedditService {
     const ranked = scored
       .map((p) => {
         const match = searchMatch(queries, p);
-        return { p, match, sort: (0.4 + match) * (1 + Math.log10(1 + p.trendingScore)) };
+        // momentum for fresh threads, plain popularity for older ones (all-time searches)
+        const pull = 1 + Math.log10(1 + p.trendingScore) + 0.25 * Math.log10(1 + (p.score ?? 0));
+        return { p, match, sort: (0.4 + match) * pull };
       })
       .sort((a, b) => b.sort - a.sort);
     // Drop off-topic threads Reddit's search padded the results with — unless that would leave almost

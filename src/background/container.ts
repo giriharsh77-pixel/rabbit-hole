@@ -7,10 +7,10 @@ import { AiService } from '../services/aiService';
 import { BackendClient } from '../services/backend/client';
 import { CacheService, createSessionStore, type KeyValueStore } from '../services/cacheService';
 import { RedditService } from '../services/redditService';
-import { SnapshotStore } from '../services/reddit/snapshots';
 import { SecretsService } from '../services/secretsService';
 import { SettingsService } from '../services/settingsService';
 import { FeedProvider } from '../services/substack/feedProvider';
+import { MediumProvider } from '../services/substack/medium';
 import { SubstackService } from '../services/substackService';
 import { BUILD_ENV } from '../utils/env';
 
@@ -50,7 +50,6 @@ export function createServices(opts: ContainerOptions): Services {
 
   const reddit = new RedditService({
     cache,
-    snapshots: new SnapshotStore(sessionStore, opts.now),
     getSettings: () => settings.get(),
     getClientId: () => secrets.get('redditClientId'),
     ...(opts.now ? { now: opts.now } : {}),
@@ -73,11 +72,18 @@ export function createServices(opts: ContainerOptions): Services {
     ...(opts.now ? { now: opts.now } : {}),
   });
 
+  const medium = new MediumProvider({
+    cache,
+    ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}),
+    ...(opts.now ? { now: opts.now } : {}),
+  });
+
   const substack = new SubstackService({
     cache,
     getSettings: () => settings.get(),
     ai,
     feeds,
+    medium,
     getBackend: () => backend,
     getBraveKey: () => secrets.get('braveApiKey'),
     ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}),

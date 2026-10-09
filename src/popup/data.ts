@@ -1,9 +1,9 @@
 /** Data hooks: thin, cancellable wrappers over the background RPC. */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../services/settingsService';
 import type { ContentContext, CurrentContextResponse, RawPageMetadata } from '../types/context';
 import type { SerializedError } from '../types/errors';
-import type { RedditSearchResponse, TrendingResponse } from '../types/reddit';
+import type { RedditSearchResponse } from '../types/reddit';
 import type { DeepPartial, Settings } from '../types/settings';
 import type { DiscoveryResponse } from '../types/substack';
 import { isAbortError, serializeError } from '../utils/errors';
@@ -79,70 +79,7 @@ export function useCurrentContext(tabId: number | undefined) {
   };
 }
 
-// ─── trending reddit ─────────────────────────────────────────────────────────
-
-export interface TrendingState {
-  data: TrendingResponse | undefined;
-  /** First load with nothing to show yet. */
-  loading: boolean;
-  /** Showing cached data while a refresh is in flight. */
-  refreshing: boolean;
-  error: SerializedError | undefined;
-  refresh: () => void;
-}
-
-/** Stale-while-revalidate: paint from cache instantly, then refresh in the background. */
-export function useTrending(topicId: string, enabled: boolean): TrendingState {
-  const [data, setData] = useState<TrendingResponse | undefined>();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<SerializedError | undefined>();
-  const [nonce, setNonce] = useState(0);
-  const topicRef = useRef(topicId);
-
-  useEffect(() => {
-    if (!enabled) return;
-    const controller = new AbortController();
-    const forced = nonce > 0 && topicRef.current === topicId;
-    topicRef.current = topicId;
-    setError(undefined);
-
-    (async () => {
-      let shown: TrendingResponse | undefined;
-      try {
-        const cached = await call('reddit/trending', { topicId, cacheOnly: true }, controller.signal);
-        if (controller.signal.aborted) return;
-        if (cached) {
-          shown = cached;
-          setData(cached);
-          setLoading(false);
-          if (!cached.stale && !forced) return; // fresh enough
-          setRefreshing(true);
-        } else {
-          setData(undefined);
-          setLoading(true);
-        }
-        const fresh = await call('reddit/trending', { topicId, ...(forced ? { refresh: true } : {}) }, controller.signal);
-        if (controller.signal.aborted) return;
-        if (fresh) setData(fresh);
-        setError(undefined);
-      } catch (err) {
-        if (controller.signal.aborted || isAbortError(err)) return;
-        setError(serializeError(err));
-        if (!shown) setData(undefined);
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-          setRefreshing(false);
-        }
-      }
-    })();
-    return () => controller.abort();
-  }, [topicId, enabled, nonce]);
-
-  const refresh = useCallback(() => setNonce((n) => n + 1), []);
-  return { data, loading, refreshing, error, refresh };
-}
+// ─── reddit ──────────────────────────────────────────────────────────────────
 
 export function useRedditSearch(
   queries: string[] | null,

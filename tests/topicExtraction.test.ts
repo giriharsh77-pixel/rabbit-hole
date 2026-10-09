@@ -174,6 +174,15 @@ describe('Reddit queries for what is playing', () => {
     expect(q).toEqual(['"Black Mirror" "Common People"', '"Black Mirror"', '"Black Mirror" season 7']);
   });
 
+  it('drops catalogue tags like “(U.S.)” and keeps the show’s real name (The Office, S1:E5 “Basketball”)', () => {
+    const ctx = nf({ title: 'The Office (U.S.)', episode: 'Season 1, Episode 5 — Basketball' });
+    expect(ctx.title).toBe('The Office');
+    expect(generateRedditQueries(ctx)).toEqual(['"The Office" Basketball', '"The Office"', '"The Office" season 1']);
+    expect(generateQueries(ctx)[0]!.text).toBe('"The Office"');
+    expect(nf({ title: 'Money Heist (Spanish)' }).title).toBe('Money Heist');
+    expect(nf({ kind: 'movie', title: 'Dune (2021)' }).title).toBe('Dune');
+  });
+
   it('understands the compact S7:E2 label too', () => {
     expect(generateRedditQueries(nf({ episode: 'S7:E2 · Common People' }))[0]).toBe('"Black Mirror" "Common People"');
   });

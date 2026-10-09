@@ -11,14 +11,13 @@
  *    aborted when *every* waiter has gone away.
  *
  * TTLs used by the extension (see TTL below):
- *    Reddit trending 5 min · Substack search 10 min · page context until the tab changes
+ *    Reddit search 5 min · Substack search 10 min · page context until the tab changes
  */
 import { abortError, raceAbort } from '../utils/abort';
 import { serializeError, toAppError } from '../utils/errors';
 import type { SerializedError } from '../types/errors';
 
 export const TTL = {
-  redditTrending: 5 * 60_000,
   redditSearch: 5 * 60_000,
   substackSearch: 10 * 60_000,
   substackFeed: 30 * 60_000,

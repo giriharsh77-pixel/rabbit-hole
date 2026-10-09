@@ -4,7 +4,7 @@ import type {
   RawPageMetadata,
 } from './context';
 import type { SerializedError } from './errors';
-import type { RedditSearchResponse, TrendingResponse } from './reddit';
+import type { RedditSearchResponse } from './reddit';
 import type { DeepPartial, SecretName, Secrets, SecretsStatus, Settings } from './settings';
 import type { DiscoveryResponse } from './substack';
 
@@ -12,7 +12,7 @@ import type { DiscoveryResponse } from './substack';
 export interface AppStatus {
   reddit: { providers: ('oauth' | 'json' | 'rss')[] };
   substack: {
-    providers: ('backend' | 'brave' | 'feeds')[];
+    providers: ('backend' | 'brave' | 'feeds' | 'medium')[];
     /** Only the built-in publication list is available. */
     limitedCoverage: boolean;
     customDomainsAllowed: boolean;
@@ -31,10 +31,6 @@ export interface RpcMap {
   'context/analyze': { params: { raw: RawPageMetadata }; result: ContentContext };
 
   /** `cacheOnly` returns whatever is cached (even stale) or null, so the UI can paint instantly. */
-  'reddit/trending': {
-    params: { topicId: string; refresh?: boolean; cacheOnly?: boolean };
-    result: TrendingResponse | null;
-  };
   'reddit/search': {
     params: { queries: string[]; limit?: number; subreddits?: string[]; time?: 'day' | 'week' | 'month' | 'year' | 'all'; strict?: boolean };
     result: RedditSearchResponse;

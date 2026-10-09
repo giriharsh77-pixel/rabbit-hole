@@ -46,6 +46,10 @@ const MAX_ENTITIES = 8;
 
 // ─── title / description cleaning ───────────────────────────────────────────
 
+/** Catalogue qualifiers like Netflix's "The Office (U.S.)", "Money Heist (Spanish)", "Dune (2021)" — not part of the name. */
+const REGION_TAG =
+  /^\((?:u\.?s\.?a?\.?|u\.?k\.?|aus(?:tralia)?|india|canada|spanish|korean|japanese|french|german|hindi|italian|portuguese|mexican|brazilian|turkish|english|dubbed|subtitled|(?:19|20)\d{2})\)$/i;
+
 const FORMAT_NOISE =
   /\b(official|video|audio|lyrics?|trailer|teaser|clip|hd|4k|8k|full (?:episode|movie|video|course|documentary)|live|premiere|ep\.?\s*\d+|episode\s*\d+|part\s*\d+|shorts?|reaction|remastered|out now|subscribe)\b/i;
 
@@ -57,7 +61,7 @@ export function cleanTitle(rawTitle: string, creator?: string): string {
   // Leading post tags — Reddit's "[D]", "[R]", "(OC)", "[Discussion]" — are labels, not words.
   t = t.replace(/^\s*[[(](?:[a-z]{1,3}|discussion|serious|question|research|project|news|help|meta|spoilers?|megathread|ama|eli5|nsfw)[\])]\s*[:\-–—]?\s*/i, '');
 
-  const unwrap = (m: string) => (FORMAT_NOISE.test(m) ? ' ' : ` ${m.slice(1, -1)} `);
+  const unwrap = (m: string) => (FORMAT_NOISE.test(m) || REGION_TAG.test(m) ? ' ' : ` ${m.slice(1, -1)} `);
   t = t.replace(/\[[^\]]*\]/g, unwrap).replace(/\([^)]*\)/g, unwrap);
 
   const creatorKey = creator ? phraseKey(creator) : '';

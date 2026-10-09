@@ -130,6 +130,15 @@ function routeFetch(input: RequestInfo | URL): Promise<Response> {
     const xml = feedFixtures[`./fixtures/feeds/${feed}.xml`];
     return Promise.resolve(xml ? new Response(xml, { status: 200, headers: { 'content-type': 'application/xml' } }) : new Response('not found', { status: 404 }));
   }
+  // Medium tag feeds: a fictional sample story per tag (preview only — clearly labelled sample content)
+  const tag = url.hostname === 'medium.com' ? url.pathname.match(/^\/feed\/tag\/([a-z0-9-]+)$/)?.[1] : undefined;
+  if (tag) {
+    const words = tag.replace(/-/g, ' ');
+    const title = `Sample Medium story: what everyone misses about ${words}`;
+    const id = (hash(tag) * 0xffffffffffff).toString(16).padStart(12, '0').slice(0, 12);
+    const xml = `<?xml version="1.0"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>${words} on Medium</title><item><title>${title}</title><link>https://medium.com/@sample-writer/sample-${tag}-${id}?source=rss</link><dc:creator>Sample Writer</dc:creator><category>${tag}</category><pubDate>${new Date(Date.now() - 3 * 86_400_000).toUTCString()}</pubDate><content:encoded><![CDATA[<p>Preview sample text. A close look at ${words}: what makes it work, what people overlook, and why it keeps coming up.</p>]]></content:encoded></item></channel></rss>`;
+    return Promise.resolve(new Response(xml, { status: 200, headers: { 'content-type': 'application/rss+xml' } }));
+  }
   return Promise.resolve(new Response('not mocked in preview', { status: 404 }));
 }
 

@@ -14,10 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
   schemaVersion: 1,
   appearance: { theme: 'dark' },
   reddit: {
-    defaultTopic: 'all',
     preferredSubreddits: [],
-    postCount: 20,
-    refreshIntervalMinutes: 5,
     showThumbnails: true,
     includeNsfw: false,
     useBrowserSession: false,
@@ -28,6 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
     preferredTopics: [],
     extraPublications: [],
     includeCustomDomains: false,
+    includeMedium: true,
   },
   privacy: {
     detectionEnabled: true,
@@ -56,20 +54,13 @@ export function validateSettings(raw: unknown): Settings {
   const privacy = obj(r.privacy);
   const d = DEFAULT_SETTINGS;
 
-  const topic = typeof reddit.defaultTopic === 'string' ? reddit.defaultTopic.slice(0, 40) : d.reddit.defaultTopic;
-  const refresh = clampInt(reddit.refreshIntervalMinutes, 0, 120, d.reddit.refreshIntervalMinutes);
-
   return {
     schemaVersion: 1,
     appearance: {
       theme: THEMES.includes(appearance.theme as ThemeMode) ? (appearance.theme as ThemeMode) : d.appearance.theme,
     },
     reddit: {
-      defaultTopic: /^[a-z0-9-]+$/i.test(topic) ? topic : d.reddit.defaultTopic,
       preferredSubreddits: sanitizeSubredditList(reddit.preferredSubreddits),
-      postCount: clampInt(reddit.postCount, 5, 50, d.reddit.postCount),
-      // 0 = off; otherwise never poll faster than every 2 minutes
-      refreshIntervalMinutes: refresh === 0 ? 0 : Math.max(2, refresh),
       showThumbnails: bool(reddit.showThumbnails, d.reddit.showThumbnails),
       includeNsfw: bool(reddit.includeNsfw, d.reddit.includeNsfw),
       useBrowserSession: bool(reddit.useBrowserSession, d.reddit.useBrowserSession),
@@ -83,6 +74,7 @@ export function validateSettings(raw: unknown): Settings {
         .filter((s): s is string => !!s)
         .slice(0, 20),
       includeCustomDomains: bool(reading.includeCustomDomains, d.reading.includeCustomDomains),
+      includeMedium: bool(reading.includeMedium, d.reading.includeMedium),
     },
     privacy: {
       detectionEnabled: bool(privacy.detectionEnabled, d.privacy.detectionEnabled),

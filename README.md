@@ -4,14 +4,14 @@
 
 Rabbit Hole is a Chrome (Manifest V3) extension with two tabs:
 
-- **Trending Reddit** — not "most upvoted", but what is *moving right now*: fast-growing, heavily discussed and cross-community threads, ranked by a velocity-based trending score, filterable by topic. While you watch a YouTube video or a Netflix title, the tab becomes **Reddit** and leads with threads *about what's playing* (searched by the show and episode, or the video's headline and topic — never its URL), with "Trending now" one click away.
-- **Related Reading** — detects what you're watching on **YouTube** or **Netflix**, works out what it's really about, and finds thoughtful **Substack** writing on the same ideas — with a plain-language *"why this is relevant"* for every pick.
+- **Reddit** — the Reddit threads *about what you're watching*: searched across all time by the show and episode (e.g. "The Office" + "Basketball"), or by the video's headline and topic — never its URL. Only threads that clearly match are shown; there is no generic trending feed.
+- **Related Reading** — detects what you're watching on **YouTube** or **Netflix**, works out what it's really about, and finds thoughtful writing on **Substack** and **Medium** on the same ideas — with a plain-language *"why this is relevant"* for every pick.
 
 The two are bridged: **Find deeper reading →** on any Reddit thread, **See what Reddit thinks →** on any article.
 
 ```
 I'm watching something → Rabbit Hole understands the topic → it finds what Reddit is
-discussing → it finds thoughtful Substack writing → I discover something → I go deeper
+discussing → it finds thoughtful writing → I discover something → I go deeper
 ```
 
 It is built privacy-first: nothing is read until you open it, only on a handful of sites, and only short topic queries ever leave your browser.
@@ -66,7 +66,7 @@ Load it into Chrome:
 | `npm run build` | Typecheck (`tsc`), then a production build into `dist/` |
 | `npm run dev` | Development build in watch mode (embeds dev-only keys from `.env`) |
 | `npm run dev:ui` | UI-only preview at <http://127.0.0.1:5199/popup.html> with fixtures — see below |
-| `npm test` | Run the 230-test suite (Vitest) |
+| `npm test` | Run the 242-test suite (Vitest) |
 | `npm run verify` | typecheck → build → tests → release gate (below) |
 | `npm run test:e2e` | **Real-Chrome smoke test** (needs `CHROME_PATH`; see [Testing](#testing)) |
 | `npm run verify:release` | Proves dev keys can't reach a production bundle; scans the build for `eval`, inline/remote scripts, module syntax in content scripts |
@@ -153,7 +153,7 @@ The optional AI layer uses the official Anthropic SDK and defaults to **`claude-
         ┌────────────────────────────────────────▼───────────────────────────────────────┐
         │                      background service worker (MV3)                            │
         │  contextManager ─ redditService ─ substackService ─ aiService ─ cacheService    │
-        │  tab tracking · badge · alarms · de-duplicated in-flight requests               │
+        │  tab tracking · badge · de-duplicated in-flight requests                       │
         └───────┬───────────────────────┬──────────────────────┬──────────────────────────┘
                 │ on demand             │ Reddit               │ Substack
      ┌──────────▼──────────┐   OAuth → public JSON → Atom   search API / backend / RSS feeds
@@ -228,10 +228,10 @@ Declared in `manifest.config.mjs` (the manifest is generated; `tests/manifest.te
 | `storage` | Settings (local), API keys you add (local, background-only), and RAM-only caches (`storage.session`). |
 | `activeTab` | Lets you click **"Use this page"** to read a page on *any* site, only for that tab, only after you click. Replaces broad host access. |
 | `scripting` | Injects the small reader into a tab on demand (tabs opened before install; "Use this page"). |
-| `alarms` | The optional background refresh of trending Reddit data (every N minutes, only if you've used the extension in the last 2 hours). |
 | Host: `www.reddit.com`, `oauth.reddit.com` | Reddit's feeds/JSON and the official API. |
 | Host: `www.youtube.com`, `m.youtube.com`, `www.netflix.com` | Content scripts that answer "what's playing?"; lets the extension see those tabs' URLs for the ● badge. |
 | Host: `*.substack.com` | Publication RSS feeds and the content script for Substack article pages. |
+| Host: `medium.com` | Medium's public tag feeds (`medium.com/feed/tag/<topic>`) for Related Reading. Switch off under Settings → Related Reading → *Include Medium*. |
 | Host: *your backend's origin* | Added at build time only if `VITE_BACKEND_URL` is set. |
 | **Optional** hosts: `api.search.brave.com`, `api.anthropic.com` | Requested at runtime when you add that key. |
 | **Optional** hosts: 33 custom-domain newsletter feeds | Requested at runtime when you turn on *Include custom-domain newsletters*. |
@@ -262,27 +262,27 @@ Declared in `manifest.config.mjs` (the manifest is generated; `tests/manifest.te
 
 ## The ranking algorithms
 
-### Reddit trending score (`src/services/ranking/reddit.ts`)
+### Reddit thread ranking (`src/services/redditService.ts`, `src/services/ranking/reddit.ts`)
+
+Threads about what you're watching come from Reddit's search (all time, sorted by relevance), then:
 
 ```
-trendingScore = recency × engagementVelocity × commentVelocity × popularityMultiplier × growthBoost
+match  = best query match: quoted names ("The Office") must appear as a phrase, other words by stem;
+         title counts fully, preview half; r/<show> (e.g. r/blackmirror) counts as a full match
+sort   = (0.4 + match) × (1 + log10(1 + momentum) + 0.25·log10(1 + upvotes))
+strict = only threads with match ≥ 0.34 are shown — never padded with Reddit's loose results
+```
 
-recency              = 0.25 + 0.5^(ageHours / 10)               fresh threads dominate, old ones fade
+`momentum` is the velocity score below — fresh, fast-moving threads rise; for older discussions plain popularity takes over.
+
+```
+momentum = recency × engagementVelocity × commentVelocity × popularityMultiplier
+
+recency              = 0.25 + 0.5^(ageHours / 10)
 engagementVelocity   = 1 + log10(1 + score    / (ageHours + 1))   upvotes per hour
 commentVelocity      = 1 + log10(1 + comments / (ageHours + 1))   discussion per hour
-popularityMultiplier = 1 + 0.12·log10(1+score)                    total engagement
-                         + 0.12·min(crossSubreddit, 5)             same story in other communities
-                         + 0.08·(extra listings)                   present in hot AND rising AND top
-                         + 0.15 if a preferred subreddit
-growthBoost          = 1 + 0.33·log10(1 + measured upvotes/hour ÷ 10)   from the previous refresh
+popularityMultiplier = 1 + 0.12·log10(1+score) + 0.12·min(crossSubreddit, 5) + 0.15 if a preferred subreddit
 ```
-
-*Growth is measured, not guessed:* each refresh stores post → (score, comments) in session storage, so the next one can show "Growing rapidly · +640 in 5m". Without a snapshot, growth is classified relative to the set's median velocity. The four sections:
-
-- 🔥 **Hot Right Now** — top `trendingScore` (max 4 per subreddit)
-- 📈 **Rising Fast** — ≤12 h old, steepest upvote velocity, boosted if Reddit lists it as rising
-- 💬 **Most Discussed** — comment volume, softly weighted toward recent activity
-- 🌎 **Across Reddit** — stories that broke out of one community, then a diverse fill (one per subreddit)
 
 All constants are in `WEIGHTS`; the formula's *shape* is what's tested.
 
@@ -308,13 +308,13 @@ scripts/                   build.mjs · generate-icons.mjs · verify-seeds.mjs
 popup.html · options.html  Vite entry pages
 src/
   background/              service worker: container (composition root), handlers (RPC),
-                           contextManager, tabs, index (listeners, alarms, badge)
+                           contextManager, tabs, index (listeners, badge)
   content/                 youtube.ts · netflix.ts · reddit.ts · generic.ts (+ runtime.ts)
-  popup/                   App, TrendingPanel, ReadingPanel, data hooks, theme
+  popup/                   App, RedditPanel, ReadingPanel, data hooks, theme
   options/                 Settings page
   components/              RedditCard · ArticleCard · ContextBar · Tabs · SearchBar · skeletons · states
   services/
-    redditService.ts       provider chain, breaker, trending + search      → reddit/*
+    redditService.ts       provider chain, breaker, search + ranking        → reddit/*
     substackService.ts     discovery orchestration                        → substack/*, search/brave.ts
     contextService.ts      the pipeline facade                            → context/*
     rankingService.ts      facade over ranking/reddit.ts + ranking/relevance.ts
@@ -325,7 +325,7 @@ src/
   types/                   all shared contracts
   dev/                     UI preview shim + fixtures (not shipped)
 server/                    optional backend (Cloudflare Worker / Node) — see server/README.md
-tests/                     230 tests
+tests/                     242 tests
 docs/                      project report, usability evaluation form, flowcharts, screens (+ generators)
 ```
 
@@ -334,7 +334,7 @@ docs/                      project report, usability evaluation form, flowcharts
 ## Testing
 
 ```bash
-npm test            # 230 tests across 17 files
+npm test            # 242 tests across 18 files
 npm run verify      # typecheck → build → tests → release gate
 ```
 
@@ -359,7 +359,7 @@ Run `npm run build`, load `dist/`, then:
 
 | Scenario | Expect |
 | --- | --- |
-| **YouTube video** (`/watch?v=…`) | ● badge; popup opens on *Related Reading*; "Watching" bar with title + channel; "Found N relevant Substack posts"; the **Reddit** tab opens on "About this video" threads, with "Trending now" beside it |
+| **YouTube video** (`/watch?v=…`) | ● badge; popup opens on *Related Reading*; "Watching" bar with title + channel; "Found N related articles on Substack and Medium"; the **Reddit** tab shows "About this video" threads |
 | **YouTube Short** (`/shorts/…`) | Same, with the Short's title/channel; hashtags stripped from the title |
 | **YouTube, navigate to another video without reloading** | Reopen → the new video (not the previous one) |
 | **Netflix movie** | Title detected (open the popup while the player controls are visible) |
@@ -393,7 +393,6 @@ The evaluation form is a **template**: it contains no results, and the extension
 ## Extending it
 
 - **New platform (e.g. Spotify, Twitch):** add a `PlatformExtractor` in `src/services/context/extractors/`, a URL rule in `platform.ts`, a 3-line content script in `src/content/`, an entry in `scripts/build.mjs`'s `CONTENT_SCRIPTS`, and its match pattern in `manifest.config.mjs`. Nothing downstream changes.
-- **New Reddit topic filter:** one row in `src/services/reddit/topics.ts`.
 - **New concepts:** `src/services/context/ontology.ts` is plain data.
 - **New Reddit/Substack data source:** implement `RedditProvider` (`reddit/providers.ts`) or add a search provider in `substackService.searchProviders()`; the validation gate (`substack/candidates.ts`) is shared.
 - **New curated publication:** add it to `seeds.json`, then `npm run seeds:verify`.

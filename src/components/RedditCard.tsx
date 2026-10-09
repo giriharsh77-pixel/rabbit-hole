@@ -1,29 +1,18 @@
 import { memo } from 'react';
-import type { RedditCategoryId, ScoredRedditPost } from '../types/reddit';
+import type { ScoredRedditPost } from '../types/reddit';
 import { formatCount, timeAgo } from '../utils/format';
 import { safeImageUrl, safeRedditUrl } from '../utils/sanitize';
 import { ArrowRightIcon, CommentIcon, UpIcon } from './icons';
 
-export type CardBadge = RedditCategoryId | 'search';
-
-const BADGES: Record<CardBadge, string> = {
-  hot: '🔥 Trending',
-  rising: '📈 Rising',
-  discussed: '💬 Discussed',
-  across: '🌎 Across Reddit',
-  search: '🔎 Related thread',
-};
-
 interface Props {
   post: ScoredRedditPost;
-  badge: CardBadge;
   showThumbnail: boolean;
   /** Called by "Find deeper reading →". */
   onFindReading: (post: ScoredRedditPost) => void;
   now: number;
 }
 
-export const RedditCard = memo(function RedditCard({ post, badge, showThumbnail, onFindReading, now }: Props) {
+export const RedditCard = memo(function RedditCard({ post, showThumbnail, onFindReading, now }: Props) {
   const thread = safeRedditUrl(post.permalink);
   const subredditUrl = safeRedditUrl(`https://www.reddit.com/r/${post.subreddit}/`);
   const thumb = showThumbnail ? safeImageUrl(post.thumbnail) : undefined;
@@ -33,7 +22,7 @@ export const RedditCard = memo(function RedditCard({ post, badge, showThumbnail,
   return (
     <li className="card" aria-label={post.title}>
       <div className="card-top">
-        <span className="badge">{BADGES[badge]}</span>
+        <span className="badge">💬 Reddit thread</span>
         <span className="meta">{timeAgo(post.createdUtc, now)}</span>
       </div>
 

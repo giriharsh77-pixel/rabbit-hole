@@ -65,7 +65,7 @@ export const ArticleCard = memo(function ArticleCard({ article, onSeeReddit }: P
       <div className="actions">
         {url && (
           <a className="btn primary" href={url} target="_blank" rel="noopener noreferrer">
-            Read on Substack <ArrowRightIcon />
+            Read on {article.provider === 'medium' ? 'Medium' : 'Substack'} <ArrowRightIcon />
           </a>
         )}
         <button type="button" className="btn" onClick={() => onSeeReddit(article)}>

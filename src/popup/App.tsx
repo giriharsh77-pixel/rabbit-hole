@@ -2,17 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Logo } from '../components/Logo';
 import { SearchBar } from '../components/SearchBar';
 import { ExpandIcon, SettingsIcon, ShieldIcon } from '../components/icons';
-import { ListSkeleton } from '../components/Skeleton';
 import { Tabs, type TabDef } from '../components/Tabs';
 import { buildContext, generateQueries } from '../services/contextService';
 import type { ContentContext, RawPageMetadata, UsedInfoField } from '../types/context';
-import type { RedditCategoryId, ScoredRedditPost } from '../types/reddit';
+import type { ScoredRedditPost } from '../types/reddit';
 import type { RankedArticle } from '../types/substack';
 import { applyTheme } from './theme';
 import { useAnalyzed, useCurrentContext, useDiscovery, useSettingsState } from './data';
 import { useDebounced, useMediaQuery, useNow } from './hooks';
 import { ReadingPanel, type ReadingSource } from './ReadingPanel';
-import { TrendingPanel, type PageBridge, type RedditFocus } from './TrendingPanel';
+import { RedditPanel, type PageBridge, type RedditFocus } from './RedditPanel';
 
 export interface AppProps {
   /** `popup`: the toolbar popup.  `tab`: the full dashboard page. */
@@ -56,19 +55,9 @@ export function App({ mode, sourceTabId }: AppProps) {
   useEffect(() => applyTheme(settings.appearance.theme), [settings.appearance.theme]);
 
   // ── navigation state ───────────────────────────────────────────────────────
-  // The user's explicit choice wins.  Otherwise the tab is decided from what's on the page —
-  // and not painted until that is known (≤ ~0.7 s), so the popup never flips between tabs.
+  // Related Reading leads; the user's explicit choice wins.
   const [userTab, setUserTab] = useState<TabId | null>(null);
-  const [bootGraceOver, setBootGraceOver] = useState(false);
   const chooseTab = useCallback((t: TabId) => setUserTab(t), []);
-  useEffect(() => {
-    const t = setTimeout(() => setBootGraceOver(true), 700);
-    return () => clearTimeout(t);
-  }, []);
-
-  const [topicId, setTopicId] = useState<string | undefined>();
-  const activeTopic = topicId ?? settings.reddit.defaultTopic;
-  const [category, setCategory] = useState<RedditCategoryId>('hot');
 
   // ── search ─────────────────────────────────────────────────────────────────
   const [typed, setTyped] = useState('');
@@ -122,9 +111,7 @@ export function App({ mode, sourceTabId }: AppProps) {
   const currentContext = response?.state === 'ready' ? (response.context ?? null) : null;
   const isWatching = !!currentContext && (currentContext.platform === 'youtube' || currentContext.platform === 'netflix');
 
-  // when something is playing, lead with Related Reading (unless the user already chose)
-  const pageKnown = page.status === 'success' || page.status === 'error';
-  const tab: TabId | null = userTab ?? (pageKnown || bootGraceOver ? (isWatching ? 'reading' : 'reddit') : null);
+  const tab: TabId = userTab ?? 'reading';
 
   useEffect(() => {
     if (page.response?.state === 'ready' && page.response.context && page.response.platform === 'unknown') setUsedPage(true);
@@ -161,7 +148,6 @@ export function App({ mode, sourceTabId }: AppProps) {
   }, [manualRaw, bridgeRaw, useCurrent, response?.used, isWatching]);
 
   const readingActive = split || tab === 'reading';
-  const booting = !split && tab === null;
   const discovery = useDiscovery(readingActive ? context : null);
 
   // ── cross-links: Reddit ⇄ Substack ─────────────────────────────────────────
@@ -222,8 +208,8 @@ export function App({ mode, sourceTabId }: AppProps) {
   }, [clearQuery]);
 
   const tabs: TabDef<TabId>[] = [
-    // while something plays, this tab leads with threads about it (see TrendingPanel)
-    { id: 'reddit', label: isWatching ? 'Reddit' : 'Trending Reddit', dot: isWatching },
+    // threads about what's playing (see RedditPanel)
+    { id: 'reddit', label: 'Reddit', dot: isWatching },
     {
       id: 'reading',
       label: 'Related Reading',
@@ -261,26 +247,17 @@ export function App({ mode, sourceTabId }: AppProps) {
       {!split && <Tabs tabs={tabs} value={tab} onChange={chooseTab} idPrefix={idPrefix} />}
 
       <main className="panels">
-        {booting && (
-          <div className="panel" aria-busy="true">
-            <ListSkeleton count={2} label="Opening Rabbit Hole" />
-          </div>
-        )}
-        <TrendingPanel
+        <RedditPanel
           idPrefix={idPrefix}
           settings={settings}
           active={split || tab === 'reddit'}
           now={now}
-          topicId={activeTopic}
-          onTopic={setTopicId}
-          category={category}
-          onCategory={setCategory}
           focus={redditFocus}
           onClearFocus={() => (articleFocus ? setArticleFocus(null) : clearQuery())}
           watching={isWatching ? currentContext : null}
           pageBridge={pageBridge}
           onFindReading={onFindReading}
-          onOpenSettings={() => openSettings()}
+          onSearch={() => searchRef.current?.focus()}
         />
         <ReadingPanel
           idPrefix={idPrefix}

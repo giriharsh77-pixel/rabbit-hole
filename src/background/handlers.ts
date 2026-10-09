@@ -25,11 +25,9 @@ export interface HandlerDeps {
   services: Services;
   tabs: TabAdapter;
   now?: () => number;
-  /** Fired after settings change (reschedule alarms, refresh badges, …). */
+  /** Fired after settings change (refresh badges, …). */
   onSettingsChanged?: (settings: Settings) => void;
-  /** Fired when the user actively uses the UI (gates background refresh). */
-  onUse?: () => void;
-  /** Clears anything held outside `services` (e.g. alarms). */
+  /** Clears anything held outside `services` (e.g. the toolbar badge). */
   onDataCleared?: () => void;
 }
 
@@ -65,7 +63,6 @@ export function createHandlers(deps: HandlerDeps): { handlers: Handlers; context
   const handlers: Handlers = {
     // ── context ────────────────────────────────────────────────────────────
     'context/current': async (p) => {
-      deps.onUse?.();
       return contextManager.current({ tabId: p?.tabId, refresh: p?.refresh });
     },
     'context/usePage': async (p) => contextManager.usePage({ tabId: p?.tabId }),
@@ -75,18 +72,6 @@ export function createHandlers(deps: HandlerDeps): { handlers: Handlers; context
     },
 
     // ── reddit ─────────────────────────────────────────────────────────────
-    'reddit/trending': async (p, { signal }) => {
-      if (!p || typeof p.topicId !== 'string' || !/^[a-z0-9-]{1,40}$/i.test(p.topicId)) {
-        throw new AppError('UNKNOWN', 'Invalid topic', { retryable: false });
-      }
-      deps.onUse?.();
-      return services.reddit.getTrending({
-        topicId: p.topicId,
-        signal,
-        ...(p.refresh !== undefined ? { refresh: p.refresh } : {}),
-        ...(p.cacheOnly !== undefined ? { cacheOnly: p.cacheOnly } : {}),
-      });
-    },
     'reddit/search': async (p, { signal }) => {
       const queries = Array.isArray(p?.queries) ? p.queries.map((q) => cleanText(q, 120)).filter(Boolean) : [];
       return services.reddit.search({
@@ -159,6 +144,7 @@ export function createHandlers(deps: HandlerDeps): { handlers: Handlers; context
       if (backendSearch) substackProviders.push('backend');
       if (secrets.braveApiKey.configured) substackProviders.push('brave');
       substackProviders.push('feeds');
+      if (settings.reading.includeMedium) substackProviders.push('medium');
       return {
         reddit: { providers: [...(secrets.redditClientId.configured ? (['oauth'] as const) : []), 'json', 'rss'] },
         substack: {

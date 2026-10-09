@@ -1,14 +1,12 @@
 /**
  * rankingService — facade over the two ranking engines:
- *   • ranking/reddit.ts     trending score, growth, categories
+ *   • ranking/reddit.ts     momentum score, growth
  *   • ranking/relevance.ts  article relevance, labels, diversity
  */
 export {
-  categorize,
   crossSubredditCounts,
   GROWTH_LABELS,
   mergePosts,
-  rankReddit,
   scorePosts,
   WEIGHTS as REDDIT_WEIGHTS,
   type PostDelta,

@@ -67,18 +67,18 @@ describe('RPC over a port', () => {
 
   it('aborts all work when the page closes', async () => {
     let sig!: AbortSignal;
-    const { client } = pair({ 'reddit/trending': (_p, c) => ((sig = c.signal), new Promise(() => undefined)) });
+    const { client } = pair({ 'reddit/search': (_p, c) => ((sig = c.signal), new Promise(() => undefined)) });
     const rpc = new RpcClient(() => client);
-    void rpc.call('reddit/trending', { topicId: 'all' }).catch(() => undefined);
+    void rpc.call('reddit/search', { queries: ['The Office'] }).catch(() => undefined);
     await new Promise((r) => setTimeout(r, 0));
     client.disconnect();
     expect(sig.aborted).toBe(true);
   });
 
   it('rejects pending calls if the worker disappears', async () => {
-    const { client, crash } = pair({ 'reddit/trending': () => new Promise(() => undefined) });
+    const { client, crash } = pair({ 'reddit/search': () => new Promise(() => undefined) });
     const rpc = new RpcClient(() => client);
-    const pending = rpc.call('reddit/trending', { topicId: 'all' });
+    const pending = rpc.call('reddit/search', { queries: ['The Office'] });
     await new Promise((r) => setTimeout(r, 0));
     crash();
     await expect(pending).rejects.toMatchObject({ code: 'UNAVAILABLE', retryable: true });

@@ -21,15 +21,15 @@ const deferred = <T>() => {
 
 describe('TTLs', () => {
   it('uses the product’s cache lifetimes', () => {
-    expect(TTL.redditTrending).toBe(5 * 60_000);
+    expect(TTL.redditSearch).toBe(5 * 60_000);
     expect(TTL.substackSearch).toBe(10 * 60_000);
   });
 
   it('serves fresh entries and expires them on time', async () => {
     const { cache, advance } = setup();
-    await cache.set('k', { n: 1 }, TTL.redditTrending);
+    await cache.set('k', { n: 1 }, TTL.redditSearch);
     expect(await cache.get('k')).toEqual({ n: 1 });
-    advance(TTL.redditTrending - 1);
+    advance(TTL.redditSearch - 1);
     expect(await cache.get('k')).toEqual({ n: 1 });
     advance(2);
     expect(await cache.get('k')).toBeUndefined();

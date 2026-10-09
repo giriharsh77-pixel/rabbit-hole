@@ -15,19 +15,14 @@ describe('settings validation', () => {
       privacy: { detectionEnabled: 'yes' },
     });
     expect(s.appearance.theme).toBe('dark');
-    expect(s.reddit.postCount).toBe(50);
-    expect(s.reddit.refreshIntervalMinutes).toBe(2); // never polls faster than every 2 minutes
     expect(s.reddit.preferredSubreddits).toEqual(['rust', 'golang']);
-    expect(s.reddit.defaultTopic).toBe(DEFAULT_SETTINGS.reddit.defaultTopic);
+    // settings from the removed trending feed are dropped, not carried along
+    expect(Object.keys(s.reddit).sort()).toEqual(['includeNsfw', 'preferredSubreddits', 'showThumbnails', 'useBrowserSession']);
     expect(s.reading.recommendationCount).toBe(5);
     expect(s.reading.minRelevance).toBe(90);
     expect(s.reading.preferredTopics).toEqual(['AI']);
     expect(s.reading.extraPublications).toEqual(['importai']);
     expect(s.privacy.detectionEnabled).toBe(true);
-  });
-
-  it('keeps 0 to mean "refresh off"', () => {
-    expect(validateSettings({ reddit: { refreshIntervalMinutes: 0 } }).reddit.refreshIntervalMinutes).toBe(0);
   });
 
   it('ships privacy-first defaults: dark, NSFW off, anonymous Reddit, AI off', () => {
@@ -39,9 +34,9 @@ describe('settings validation', () => {
   });
 
   it('merges partial updates without losing siblings', () => {
-    const next = mergeSettings(DEFAULT_SETTINGS, { privacy: { youtubeDetection: false }, reddit: { postCount: 30 } });
+    const next = mergeSettings(DEFAULT_SETTINGS, { privacy: { youtubeDetection: false }, reddit: { includeNsfw: true } });
     expect(next.privacy).toMatchObject({ youtubeDetection: false, netflixDetection: true, detectionEnabled: true });
-    expect(next.reddit.postCount).toBe(30);
+    expect(next.reddit.includeNsfw).toBe(true);
     expect(next.reddit.showThumbnails).toBe(true);
   });
 

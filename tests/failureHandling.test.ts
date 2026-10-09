@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createServices } from '../src/background/container';
 import { MemoryStore } from '../src/services/cacheService';
 import { manualContext } from '../src/services/contextService';
+import { SETTINGS_KEY } from '../src/services/settingsService';
 import { jsonResponse, listing, mockFetch, NOW, type Route } from './helpers';
 
 const REDDIT_JSON: Route = (url) => (url.hostname === 'www.reddit.com' && url.pathname.endsWith('.json') ? jsonResponse(listing([{ id: 'abc123', score: 5000, comments: 700 }, { id: 'def456', score: 900, comments: 20, ageHours: 1 }])) : undefined);
@@ -14,8 +15,9 @@ const REDDIT_RSS: Route = (url) =>
     : undefined;
 const status = (code: number, host = 'www.reddit.com', headers: Record<string, string> = {}): Route => (url) => (url.hostname === host ? new Response('', { status: code, headers }) : undefined);
 
-function services(fetchImpl: typeof fetch, opts: { clientId?: string; settings?: object } = {}) {
+function servicesWith(fetchImpl: typeof fetch, opts: { clientId?: string; settings?: object } = {}) {
   const local = new MemoryStore();
+  if (opts.settings) void local.setMany({ [SETTINGS_KEY]: opts.settings }); // validated on first read
   const s = createServices({
     local,
     session: new MemoryStore(),
@@ -26,21 +28,25 @@ function services(fetchImpl: typeof fetch, opts: { clientId?: string; settings?:
   return { ...s, local };
 }
 
+const services = servicesWith;
+
 describe('Reddit provider chain', () => {
+  const Q = { queries: ['AI agents'] };
+
   it('uses public JSON when no client id is configured', async () => {
     const s = services(mockFetch(REDDIT_JSON));
-    const res = (await s.reddit.getTrending({ topicId: 'all' }))!;
+    const res = await s.reddit.search(Q);
     expect(res.meta.provider).toBe('json');
-    expect(res.categories.hot.length).toBeGreaterThan(0);
+    expect(res.posts.length).toBeGreaterThan(0);
   });
 
   it('falls back JSON → RSS when Reddit blocks anonymous JSON, and says so', async () => {
     // route order matters: serve .rss first, then 403 everything else on reddit.com (the .json endpoints)
     const s = services(mockFetch(REDDIT_RSS, status(403)));
-    const res = (await s.reddit.getTrending({ topicId: 'all' }))!;
+    const res = await s.reddit.search(Q);
     expect(res.meta.provider).toBe('rss');
     expect(res.meta.degradedFrom).toEqual([{ provider: 'json', code: 'BLOCKED' }]);
-    expect(res.categories.hot[0]).toMatchObject({ title: 'From the feed', statsEstimated: true });
+    expect(res.posts[0]).toMatchObject({ title: 'From the feed', statsEstimated: true });
   });
 
   it('prefers the official OAuth API when a client id is set, falling back if it fails', async () => {
@@ -49,13 +55,13 @@ describe('Reddit provider chain', () => {
       (url, init) => (url.hostname === 'oauth.reddit.com' && (init?.headers as Record<string, string>)?.authorization === 'Bearer tok' ? jsonResponse(listing([{ id: 'oauth1', score: 777 }])) : undefined),
     );
     const s = services(oauthOk, { clientId: 'client_id_123' });
-    const ok = (await s.reddit.getTrending({ topicId: 'all' }))!;
+    const ok = await s.reddit.search(Q);
     expect(ok.meta.provider).toBe('oauth');
     expect(oauthOk.calls.some((c) => c.includes('/api/v1/access_token'))).toBe(true);
 
     const badCreds = mockFetch((url) => (url.pathname === '/api/v1/access_token' ? new Response('', { status: 401 }) : undefined), REDDIT_JSON);
     const s2 = services(badCreds, { clientId: 'wrong_client' });
-    const res = (await s2.reddit.getTrending({ topicId: 'all' }))!;
+    const res = await s2.reddit.search(Q);
     expect(res.meta.provider).toBe('json');
     expect(res.meta.degradedFrom?.[0]).toEqual({ provider: 'oauth', code: 'UNAUTHORIZED' });
   });
@@ -63,43 +69,38 @@ describe('Reddit provider chain', () => {
   it('stops asking a provider that just blocked us (circuit breaker)', async () => {
     const f = mockFetch(REDDIT_RSS, status(403));
     const s = services(f);
-    await s.reddit.getTrending({ topicId: 'all' });
+    await s.reddit.search(Q);
     const jsonCalls = () => f.calls.filter((c) => c.includes('.json')).length;
     const before = jsonCalls();
     expect(before).toBeGreaterThan(0);
-    await s.reddit.getTrending({ topicId: 'technology' });
-    expect(jsonCalls()).toBe(before); // second topic went straight to RSS
+    await s.reddit.search({ queries: ['The Office'] });
+    expect(jsonCalls()).toBe(before); // the next search went straight to RSS
     expect(s.reddit.coolingDown()).toContain('json');
   });
 
   it('throws a typed error when every provider fails, and an offline error immediately', async () => {
     const allDown = services(mockFetch(status(429, 'www.reddit.com', { 'retry-after': '90' })));
-    await expect(allDown.reddit.getTrending({ topicId: 'all' })).rejects.toMatchObject({ code: 'RATE_LIMITED' });
+    await expect(allDown.reddit.search(Q)).rejects.toMatchObject({ code: 'RATE_LIMITED' });
 
     const offline = mockFetch(() => {
       throw new TypeError('Failed to fetch');
     });
     const s = services(offline);
-    await expect(s.reddit.getTrending({ topicId: 'all' })).rejects.toMatchObject({ code: 'NETWORK' });
+    await expect(s.reddit.search(Q)).rejects.toMatchObject({ code: 'NETWORK' });
     expect(offline.calls.length).toBeLessThan(5); // did not grind through every provider while offline
   });
 
-  it('serves stale data (flagged) when a refresh fails after the TTL', async () => {
+  it('serves the last good results when a refresh fails after the TTL', async () => {
     let now = NOW;
-    const local = new MemoryStore();
     let broken = false;
     const f = mockFetch((url) => (broken ? new Response('', { status: 500 }) : REDDIT_JSON(url)));
-    const s = createServices({ local, session: new MemoryStore(), fetchImpl: f, now: () => now });
-    const fresh = (await s.reddit.getTrending({ topicId: 'all' }))!;
-    expect(fresh.stale).toBeUndefined();
+    const s = createServices({ local: new MemoryStore(), session: new MemoryStore(), fetchImpl: f, now: () => now });
+    const fresh = await s.reddit.search(Q);
+    expect(fresh.posts.length).toBeGreaterThan(0);
     now += 10 * 60_000;
     broken = true;
-    const stale = (await s.reddit.getTrending({ topicId: 'all' }))!;
-    expect(stale.stale).toBe(true);
-    expect(stale.categories.hot.length).toBeGreaterThan(0);
-    // and the instant "cache only" path used for painting immediately on open
-    expect((await s.reddit.getTrending({ topicId: 'all', cacheOnly: true }))?.stale).toBe(true);
-    expect(await s.reddit.getTrending({ topicId: 'science', cacheOnly: true })).toBeNull();
+    const stale = await s.reddit.search(Q);
+    expect(stale.posts.map((p) => p.id)).toEqual(fresh.posts.map((p) => p.id));
   });
 
   it('does not refetch within the TTL (5 minutes) and filters NSFW by default', async () => {
@@ -110,21 +111,18 @@ describe('Reddit provider chain', () => {
       return jsonResponse(body);
     });
     const s = services(f);
-    const first = (await s.reddit.getTrending({ topicId: 'all' }))!;
+    const first = await s.reddit.search(Q);
     const calls = f.calls.length;
-    await s.reddit.getTrending({ topicId: 'all' });
+    await s.reddit.search(Q);
     expect(f.calls.length).toBe(calls);
-    expect(first.categories.hot.map((p) => p.id)).toEqual(['sfw001']);
+    expect(first.posts.map((p) => p.id)).toEqual(['sfw001']);
   });
 
-  it('requires subreddits for the Custom filter', async () => {
-    const s = services(mockFetch(REDDIT_JSON));
-    await expect(s.reddit.getTrending({ topicId: 'custom' })).rejects.toMatchObject({ code: 'NOT_CONFIGURED' });
+  it('can restrict a search to chosen subreddits', async () => {
     const f = mockFetch(REDDIT_JSON);
-    const s2 = services(f);
-    await s2.settings.update({ reddit: { preferredSubreddits: ['rust', 'golang'] } });
-    await s2.reddit.getTrending({ topicId: 'custom' });
-    expect(f.calls[0]).toContain('/r/rust+golang/');
+    await services(f).reddit.search({ ...Q, subreddits: ['rust', 'golang'] });
+    expect(f.calls[0]).toContain('/r/rust+golang/search.json');
+    expect(f.calls[0]).toContain('restrict_sr=1');
   });
 
   it('searches Reddit with several queries and ranks title matches first', async () => {
@@ -178,6 +176,8 @@ describe('Reddit provider chain', () => {
 });
 
 describe('Substack discovery failure handling', () => {
+  // Substack-only behaviour; Medium is covered in medium.test.ts
+  const services = (f: typeof fetch) => servicesWith(f, { settings: { reading: { includeMedium: false } } });
   const RSS = (slug: string, title: string) =>
     `<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>${slug}</title><link>https://${slug}.substack.com</link><item><title>${title}</title><description>About ${title} and autonomous agents.</description><link>https://${slug}.substack.com/p/post-1</link><dc:creator>Writer</dc:creator><pubDate>Mon, 05 Oct 2026 12:00:00 GMT</pubDate></item></channel></rss>`;
   const feedRoute: Route = (url) => {

@@ -8,14 +8,8 @@ export interface Settings {
   };
 
   reddit: {
-    /** Topic filter shown first (see services/reddit/topics.ts). */
-    defaultTopic: string;
-    /** Subreddits for the "Custom" filter and the "preferred" boost. */
+    /** Threads from these subreddits rank a little higher. */
     preferredSubreddits: string[];
-    /** Threads shown per category (5–50). */
-    postCount: number;
-    /** Background refresh in minutes; 0 disables it. */
-    refreshIntervalMinutes: number;
     showThumbnails: boolean;
     includeNsfw: boolean;
     /**
@@ -37,6 +31,8 @@ export interface Settings {
     extraPublications: string[];
     /** Search custom-domain Substack publications from the built-in list. */
     includeCustomDomains: boolean;
+    /** Also search Medium's public tag feeds (sends topic words to medium.com). */
+    includeMedium: boolean;
   };
 
   privacy: {

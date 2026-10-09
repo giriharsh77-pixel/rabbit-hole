@@ -43,6 +43,7 @@ export function createManifest({ backendUrl = '', dev = false } = {}) {
     'https://www.netflix.com/*',
     // Substack publications hosted on substack.com (RSS feeds + article pages)
     'https://*.substack.com/*',
+    'https://medium.com/*', // Medium's public tag feeds (Related Reading)
   ];
 
   if (backendUrl) {
@@ -78,7 +79,7 @@ export function createManifest({ backendUrl = '', dev = false } = {}) {
     },
     options_ui: { page: 'options.html', open_in_tab: true },
     background: { service_worker: 'background.js', type: 'module' },
-    permissions: ['storage', 'activeTab', 'scripting', 'alarms'],
+    permissions: ['storage', 'activeTab', 'scripting'],
     host_permissions: hostPermissions,
     // Requested at runtime, per feature, only when the user turns the feature on.
     optional_host_permissions: [

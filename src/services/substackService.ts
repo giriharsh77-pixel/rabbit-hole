@@ -5,7 +5,8 @@
  *     → (optional) AI enrichment
  *     → query generation
  *     → search providers  (backend proxy · Brave Search key)     ┐ run in parallel
- *     → feed provider     (curated public RSS feeds)             ┘ when search is absent/thin
+ *     → feed provider     (curated public RSS feeds)             │ when search is absent/thin
+ *     → Medium            (public tag feeds, keyless)            ┘ always, unless switched off
  *     → merge + validate → relevance scoring → (optional) AI judging
  *     → threshold + diversity → DiscoveryResponse
  *
@@ -25,12 +26,14 @@ import { rankArticles } from './ranking/relevance';
 import { braveSearchSubstack } from './search/brave';
 import { mergeCandidates } from './substack/candidates';
 import type { FeedProvider } from './substack/feedProvider';
+import type { MediumProvider } from './substack/medium';
 
 export interface SubstackServiceDeps {
   cache: CacheService;
   getSettings: () => Promise<Settings>;
   ai: Pick<AiService, 'enrich' | 'judge'>;
   feeds: Pick<FeedProvider, 'search'>;
+  medium?: Pick<MediumProvider, 'search'>;
   getBackend: () => BackendClient | undefined;
   getBraveKey: () => Promise<string | undefined>;
   fetchImpl?: typeof fetch;
@@ -122,13 +125,27 @@ export class SubstackService {
     const context = settings.privacy.aiEnabled ? await this.deps.ai.enrich(input, signal) : input;
     const queries = generateQueries(context, { max: 5 });
 
-    // 2 ─ search providers in parallel
+    // 2 ─ search providers in parallel — and Medium, which widens the net beyond Substack
     const reports: ProviderReport[] = [];
     const lists: ArticleCandidate[][] = [];
     const searchProviders = await this.searchProviders();
+    const medium = settings.reading.includeMedium ? this.deps.medium : undefined;
+    const mediumRun = medium
+      ? medium.search(context, signal).then(
+          (list) => {
+            lists.push(list);
+            reports.push({ id: 'medium', ok: true, count: list.length });
+          },
+          (err: unknown) => {
+            if (isAbortError(err)) throw err;
+            reports.push({ id: 'medium', ok: false, count: 0, error: serializeError(err, 'medium') });
+          },
+        )
+      : Promise.resolve();
 
-    await Promise.all(
-      searchProviders.map(async (p) => {
+    await Promise.all([
+      mediumRun,
+      ...searchProviders.map(async (p) => {
         try {
           const list = await p.run(queries, signal);
           lists.push(list);
@@ -138,11 +155,12 @@ export class SubstackService {
           reports.push({ id: p.id, ok: false, count: 0, error: serializeError(err, p.id) });
         }
       }),
-    );
+    ]);
     let candidates = mergeCandidates(lists);
+    const substackCount = candidates.filter((c) => c.provider !== 'medium').length;
 
     // 3 ─ public feeds: the keyless path, and a supplement when search is thin
-    if (searchProviders.length === 0 || candidates.length < THIN_RESULTS) {
+    if (searchProviders.length === 0 || substackCount < THIN_RESULTS) {
       try {
         const fromFeeds = await this.deps.feeds.search(context, signal);
         reports.push({ id: 'feeds', ok: true, count: fromFeeds.length });

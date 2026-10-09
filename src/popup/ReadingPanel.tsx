@@ -112,7 +112,7 @@ export function ReadingPanel(p: Props) {
           <EmptyState icon={<EyeIcon />} title={bridgeable ? 'Or search any topic' : 'Go deeper on anything'}>
             {bridgeable
               ? 'Rabbit Hole finds writing related to the thread or article you’re on.'
-              : 'Open a YouTube video or a Netflix title and Rabbit Hole finds related Substack writing. Or search a topic.'}
+              : 'Open a YouTube video or a Netflix title and Rabbit Hole finds related writing on Substack and Medium. Or search a topic.'}
             <ManualSearchForm label="What are you watching?" onSubmit={p.onManual} />
             {response?.canUsePage && (
               <span className="actions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginTop: 12 }}>
@@ -137,6 +137,8 @@ export function ReadingPanel(p: Props) {
   const searching = p.contextLoading || discovery.status === 'loading';
   const found = discovery.status === 'success' ? articles.length : 0;
   const limited = discovery.data?.limitedCoverage;
+  const withMedium = discovery.data?.providers.some((r) => r.id === 'medium' && r.ok) ?? false;
+  const where = withMedium ? 'Substack or Medium' : 'Substack';
   const searched = (context?.concepts ?? []).filter((c) => c.origin !== 'ontology').slice(0, 5);
 
   return (
@@ -161,7 +163,7 @@ export function ReadingPanel(p: Props) {
         ) : discovery.status === 'success' ? (
           articles.length > 0 ? (
             <span>
-              Found <strong className="num">{found}</strong> relevant Substack {plural(found, 'post')}
+              Found <strong className="num">{found}</strong> related {plural(found, 'article')}{withMedium ? ' on Substack and Medium' : ' on Substack'}
               {discovery.data?.aiUsed ? ' · refined with AI' : ''}
             </span>
           ) : (
@@ -182,7 +184,7 @@ export function ReadingPanel(p: Props) {
 
       {limited && discovery.status === 'success' && (
         <Banner tone="info">
-          <b>Searching a curated publication list.</b> For all of Substack, connect a search provider in{' '}
+          <b>Searching curated Substack publications{withMedium ? ' and Medium' : ''}.</b> For all of Substack, connect a search provider in{' '}
           <button type="button" className="link" onClick={p.onOpenSettings}>
             Settings
           </button>
@@ -199,11 +201,11 @@ export function ReadingPanel(p: Props) {
         </ErrorState>
       )}
 
-      {searching && !discovery.data && <ListSkeleton count={3} label="Searching Substack" />}
+      {searching && !discovery.data && <ListSkeleton count={3} label="Searching Substack and Medium" />}
 
       {discovery.status === 'success' && articles.length === 0 && (
         <EmptyState title="Couldn't find related writing.">
-          Nothing on Substack matched closely enough{discovery.data?.totalCandidates ? ` (${discovery.data.totalCandidates} weaker matches hidden — lower the minimum relevance in Settings to see them)` : ''}.
+          Nothing on {where} matched closely enough{discovery.data?.totalCandidates ? ` (${discovery.data.totalCandidates} weaker matches hidden — lower the minimum relevance in Settings to see them)` : ''}.
           <ManualSearchForm label="Try searching manually" placeholder="Search topic…" button="Search" onSubmit={p.onManual} />
         </EmptyState>
       )}

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Logo } from '../components/Logo';
-import { TOPIC_FILTERS } from '../services/reddit/topics';
 import { customDomainOrigins } from '../services/substack/seeds';
 import type { AppStatus } from '../types/messages';
 import type { SecretName, SecretsStatus } from '../types/settings';
@@ -95,21 +94,9 @@ export function OptionsApp() {
       {/* ── Reddit ─────────────────────────────────────────────────────────── */}
       <section className="section" id="reddit" aria-labelledby="h-reddit">
         <h2 id="h-reddit">Reddit</h2>
-        <p className="lead">What the Trending tab shows and how often it refreshes.</p>
+        <p className="lead">Threads about what you’re watching — how they’re found and shown.</p>
 
-        <Row title="Default category" help="The topic filter selected when you open Rabbit Hole.">
-          <div className="field">
-            <select aria-label="Default category" value={r.defaultTopic} onChange={(e) => change({ reddit: { defaultTopic: e.target.value } })}>
-              {TOPIC_FILTERS.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.emoji} {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </Row>
-
-        <Row stack title="Preferred subreddits" help="Used by the “Custom” filter, and their threads get a small ranking boost everywhere.">
+        <Row stack title="Preferred subreddits" help="Threads from these communities rank a little higher.">
           <TagInput
             values={r.preferredSubreddits}
             onChange={(v) => change({ reddit: { preferredSubreddits: v } })}
@@ -118,27 +105,6 @@ export function OptionsApp() {
             prefix="r/"
             max={40}
           />
-        </Row>
-
-        <Row title="Threads per category" help="How many threads each section lists.">
-          <Slider value={r.postCount} min={5} max={50} step={5} label="Number of posts" onCommit={(v) => change({ reddit: { postCount: v } })} />
-        </Row>
-
-        <Row title="Background refresh" help="Keeps trending data warm while you use Rabbit Hole. Pauses automatically when you haven’t used it for two hours.">
-          <div className="field">
-            <select
-              aria-label="Refresh interval"
-              value={r.refreshIntervalMinutes}
-              onChange={(e) => change({ reddit: { refreshIntervalMinutes: Number(e.target.value) } })}
-            >
-              <option value={0}>Off</option>
-              {[2, 5, 10, 15, 30, 60].map((m) => (
-                <option key={m} value={m}>
-                  Every {m} minutes
-                </option>
-              ))}
-            </select>
-          </div>
         </Row>
 
         <Row title="Show thumbnails" help="Loads small preview images from Reddit's image servers.">
@@ -158,7 +124,7 @@ export function OptionsApp() {
       {/* ── Related reading ────────────────────────────────────────────────── */}
       <section className="section" id="reading" aria-labelledby="h-reading">
         <h2 id="h-reading">Related Reading</h2>
-        <p className="lead">How Substack recommendations are chosen and filtered.</p>
+        <p className="lead">How Substack and Medium recommendations are chosen and filtered.</p>
 
         <Row title="Recommendations" help="Maximum articles shown.">
           <Slider value={rd.recommendationCount} min={5} max={30} label="Number of recommendations" onCommit={(v) => change({ reading: { recommendationCount: v } })} />
@@ -191,6 +157,9 @@ export function OptionsApp() {
             label="Extra publications"
             max={20}
           />
+        </Row>
+        <Row title="Include Medium" help="Also searches Medium’s public topic feeds (recent stories), so you still get reading when Substack has nothing. Sends only topic words, like “the-office”, to medium.com.">
+          <Switch checked={rd.includeMedium} onChange={(v) => change({ reading: { includeMedium: v } })} label="Include Medium" />
         </Row>
         <Row
           title="Include custom-domain newsletters"
@@ -238,7 +207,7 @@ export function OptionsApp() {
               <b>Stores locally:</b> your settings (and any API keys you add). Caches live in memory only and are wiped when the browser closes. No browsing history, ever.
             </li>
             <li>
-              <b>Sends:</b> short topic queries (like “AI agents”) to Reddit and a search provider. Never the page, your history, your account or an identifier. No analytics, no tracking, no selling data.
+              <b>Sends:</b> short topic queries (like “AI agents”) to Reddit, Medium and a search provider. Never the page, your history, your account or an identifier. No analytics, no tracking, no selling data.
             </li>
           </ul>
         </div>
@@ -369,7 +338,7 @@ export function OptionsApp() {
           <div className="row-text">
             <strong>Active data sources</strong>
             <span>
-              Reddit: {status?.reddit.providers.join(' → ') ?? '…'} · Substack: {status?.substack.providers.join(' + ') ?? '…'}
+              Reddit: {status?.reddit.providers.join(' → ') ?? '…'} · Reading: {status?.substack.providers.join(' + ') ?? '…'}
             </span>
           </div>
           <span className="meta">v{status?.version ?? '…'}</span>

@@ -56,7 +56,7 @@ export function generateQueries(ctx: ContentContext, opts: QueryOptions = {}): S
     if (related[1] && related[0]) push(`${related[0]} ${related[1]}`, 0.5, 'concept');
   } else if (ctx.kind === 'movie' || ctx.kind === 'show' || ctx.kind === 'episode') {
     // A film/series: the title is a proper noun; essays *about* it are the target.
-    const show = entities[0] ?? ctx.title;
+    const show = ctx.title || entities[0] || '';
     push(quote(show), 1, 'entity');
     if (related[0]) push(`${quote(show)} ${related[0]}`, 0.85, 'combo');
     if (related[0] && related[1]) push(`${related[0]} ${related[1]}`, 0.7, 'concept');
@@ -122,7 +122,7 @@ export function generateRedditQueries(ctx: ContentContext, max = 3): string[] {
   const primary = topics[0];
 
   if (ctx.kind === 'movie' || ctx.kind === 'show' || ctx.kind === 'episode') {
-    const show = ctx.entities[0] ?? ctx.title;
+    const show = ctx.title || ctx.entities[0] || '';
     const ep = parseEpisode(ctx.episode);
     if (ep.name) push(`${quote(show)} ${quote(ep.name)}`);
     push(quote(show));

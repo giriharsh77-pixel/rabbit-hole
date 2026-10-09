@@ -9,7 +9,7 @@ interface Props {
   inputRef: RefObject<HTMLInputElement | null>;
 }
 
-/** `⌕ Search Reddit or Substack…` — "/" focuses it, Enter searches now, Esc clears. */
+/** `⌕ Search Reddit, Substack or Medium…` — "/" focuses it, Enter searches now, Esc clears. */
 export function SearchBar({ value, onChange, onSubmit, onClear, inputRef }: Props) {
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -31,8 +31,8 @@ export function SearchBar({ value, onChange, onSubmit, onClear, inputRef }: Prop
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Search Reddit or Substack…"
-          aria-label="Search Reddit or Substack"
+          placeholder="Search Reddit, Substack or Medium…"
+          aria-label="Search Reddit, Substack or Medium"
           autoComplete="off"
           spellCheck={false}
           maxLength={120}

@@ -80,7 +80,7 @@ try {
   ok('manifest loaded by Chrome', manifestName === 'Rabbit Hole', manifestName);
 
   const perms = await sw.evaluate(() => chrome.runtime.getManifest().permissions);
-  ok('permissions are minimal', JSON.stringify([...perms].sort()) === JSON.stringify(['activeTab', 'alarms', 'scripting', 'storage']), perms.join(','));
+  ok('permissions are minimal', JSON.stringify([...perms].sort()) === JSON.stringify(['activeTab', 'scripting', 'storage']), perms.join(','));
   const lockOk = await sw.evaluate(async () => { try { await chrome.storage.local.set({ probe: 1 }); await chrome.storage.local.remove('probe'); return true; } catch { return false; } });
   ok('background can use chrome.storage.local', lockOk);
 
@@ -167,12 +167,13 @@ try {
   writeFileSync(join(OUT, 'articles.json'), JSON.stringify(articles, null, 2));
   await ui.screenshot({ path: join(OUT, 'popup-youtube.png') });
 
-  // Reddit tab in real Chrome (real network → JSON, or degraded to feeds)
+  // Reddit tab in real Chrome: threads about the video (real network → JSON, or degraded to feeds)
   await ui.click('#rh-tab-reddit');
   await ui.waitForFunction(() => document.querySelectorAll('#rh-panel-reddit li.card').length > 0 || document.querySelector('#rh-panel-reddit .state'), { timeout: 40000 }).catch(() => undefined);
   const redditCards = await ui.$$eval('#rh-panel-reddit li.card', (c) => c.length);
-  const redditMeta = await ui.$eval('#rh-panel-reddit', (p) => (p.querySelector('.state h3') ? `error state: ${p.querySelector('.state h3').textContent}` : (p.querySelector('.banner')?.innerText ?? 'no banner').slice(0, 90) + ' | ' + (p.querySelector('.panel-title .meta')?.innerText ?? '')));
-  ok('Trending Reddit renders data or a friendly error in real Chrome', redditCards > 0 || redditMeta.startsWith('error state'), `${redditCards} cards — ${redditMeta}`);
+  const redditMeta = await ui.$eval('#rh-panel-reddit', (p) => (p.querySelector('.state h3') ? `state: ${p.querySelector('.state h3').textContent}` : (p.querySelector('.panel-title h2')?.innerText ?? '') + ' | ' + (p.querySelector('.panel-title .meta')?.innerText ?? '')));
+  const aboutVideo = await ui.$eval('#rh-panel-reddit', (p) => /about this video/i.test(p.innerText)).catch(() => false);
+  ok('Reddit tab shows threads about the video (or a friendly state) — no trending feed', aboutVideo && (redditCards > 0 || redditMeta.startsWith('state')), `${redditCards} cards — ${redditMeta}`);
   await ui.screenshot({ path: join(OUT, 'popup-reddit.png') });
 
   // Netflix & Reddit-thread contexts
@@ -232,10 +233,10 @@ try {
     const port = chrome.runtime.connect({ name: 'rabbit-hole:rpc' });
     return await new Promise((resolve) => {
       port.onMessage.addListener((m) => resolve(m));
-      port.postMessage({ kind: 'rpc', id: 2, method: 'reddit/trending', params: { topicId: 'technology', refresh: true } });
+      port.postMessage({ kind: 'rpc', id: 2, method: 'reddit/search', params: { queries: ['"The Office"'], time: 'all', strict: true } });
     });
   });
-  console.log('  reddit/trending →', reddit.ok ? `provider=${reddit.data.meta.provider} degradedFrom=${JSON.stringify(reddit.data.meta.degradedFrom ?? [])} hot=${reddit.data.categories.hot.length}` : `error ${JSON.stringify(reddit.error)}`);
+  console.log('  reddit/search "The Office" →', reddit.ok ? `provider=${reddit.data.meta.provider} degradedFrom=${JSON.stringify(reddit.data.meta.degradedFrom ?? [])} threads=${reddit.data.posts.length}` : `error ${JSON.stringify(reddit.error)}`);
 
   // ── 5. console health ─────────────────────────────────────────────────────
   const csp = problems.filter((p) => /Content Security Policy|Refused to/i.test(p));

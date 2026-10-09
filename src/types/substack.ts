@@ -3,7 +3,8 @@ import type { SerializedError } from './errors';
 
 export type RelevanceLabel = 'highly-relevant' | 'very-relevant' | 'related' | 'somewhat-related';
 
-export type SubstackProviderId = 'backend' | 'brave' | 'feeds';
+/** `medium` = Medium's public tag feeds (keyless), searched alongside Substack. */
+export type SubstackProviderId = 'backend' | 'brave' | 'feeds' | 'medium';
 
 /** An article found by a provider, before ranking.  Never contains invented data. */
 export interface ArticleCandidate {
