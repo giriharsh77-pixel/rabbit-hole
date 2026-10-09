@@ -19,10 +19,10 @@ import type {
 import type { Settings } from '../types/settings';
 import { AppError, toAppError } from '../utils/errors';
 import { clamp } from '../utils/format';
-import { hashString, phraseKey, uniqueBy } from '../utils/text';
+import { hashString, normalizeText, phraseKey, uniqueBy } from '../utils/text';
 import { CacheService, TTL } from './cacheService';
 import { mergePosts, rankReddit, scorePosts, type PostDelta } from './ranking/reddit';
-import { JsonProvider, OAuthProvider, RssProvider, type ListingRequest, type RedditProvider } from './reddit/providers';
+import { JsonProvider, OAuthProvider, RssProvider, type ListingRequest, type RedditProvider, type SearchRequest } from './reddit/providers';
 import type { SnapshotStore } from './reddit/snapshots';
 import { subredditsFor } from './reddit/topics';
 
@@ -227,6 +227,10 @@ export class RedditService {
     queries: string[];
     limit?: number;
     subreddits?: string[];
+    /** How far back to look (default: past month). */
+    time?: SearchRequest['time'];
+    /** Only threads that clearly match a query — never pad with Reddit's loose matches. */
+    strict?: boolean;
     signal?: AbortSignal;
   }): Promise<RedditSearchResponse> {
     const settings = await this.deps.getSettings();
@@ -238,7 +242,8 @@ export class RedditService {
 
     const subs = opts.subreddits ?? [];
     const limit = clamp(opts.limit ?? 8, 1, 25);
-    const key = `reddit:search:${hashString(queries.join('|'))}:${hashString(subs.join(','))}:${settings.reddit.includeNsfw ? 1 : 0}`;
+    const time = opts.time ?? 'month';
+    const key = `reddit:search:${hashString(queries.join('|'))}:${hashString(subs.join(','))}:${time}:${settings.reddit.includeNsfw ? 1 : 0}`;
 
     const result = await this.deps.cache.getOrFetch<CachedTrending>(
       key,
@@ -247,7 +252,7 @@ export class RedditService {
         const providers = await this.providers(settings);
         const { value, provider, degradedFrom } = await this.runChain(providers, async (p) => {
           const lists = await Promise.all(
-            queries.map((query) => p.search({ query, subreddits: subs, limit: 12, sort: 'relevance', time: 'month' }, signal)),
+            queries.map((query) => p.search({ query, subreddits: subs, limit: 12, sort: 'relevance', time }, signal)),
           );
           return lists;
         });
@@ -266,20 +271,48 @@ export class RedditService {
       { ...(opts.signal ? { signal: opts.signal } : {}), allowStale: true },
     );
 
-    // Relevance first (does the title talk about the query?), momentum second.
-    const wanted = new Set(phraseKey(queries.join(' ')).split(' ').filter(Boolean));
+    // Relevance first (does the thread talk about one of the queries?), momentum second.
     const scored = scorePosts(result.value.posts, { now: this.now(), preferredSubreddits: settings.reddit.preferredSubreddits });
     const ranked = scored
       .map((p) => {
-        const stems = new Set(phraseKey(p.title).split(' '));
-        const hits = [...wanted].filter((w) => stems.has(w)).length;
-        const match = wanted.size ? hits / wanted.size : 0;
-        return { p, sort: (0.4 + match) * (1 + Math.log10(1 + p.trendingScore)) };
+        const match = searchMatch(queries, p);
+        return { p, match, sort: (0.4 + match) * (1 + Math.log10(1 + p.trendingScore)) };
       })
-      .sort((a, b) => b.sort - a.sort)
-      .slice(0, limit)
-      .map((x) => x.p);
+      .sort((a, b) => b.sort - a.sort);
+    // Drop off-topic threads Reddit's search padded the results with — unless that would leave almost
+    // nothing for a free-form search. Strict callers ("threads about this video") never get padding.
+    const onTopic = ranked.filter((x) => x.match >= 0.34);
+    const posts = (opts.strict || onTopic.length >= 3 ? onTopic : ranked).slice(0, limit).map((x) => x.p);
 
-    return { posts: ranked, meta: result.value.meta, query: queries[0] ?? '' };
+    return { posts, meta: result.value.meta, query: queries[0] ?? '' };
   }
+}
+
+/**
+ * 0–1: how well a thread matches its *best* query. Quoted names ("Black Mirror")
+ * must appear as a phrase, other words by stem; the title counts fully, the
+ * preview half; a subreddit named after the subject (r/blackmirror) counts as
+ * a full match.
+ */
+export function searchMatch(queries: string[], post: Pick<RedditPost, 'title' | 'subreddit' | 'preview'>): number {
+  const fields = [post.title, post.preview.slice(0, 300)].map((text) => ({
+    norm: ` ${normalizeText(text)} `,
+    stems: new Set(phraseKey(text).split(' ')),
+  }));
+  const sub = post.subreddit.toLowerCase().replace(/[^a-z0-9]/g, '');
+  let best = 0;
+  for (const q of queries) {
+    const phrases = [...q.matchAll(/["“]([^"”]+)["”]/g)].map((m) => normalizeText(m[1] ?? '')).filter(Boolean);
+    const words = phraseKey(q.replace(/["“][^"”]*["”]/g, ' ')).split(' ').filter(Boolean);
+    const parts = phrases.length + words.length;
+    if (parts === 0) continue;
+    const [inTitle, inPreview] = fields.map(
+      (f) => (phrases.filter((ph) => f.norm.includes(` ${ph} `)).length + words.filter((w) => f.stems.has(w)).length) / parts,
+    );
+    // only a quoted name can claim a subreddit ("Technology is…" must not match r/technology)
+    const subject = (phrases[0] ?? '').replace(/\s+/g, '');
+    const subMatch = sub.length >= 4 && (subject === sub || subject.replace(/^the/, '') === sub) ? 1 : 0;
+    best = Math.max(best, inTitle ?? 0, (inPreview ?? 0) * 0.5, subMatch);
+  }
+  return best;
 }

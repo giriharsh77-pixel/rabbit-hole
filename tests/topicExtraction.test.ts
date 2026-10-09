@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildContext, manualContext } from '../src/services/contextService';
 import { cleanTitle, extractEntities } from '../src/services/context/topics';
-import { generateQueries } from '../src/services/context/queries';
+import { generateQueries, generateRedditQueries } from '../src/services/context/queries';
 import type { RawPageMetadata } from '../src/types/context';
 
 const yt = (title: string, extra: Partial<RawPageMetadata> = {}) =>
@@ -162,5 +162,33 @@ describe('query generation', () => {
   it('never emits a query for a lone vague word', () => {
     const ctx = buildContext({ platform: 'youtube', kind: 'short', url: 'https://www.youtube.com/shorts/abcde', title: 'This is how a black hole actually forms', source: 't', confidence: 'medium' });
     expect(generateQueries(ctx).map((q) => q.text)).not.toContain('forms');
+  });
+});
+
+describe('Reddit queries for what is playing', () => {
+  const nf = (extra: Partial<RawPageMetadata>) =>
+    buildContext({ platform: 'netflix', kind: 'episode', url: 'https://www.netflix.com/watch/1', title: 'Black Mirror', source: 'test', confidence: 'high', ...extra });
+
+  it('searches a series by name and episode — the way Reddit titles its discussion threads', () => {
+    const q = generateRedditQueries(nf({ episode: 'Season 7, Episode 2 — Common People', genres: ['Sci-Fi'], people: ['Charlie Brooker'] }));
+    expect(q).toEqual(['"Black Mirror" "Common People"', '"Black Mirror"', '"Black Mirror" season 7']);
+  });
+
+  it('understands the compact S7:E2 label too', () => {
+    expect(generateRedditQueries(nf({ episode: 'S7:E2 · Common People' }))[0]).toBe('"Black Mirror" "Common People"');
+  });
+
+  it('searches a film by its name', () => {
+    const q = generateRedditQueries(nf({ kind: 'movie', title: 'Dune: Part Two', genres: ['Sci-Fi'] }));
+    expect(q[0]).toMatch(/^"Dune/);
+    expect(q.some((x) => /movie$/.test(x))).toBe(true);
+  });
+
+  it('leads with a video’s headline and sends only words — never the URL or video id', () => {
+    const q = generateRedditQueries(yt('How AI Agents Will Change Software Development', { keywords: ['ai agents', 'software development'], videoId: 'dQw4w9WgXcQ' }));
+    expect(q[0]).toBe('How AI Agents Will Change Software Development');
+    expect(q.length).toBeGreaterThan(1);
+    expect(q.length).toBeLessThanOrEqual(3);
+    expect(q.join(' ')).not.toMatch(/youtube|watch|dQw4w9WgXcQ|https?:/i);
   });
 });

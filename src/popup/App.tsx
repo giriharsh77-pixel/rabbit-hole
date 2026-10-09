@@ -222,7 +222,8 @@ export function App({ mode, sourceTabId }: AppProps) {
   }, [clearQuery]);
 
   const tabs: TabDef<TabId>[] = [
-    { id: 'reddit', label: 'Trending Reddit' },
+    // while something plays, this tab leads with threads about it (see TrendingPanel)
+    { id: 'reddit', label: isWatching ? 'Reddit' : 'Trending Reddit', dot: isWatching },
     {
       id: 'reading',
       label: 'Related Reading',

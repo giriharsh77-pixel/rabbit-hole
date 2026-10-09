@@ -4,7 +4,7 @@
 
 Rabbit Hole is a Chrome (Manifest V3) extension with two tabs:
 
-- **Trending Reddit** — not "most upvoted", but what is *moving right now*: fast-growing, heavily discussed and cross-community threads, ranked by a velocity-based trending score, filterable by topic.
+- **Trending Reddit** — not "most upvoted", but what is *moving right now*: fast-growing, heavily discussed and cross-community threads, ranked by a velocity-based trending score, filterable by topic. While you watch a YouTube video or a Netflix title, the tab becomes **Reddit** and leads with threads *about what's playing* (searched by the show and episode, or the video's headline and topic — never its URL), with "Trending now" one click away.
 - **Related Reading** — detects what you're watching on **YouTube** or **Netflix**, works out what it's really about, and finds thoughtful **Substack** writing on the same ideas — with a plain-language *"why this is relevant"* for every pick.
 
 The two are bridged: **Find deeper reading →** on any Reddit thread, **See what Reddit thinks →** on any article.
@@ -359,7 +359,7 @@ Run `npm run build`, load `dist/`, then:
 
 | Scenario | Expect |
 | --- | --- |
-| **YouTube video** (`/watch?v=…`) | ● badge; popup opens on *Related Reading*; "Watching" bar with title + channel; "Found N relevant Substack posts"; "Because you're watching" Reddit rows on the other tab |
+| **YouTube video** (`/watch?v=…`) | ● badge; popup opens on *Related Reading*; "Watching" bar with title + channel; "Found N relevant Substack posts"; the **Reddit** tab opens on "About this video" threads, with "Trending now" beside it |
 | **YouTube Short** (`/shorts/…`) | Same, with the Short's title/channel; hashtags stripped from the title |
 | **YouTube, navigate to another video without reloading** | Reopen → the new video (not the previous one) |
 | **Netflix movie** | Title detected (open the popup while the player controls are visible) |

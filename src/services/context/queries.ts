@@ -94,3 +94,55 @@ export function generateQueries(ctx: ContentContext, opts: QueryOptions = {}): S
   }
   return unique.slice(0, max);
 }
+
+/** "Season 7, Episode 2 — Common People" → { season: 7, name: 'Common People' } */
+function parseEpisode(label: string | undefined): { season?: number; name?: string } {
+  if (!label) return {};
+  const season = /\bseason\s*(\d+)|\bS(\d+)\s*[:E ]/i.exec(label);
+  const name = label.split(/\s+[—–-]\s+|\s+·\s+/).slice(1).join(' ').trim();
+  return {
+    ...(season ? { season: Number(season[1] ?? season[2]) } : {}),
+    ...(name && !/^(season|episode)\b/i.test(name) ? { name } : {}),
+  };
+}
+
+/**
+ * Queries for finding Reddit *discussions of this exact content* — unlike
+ * `generateQueries`, which looks for essays around its themes. Shows and films
+ * are searched by name (plus the episode), videos by their headline and their
+ * core topic. Only topic words are sent: never the URL or a video id.
+ */
+export function generateRedditQueries(ctx: ContentContext, max = 3): string[] {
+  const out: string[] = [];
+  const push = (text: string) => {
+    const t = truncate(text.replace(/\s+/g, ' ').trim(), MAX_QUERY_CHARS, '');
+    if (t.length >= 2) out.push(t);
+  };
+  const topics = ctx.topics;
+  const primary = topics[0];
+
+  if (ctx.kind === 'movie' || ctx.kind === 'show' || ctx.kind === 'episode') {
+    const show = ctx.entities[0] ?? ctx.title;
+    const ep = parseEpisode(ctx.episode);
+    if (ep.name) push(`${quote(show)} ${quote(ep.name)}`);
+    push(quote(show));
+    if (ep.season !== undefined) push(`${quote(show)} season ${ep.season}`);
+    else if (ctx.kind === 'movie') push(`${quote(show)} movie`);
+    else if (primary && normalizeText(primary) !== normalizeText(show)) push(`${quote(show)} ${primary}`);
+  } else {
+    push(shortTitle(ctx.title, 8));
+    const second = topics.find((t) => normalizeText(t) !== normalizeText(primary ?? '') && isStrong(t, ctx.entities));
+    if (primary && second) push(`${quote(primary)} ${second}`);
+    const anchor = ctx.entities.find((e) => normalizeText(e) !== normalizeText(primary ?? ''));
+    if (anchor) push(primary ? `${quote(anchor)} ${primary}` : quote(anchor));
+    if (primary && isStrong(primary, ctx.entities)) push(quote(primary));
+  }
+
+  const seen = new Set<string>();
+  return out.filter((q) => {
+    const k = queryKey(q);
+    if (!k || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).slice(0, max);
+}

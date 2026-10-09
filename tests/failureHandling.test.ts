@@ -139,6 +139,42 @@ describe('Reddit provider chain', () => {
     expect(f.calls.length).toBe(2);
     await expect(s.reddit.search({ queries: ['  '] })).rejects.toMatchObject({ code: 'NO_CONTEXT' });
   });
+
+  it('finds threads about a show: phrase matches, its subreddit, the past year — and drops unrelated padding', async () => {
+    const f = mockFetch((url) =>
+      url.pathname.endsWith('/search.json')
+        ? jsonResponse(
+            listing([
+              { id: 'noise01', title: 'Cute dog compilation', score: 90000 },
+              { id: 'words01', title: 'My mirror went black overnight', subreddit: 'DIY', score: 5000 },
+              { id: 'ep00001', title: 'Black Mirror S7E2 "Common People" episode discussion', subreddit: 'television', score: 400 },
+              { id: 'sub0001', title: 'Episode 2 discussion thread', subreddit: 'blackmirror', score: 300 },
+              { id: 'show001', title: 'Is Black Mirror still worth watching?', subreddit: 'television', score: 2000 },
+            ]),
+          )
+        : undefined,
+    );
+    const s = services(f);
+    const res = await s.reddit.search({ queries: ['"Black Mirror" "Common People"', '"Black Mirror"'], limit: 10, time: 'year' });
+    const ids = res.posts.map((p) => p.id);
+    expect(ids).toHaveLength(3);
+    expect(ids).toEqual(expect.arrayContaining(['ep00001', 'sub0001', 'show001']));
+    expect(f.calls.length).toBe(2);
+    expect(f.calls.every((c) => c.includes('t=year'))).toBe(true);
+  });
+
+  it('keeps the best few results when Reddit returns nothing clearly on-topic', async () => {
+    const f = mockFetch((url) => (url.pathname.endsWith('/search.json') ? jsonResponse(listing([{ id: 'a00001', title: 'Something else entirely' }, { id: 'b00001', title: 'Another thing' }])) : undefined));
+    const res = await services(f).reddit.search({ queries: ['"Severance" season 2'] });
+    expect(res.posts.length).toBe(2);
+    expect(f.calls[0]).toContain('t=month'); // default window is unchanged
+  });
+
+  it('never pads strict searches ("threads about this video") with off-topic results', async () => {
+    const f = mockFetch((url) => (url.pathname.endsWith('/search.json') ? jsonResponse(listing([{ id: 'a00001', title: 'Something else entirely' }, { id: 'b00001', title: 'Severance season 2 finale thoughts' }])) : undefined));
+    const res = await services(f).reddit.search({ queries: ['"Severance" season 2'], strict: true });
+    expect(res.posts.map((p) => p.id)).toEqual(['b00001']);
+  });
 });
 
 describe('Substack discovery failure handling', () => {

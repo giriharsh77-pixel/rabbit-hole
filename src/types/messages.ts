@@ -36,7 +36,7 @@ export interface RpcMap {
     result: TrendingResponse | null;
   };
   'reddit/search': {
-    params: { queries: string[]; limit?: number; subreddits?: string[] };
+    params: { queries: string[]; limit?: number; subreddits?: string[]; time?: 'day' | 'week' | 'month' | 'year' | 'all'; strict?: boolean };
     result: RedditSearchResponse;
   };
 

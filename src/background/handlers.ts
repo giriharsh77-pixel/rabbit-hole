@@ -34,6 +34,7 @@ export interface HandlerDeps {
 }
 
 const PLATFORMS: readonly Platform[] = ['youtube', 'netflix', 'reddit', 'substack', 'manual', 'unknown'];
+const SEARCH_WINDOWS: readonly string[] = ['day', 'week', 'month', 'year', 'all'];
 
 function sanitizeRaw(input: unknown): RawPageMetadata {
   const o = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
@@ -93,6 +94,8 @@ export function createHandlers(deps: HandlerDeps): { handlers: Handlers; context
         signal,
         ...(p?.limit !== undefined ? { limit: p.limit } : {}),
         ...(p?.subreddits ? { subreddits: sanitizeSubredditList(p.subreddits, 10) } : {}),
+        ...(p?.time && SEARCH_WINDOWS.includes(p.time) ? { time: p.time } : {}),
+        ...(p?.strict === true ? { strict: true } : {}),
       });
     },
 

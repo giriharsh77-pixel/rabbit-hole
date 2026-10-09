@@ -1,10 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Banner, EmptyState, ErrorState } from '../components/States';
 import { ArrowRightIcon, CloseIcon, RefreshIcon } from '../components/icons';
 import { ListSkeleton } from '../components/Skeleton';
 import { RedditCard, type CardBadge } from '../components/RedditCard';
-import { RedditRow } from '../components/RedditRow';
-import { generateQueries } from '../services/context/queries';
+import { generateRedditQueries } from '../services/context/queries';
 import { TOPIC_FILTERS } from '../services/reddit/topics';
 import type { ContentContext } from '../types/context';
 import type { RedditCategoryId, ScoredRedditPost } from '../types/reddit';
@@ -42,7 +41,7 @@ interface Props {
   onCategory: (c: RedditCategoryId) => void;
   focus: RedditFocus | null;
   onClearFocus: () => void;
-  /** What the user is watching/reading right now (drives "because you're watching"). */
+  /** What the user is watching right now (YouTube / Netflix) — drives the "About this video" view. */
   watching: ContentContext | null;
   pageBridge: PageBridge | null;
   onFindReading: (post: ScoredRedditPost) => void;
@@ -51,14 +50,22 @@ interface Props {
 
 export function TrendingPanel(props: Props) {
   const { settings, active, now, topicId, category, focus, watching } = props;
-  const trending = useTrending(topicId, active && focus === null);
+
+  // While something is playing the tab leads with threads about it; "Trending" is one click away.
+  const [view, setView] = useState<'related' | 'trending'>('related');
+  const watchKey = watching ? `${watching.platform}:${watching.title}:${watching.episode ?? ''}` : '';
+  useEffect(() => setView('related'), [watchKey]);
+  const showRelated = !!watching && view === 'related' && !focus;
+
+  const trending = useTrending(topicId, active && focus === null && !showRelated);
   const focusResults = useRedditSearch(focus ? focus.queries : null, 12);
 
-  const stripQueries = useMemo(
-    () => (!focus && watching && active ? generateQueries(watching, { max: 2 }).map((q) => q.text) : null),
-    [focus, watching, active],
+  const relatedQueries = useMemo(
+    () => (watching && active && !focus ? generateRedditQueries(watching, 3) : null),
+    [watching, active, focus],
   );
-  const strip = useRedditSearch(stripQueries, 3);
+  // The past year: discussion threads for a show or a video often predate this week's trending page.
+  const related = useRedditSearch(showRelated ? relatedQueries : null, 15, { time: 'year', strict: true });
 
   const posts = trending.data?.categories[category] ?? [];
   const meta = trending.data?.meta;
@@ -86,7 +93,7 @@ export function TrendingPanel(props: Props) {
     return (
       <div className="panel" role="tabpanel" id={`${props.idPrefix}-panel-reddit`} aria-labelledby={`${props.idPrefix}-tab-reddit`} hidden={!active}>
         <div className="panel-title split-heading">
-          <h2>Trending Reddit</h2>
+          <h2>{watching ? 'Reddit' : 'Trending Reddit'}</h2>
         </div>
         <div className="panel-title">
           <h2>{focus.kind === 'article' ? 'What Reddit thinks' : 'Reddit results'}</h2>
@@ -115,6 +122,94 @@ export function TrendingPanel(props: Props) {
     );
   }
 
+  // ── "About this video": threads discussing what's playing ──────────────────
+  const subject = watching ? subjectLabel(watching) : '';
+  const viewSwitch = (
+    <div className="segmented" role="tablist" aria-label="What to show">
+      <button type="button" role="tab" className="seg" aria-selected={view === 'related'} onClick={() => setView('related')}>
+        <span aria-hidden="true">{watching?.platform === 'netflix' ? '🍿' : '🎬'}</span>
+        <span className="seg-label">About {subject}</span>
+      </button>
+      <button type="button" role="tab" className="seg" aria-selected={view === 'trending'} onClick={() => setView('trending')}>
+        <span aria-hidden="true">🔥</span>
+        <span className="seg-label">Trending now</span>
+      </button>
+    </div>
+  );
+
+  if (showRelated && watching) {
+    const results = related.data?.posts ?? [];
+    return (
+      <div className="panel" role="tabpanel" id={`${props.idPrefix}-panel-reddit`} aria-labelledby={`${props.idPrefix}-tab-reddit`} hidden={!active}>
+        <div className="panel-title split-heading">
+          <h2>Reddit</h2>
+        </div>
+        {viewSwitch}
+        <p className="status-line" aria-live="polite">
+          {related.status === 'success' ? (
+            results.length === 0 ? null : (
+            <span>
+              Found <strong className="num">{results.length}</strong> {results.length === 1 ? 'thread' : 'threads'} about <strong>{watching.title}</strong>
+            </span>
+            )
+          ) : related.status === 'error' ? null : (
+            <>
+              <span className="spinner" />
+              <span>
+                Finding Reddit threads about <strong>{watching.title}</strong>…
+              </span>
+            </>
+          )}
+        </p>
+        {relatedQueries && relatedQueries.length > 0 && (
+          <div className="tag-row" aria-label="Searched Reddit for">
+            {relatedQueries.map((q) => (
+              <span key={q} className="chip chip-static">
+                {q.replace(/["“”]/g, '')}
+              </span>
+            ))}
+          </div>
+        )}
+        {(related.status === 'loading' || related.status === 'idle') && (
+          <ListSkeleton count={3} withAside={settings.reddit.showThumbnails} label="Finding related threads" />
+        )}
+        {related.status === 'error' && (
+          <ErrorState error={related.error} subject="reddit" onRetry={related.reload}>
+            <div className="actions">
+              <button type="button" className="btn" onClick={() => setView('trending')}>
+                See what’s trending <ArrowRightIcon />
+              </button>
+            </div>
+          </ErrorState>
+        )}
+        {related.status === 'success' && results.length === 0 && (
+          <EmptyState
+            title="No Reddit threads about this yet"
+            actions={
+              <button type="button" className="btn primary" onClick={() => setView('trending')}>
+                See what’s trending
+              </button>
+            }
+          >
+            Reddit hasn’t discussed {subject} much in the past year. Try the search box with a broader topic.
+          </EmptyState>
+        )}
+        {results.length > 0 && cards(results, 'search')}
+        {related.status === 'success' && related.data && (
+          <div className="panel-title" style={{ marginTop: 14 }}>
+            <span className="meta" aria-live="polite">
+              Reddit search · past year ·{' '}
+              {related.data.meta.provider === 'oauth' ? 'Reddit API' : related.data.meta.provider === 'json' ? 'public Reddit data' : 'public feed'}
+            </span>
+            <button type="button" className="btn small ghost" onClick={related.reload} aria-label="Search Reddit again">
+              <RefreshIcon /> Refresh
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // ── default view: trending ─────────────────────────────────────────────────
   const limited = meta?.provider === 'rss';
   const blocked = meta?.degradedFrom?.some((d) => d.code === 'BLOCKED' || d.code === 'UNAUTHORIZED');
@@ -123,7 +218,7 @@ export function TrendingPanel(props: Props) {
   return (
     <div className="panel" role="tabpanel" id={`${props.idPrefix}-panel-reddit`} aria-labelledby={`${props.idPrefix}-tab-reddit`} hidden={!active}>
       <div className="panel-title split-heading">
-        <h2>Trending Reddit</h2>
+        <h2>{watching ? 'Reddit' : 'Trending Reddit'}</h2>
       </div>
       {props.pageBridge && (
         <div className="bridge">
@@ -137,22 +232,7 @@ export function TrendingPanel(props: Props) {
         </div>
       )}
 
-      {watching && (strip.status === 'loading' || (strip.data && strip.data.posts.length > 0)) && (
-        <section aria-label="Related to what you're watching" style={{ marginBottom: 14 }}>
-          <div className="panel-title">
-            <h2>Because you’re watching</h2>
-          </div>
-          {strip.status === 'loading' ? (
-            <ListSkeleton count={1} label="Finding related threads" />
-          ) : (
-            <ul className="list tight">
-              {(strip.data?.posts ?? []).map((p) => (
-                <RedditRow key={p.id} post={p} now={now} />
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+      {watching && viewSwitch}
 
       <div className="chip-row" role="group" aria-label="Topic filter">
         {TOPIC_FILTERS.map((t) => (
@@ -248,4 +328,20 @@ export function TrendingPanel(props: Props) {
       )}
     </div>
   );
+}
+
+/** "this video" / "this episode" / "this movie" / "this show" */
+function subjectLabel(ctx: ContentContext): string {
+  switch (ctx.kind) {
+    case 'episode':
+      return 'this episode';
+    case 'movie':
+      return 'this movie';
+    case 'show':
+      return 'this show';
+    case 'short':
+      return 'this Short';
+    default:
+      return 'this video';
+  }
 }

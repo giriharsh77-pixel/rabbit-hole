@@ -144,10 +144,17 @@ export function useTrending(topicId: string, enabled: boolean): TrendingState {
   return { data, loading, refreshing, error, refresh };
 }
 
-export function useRedditSearch(queries: string[] | null, limit: number) {
-  const key = queries ? `${limit}:${queries.join('|')}` : 'off';
+export function useRedditSearch(
+  queries: string[] | null,
+  limit: number,
+  opts: { time?: 'day' | 'week' | 'month' | 'year' | 'all'; strict?: boolean } = {},
+) {
+  const { time, strict } = opts;
+  const key = queries ? `${limit}:${time ?? ''}:${strict ? 's' : ''}:${queries.join('|')}` : 'off';
   return useAsync<RedditSearchResponse>(
-    queries && queries.length ? (signal) => call('reddit/search', { queries, limit }, signal) : null,
+    queries && queries.length
+      ? (signal) => call('reddit/search', { queries, limit, ...(time ? { time } : {}), ...(strict ? { strict } : {}) }, signal)
+      : null,
     key,
   );
 }
