@@ -38,7 +38,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, idPrefix }: Prop
   };
 
   return (
-    <div className={`tabs${found < 0 ? ' undecided' : ''}`} role="tablist" aria-label="Rabbit Hole sections" onKeyDown={onKeyDown} style={{ ['--i' as string]: index }}>
+    <div className={`tabs${found < 0 ? ' undecided' : ''}`} role="tablist" aria-label="Rabbit Hole sections" onKeyDown={onKeyDown} style={{ ['--i' as string]: index, ['--n' as string]: tabs.length }}>
       {tabs.map((t, i) => (
         <button
           key={t.id}

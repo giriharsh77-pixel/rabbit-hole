@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error — plain-JS module shared with the build script
-import { createManifest, customFeedOrigins } from '../manifest.config.mjs';
+import { createManifest, customFeedOrigins, newsOrigins } from '../manifest.config.mjs';
+import { outletOrigins } from '../src/services/news/outlets';
 
 type Manifest = ReturnType<typeof createManifest>;
 const m: Manifest = createManifest();
@@ -15,7 +16,7 @@ describe('manifest (Manifest V3)', () => {
   });
 
   it('requests only the permissions that are genuinely needed', () => {
-    expect([...m.permissions].sort()).toEqual(['activeTab', 'scripting', 'storage']);
+    expect([...m.permissions].sort()).toEqual(['scripting', 'storage']); // no activeTab: no page but Netflix is ever read
     expect(m.permissions).not.toContain('tabs');
     expect(m.permissions).not.toContain('history');
     expect(m.permissions).not.toContain('webRequest');
@@ -31,7 +32,7 @@ describe('manifest (Manifest V3)', () => {
 
   it('only injects content scripts on the supported sites', () => {
     const matches = m.content_scripts.flatMap((c: { matches: string[] }) => c.matches).sort();
-    expect(matches).toEqual(['https://*.substack.com/*', 'https://m.youtube.com/*', 'https://www.netflix.com/*', 'https://www.reddit.com/*', 'https://www.youtube.com/*']);
+    expect(matches).toEqual(['https://www.netflix.com/*']); // Netflix is the only page Rabbit Hole reads
     for (const c of m.content_scripts) {
       expect(c.run_at).toBe('document_idle');
       expect(c.all_frames).toBeUndefined();
@@ -46,6 +47,20 @@ describe('manifest (Manifest V3)', () => {
     expect(customFeedOrigins().length).toBeGreaterThan(5);
     for (const o of customFeedOrigins()) expect(m.optional_host_permissions).toContain(o);
     for (const o of customFeedOrigins()) expect(o).not.toMatch(/substack\.com/);
+  });
+
+  it('asks for news sites only when the user turns news on — the same list the extension uses', () => {
+    expect(newsOrigins()).toEqual(outletOrigins());
+    expect(newsOrigins().length).toBeGreaterThan(15);
+    for (const o of newsOrigins()) {
+      expect(m.optional_host_permissions).toContain(o);
+      expect(m.host_permissions).not.toContain(o);
+    }
+    expect(newsOrigins()).toEqual(expect.arrayContaining(['https://indianexpress.com/*', 'https://rss.nytimes.com/*', 'https://www.theguardian.com/*']));
+  });
+
+  it('reads Wikidata for title facts (keyless, public)', () => {
+    expect(m.host_permissions).toEqual(expect.arrayContaining(['https://www.wikidata.org/*', 'https://query.wikidata.org/*']));
   });
 
   it('has a strict CSP: no eval, no inline script, no remote script', () => {

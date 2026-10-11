@@ -12,6 +12,7 @@
  * Event listeners are registered synchronously at top level, as Chrome requires.
  */
 import { ChromeAreaStore } from '../services/cacheService';
+import { outletOrigins } from '../services/news/outlets';
 import { RPC_PORT_NAME } from '../types/messages';
 import type { Settings } from '../types/settings';
 import { attachRpcPort, type RpcServerPort } from '../utils/rpc';
@@ -61,7 +62,7 @@ async function applyBadge(tabId: number, url: string | undefined, settings?: Set
   const s = settings ?? (await services.settings.get());
   const show =
     s.privacy.detectionEnabled &&
-    badgeFor(url, { youtube: s.privacy.youtubeDetection, netflix: s.privacy.netflixDetection });
+    badgeFor(url, s.privacy.netflixDetection);
   try {
     await chrome.action.setBadgeText({ tabId, text: show ? '●' : '' });
     if (show) await chrome.action.setBadgeBackgroundColor({ tabId, color: '#ff4f1a' });
@@ -84,7 +85,7 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // A URL change (including YouTube/Netflix in-app navigation) invalidates what we knew about the tab.
+  // A URL change (including Netflix in-app navigation) invalidates what we knew about the tab.
   if (changeInfo.url) {
     void contextManager.invalidate(tabId);
     void applyBadge(tabId, changeInfo.url);
@@ -106,6 +107,16 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
   lockDownStorage();
 });
+
+// News sites granted (possibly from the popup, which Chrome closes while it asks): switch news on.
+// Revoked from chrome://extensions: switch it off, so Read never silently loses sources.
+async function syncNewsPermission(): Promise<void> {
+  const granted = await chrome.permissions.contains({ origins: outletOrigins() }).catch(() => false);
+  const s = await services.settings.get();
+  if (granted !== s.reading.includeNews) await services.settings.update({ reading: { includeNews: granted } });
+}
+chrome.permissions.onAdded.addListener(() => void syncNewsPermission());
+chrome.permissions.onRemoved.addListener(() => void syncNewsPermission());
 
 // Settings/secrets edited from another extension page: drop in-memory copies.
 chrome.storage.onChanged.addListener((_changes, area) => {

@@ -69,7 +69,7 @@ export function generateQueries(ctx: ContentContext, opts: QueryOptions = {}): S
     if (entities[0]) push(quote(entities[0]), 0.7, 'entity');
     if (primaryTopic && related[0]) push(`${primaryTopic} ${related[0]}`, 0.6, 'concept');
   } else {
-    // YouTube, articles, generic pages
+    // articles, Reddit threads, searches, generic pages
     const anchor = entities.find((e) => normalizeText(e) !== normalizeText(primaryTopic ?? '')) ?? entities[0];
     if (primaryTopic && secondTopic) push(`${quote(primaryTopic)} ${secondTopic}`, 1, 'combo');
     const sameAsTopic = !!anchor && normalizeText(anchor) === normalizeText(primaryTopic ?? '');
@@ -96,7 +96,7 @@ export function generateQueries(ctx: ContentContext, opts: QueryOptions = {}): S
 }
 
 /** "Season 7, Episode 2 — Common People" → { season: 7, name: 'Common People' } */
-function parseEpisode(label: string | undefined): { season?: number; name?: string } {
+export function parseEpisode(label: string | undefined): { season?: number; name?: string } {
   if (!label) return {};
   const season = /\bseason\s*(\d+)|\bS(\d+)\s*[:E ]/i.exec(label);
   const name = label.split(/\s+[—–-]\s+|\s+·\s+/).slice(1).join(' ').trim();

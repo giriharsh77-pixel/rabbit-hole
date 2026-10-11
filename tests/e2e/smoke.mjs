@@ -6,10 +6,10 @@
  *
  * Use Chrome for Testing or Chromium: branded Chrome 137+ ignores --load-extension.
  *
- * It loads the built extension (dist/), serves fixture pages at the REAL YouTube /
- * Netflix / Reddit URLs through request interception (so the real content scripts
- * inject), and drives the real popup + settings pages against the real service
- * worker.  Substack feeds are fetched live; Reddit is whatever Reddit allows from
+ * It loads the built extension (dist/), serves fixture pages at the REAL Netflix
+ * URLs through request interception (so the real content script injects), checks
+ * that YouTube, Reddit and ordinary pages are never read, and drives the real
+ * popup + settings pages against the real service worker.  Substack feeds are fetched live; Reddit is whatever Reddit allows from
  * your network (a block is reported, and the friendly error state is asserted).
  */
 import puppeteer from 'puppeteer-core';
@@ -48,9 +48,6 @@ const FIXTURES = {
     <ytd-channel-name><a href="/@fireship">Fireship</a></ytd-channel-name>
     <div id="description-inline-expander"><span id="snippet-text">AI agents are about to change how we write code and what developer tools look like.</span></div>
     </ytd-watch-metadata></body></html>`,
-  'https://www.youtube.com/shorts/SHORT12345': `<!doctype html><html><head><title>YouTube</title></head><body>
-    <ytd-reel-video-renderer is-active><yt-shorts-video-title-view-model><h2>This is how a black hole actually forms #space</h2></yt-shorts-video-title-view-model>
-    <ytd-channel-name><a>PhysicsGirl</a></ytd-channel-name></ytd-reel-video-renderer></body></html>`,
   'https://www.netflix.com/watch/81234567': `<!doctype html><html><head><title>Netflix</title></head><body>
     <div data-uia="video-title"><h4>Black Mirror</h4><span>S7:E2</span><span>Common People</span></div></body></html>`,
   'https://www.netflix.com/title/81234567': `<!doctype html><html><head><title>Black Mirror | Netflix Official Site</title>
@@ -80,7 +77,7 @@ try {
   ok('manifest loaded by Chrome', manifestName === 'Rabbit Hole', manifestName);
 
   const perms = await sw.evaluate(() => chrome.runtime.getManifest().permissions);
-  ok('permissions are minimal', JSON.stringify([...perms].sort()) === JSON.stringify(['activeTab', 'scripting', 'storage']), perms.join(','));
+  ok('permissions are minimal', JSON.stringify([...perms].sort()) === JSON.stringify(['scripting', 'storage']), perms.join(','));
   const lockOk = await sw.evaluate(async () => { try { await chrome.storage.local.set({ probe: 1 }); await chrome.storage.local.remove('probe'); return true; } catch { return false; } });
   ok('background can use chrome.storage.local', lockOk);
 
@@ -102,30 +99,28 @@ try {
   const tabIdFor = (urlPrefix) => sw.evaluate(async (p) => (await chrome.tabs.query({})).find((t) => t.url?.startsWith(p))?.id, urlPrefix);
   const ask = (tabId) => sw.evaluate((id) => chrome.tabs.sendMessage(id, { type: 'rh/extract' }).catch((e) => ({ error: String(e) })), tabId);
 
-  const yt = await openFixture('https://www.youtube.com/watch?v=abc123XYZ');
-  const ytId = await tabIdFor('https://www.youtube.com/watch');
-  await new Promise((r) => setTimeout(r, 800));
-  const ytRes = await ask(ytId);
-  ok('YouTube content script extracts the video', ytRes?.ok && ytRes.data?.title === 'How AI Agents Will Change Software Development' && ytRes.data?.creator === 'Fireship', JSON.stringify(ytRes?.data && { t: ytRes.data.title, c: ytRes.data.creator, k: ytRes.data.keywords }));
-  const badge = await sw.evaluate((id) => chrome.action.getBadgeText({ tabId: id }), ytId);
-  ok('toolbar badge ● shows on a YouTube watch page', badge === '●', JSON.stringify(badge));
-
-  const shorts = await openFixture('https://www.youtube.com/shorts/SHORT12345');
-  const shortsRes = await ask(await tabIdFor('https://www.youtube.com/shorts'));
-  ok('YouTube Shorts extracted', shortsRes?.ok && shortsRes.data?.kind === 'short' && /black hole/.test(shortsRes.data.title), shortsRes?.data?.title);
-
   const nf = await openFixture('https://www.netflix.com/watch/81234567');
   const nfId = await tabIdFor('https://www.netflix.com/watch/81234567');
+  await new Promise((r) => setTimeout(r, 800));
   const nfRes = await ask(nfId);
   ok('Netflix episode extracted (label + title-page enrichment)', nfRes?.ok && nfRes.data?.episode?.includes('Season 7, Episode 2') && nfRes.data?.genres?.includes('Sci-Fi'), JSON.stringify(nfRes?.data && { t: nfRes.data.title, e: nfRes.data.episode, g: nfRes.data.genres, s: nfRes.data.source }));
+  const badge = await sw.evaluate((id) => chrome.action.getBadgeText({ tabId: id }), nfId);
+  ok('toolbar badge ● shows on a Netflix watch page', badge === '●', JSON.stringify(badge));
 
   const nfHidden = await openFixture('https://www.netflix.com/watch/81234568');
   const nfHiddenRes = await ask(await tabIdFor('https://www.netflix.com/watch/81234568'));
   ok('Netflix with hidden controls degrades to "unknown" (null), not a guess', nfHiddenRes?.ok && nfHiddenRes.data === null, JSON.stringify(nfHiddenRes));
 
+  // Netflix is the only site Rabbit Hole reads: YouTube, Reddit and everything else get no content script.
+  const yt = await openFixture('https://www.youtube.com/watch?v=abc123XYZ');
+  await yt.bringToFront();
+  const ytInfo = await sw.evaluate(async () => { const [t] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }); return { id: t?.id, urlVisible: t?.url !== undefined }; });
+  const ytRes = await ask(ytInfo.id);
+  ok('YouTube is no longer read: no content script, URL not even visible', ytInfo.urlVisible === false && typeof ytRes?.error === 'string', JSON.stringify({ ...ytInfo, err: ytRes?.error?.slice(0, 40) }));
+
   const rd = await openFixture('https://www.reddit.com/r/technology/comments/abc123/congress_has_another_site_blocking_bill/');
   const rdRes = await ask(await tabIdFor('https://www.reddit.com/r/technology'));
-  ok('Reddit thread extracted', rdRes?.ok && rdRes.data?.subreddit === 'technology', rdRes?.data?.title);
+  ok('NO content script runs on Reddit pages', typeof rdRes?.error === 'string' && /Receiving end|Could not establish/i.test(rdRes.error), rdRes?.error?.slice(0, 60));
 
   const ex = await openFixture('https://example.com/private-page');
   // The extension cannot even *see* this tab's URL (no host permission) — find it by focus instead.
@@ -152,70 +147,99 @@ try {
     return page;
   }
 
-  const ui = await openUi(`popup.html?tab=${ytId}`);
-  await ui.waitForSelector('.context-title', { timeout: 15000 });
-  const ctxText = await ui.$eval('.context-bar', (e) => e.innerText);
-  ok('popup shows the "Watching" context bar for the YouTube tab', /WATCHING/i.test(ctxText) && ctxText.includes('How AI Agents Will Change Software Development') && ctxText.includes('Fireship'), ctxText.replace(/\n+/g, ' | '));
+  const ui = await openUi(`popup.html?tab=${nfId}`);
+  await ui.waitForSelector('.subject-title', { timeout: 15000 });
+  const ctxText = await ui.$eval('.subject-bar', (e) => e.innerText.replace(/\n+/g, ' | '));
+  ok('popup shows Netflix: Black Mirror · Season 7, Episode 2', /WATCHING/i.test(ctxText) && /Black Mirror/.test(ctxText) && /Netflix/.test(ctxText) && /Season 7, Episode 2/.test(ctxText), ctxText);
+  const tabNames = await ui.$$eval('[role=tab]', (t) => t.map((e) => e.textContent.trim()));
   const selected = await ui.$eval('[role=tab][aria-selected=true]', (e) => e.id);
-  ok('popup leads with Related Reading when something is playing', selected === 'rh-tab-reading', selected);
+  ok('four tabs — Discuss · Read · About · Watch next — leading with Discuss', tabNames.join(' · ') === 'Discuss · Read · About · Watch next' && selected === 'rh-tab-discuss', `${tabNames.join(' · ')} (selected ${selected})`);
 
-  await ui.waitForFunction(() => /Found \d+ relevant|No strong matches/.test(document.querySelector('.status-line')?.innerText ?? ''), { timeout: 40000 }).catch(() => undefined);
-  const status = await ui.$eval('.status-line', (e) => e.innerText).catch(() => '');
-  const articles = await ui.$$eval('#rh-panel-reading li.card', (cards) => cards.slice(0, 5).map((c) => ({ title: c.querySelector('.card-title')?.textContent, pub: c.querySelector('.sub-link')?.textContent, label: c.querySelector('.relevance')?.textContent, why: c.querySelector('.why')?.innerText.replace(/\n/g, ' ').slice(0, 120), href: c.querySelector('.card-title a')?.href })));
-  ok('real Substack feeds fetched from the service worker (no CORS, via host permissions)', articles.length > 0, `${status.trim()} — e.g. "${articles[0]?.title}" (${articles[0]?.pub})`);
+  // Discuss in real Chrome: threads about the episode (real network → JSON, or degraded to feeds)
+  await ui.waitForFunction(() => document.querySelectorAll('#rh-panel-discuss li.card').length > 0 || document.querySelector('#rh-panel-discuss .state'), { timeout: 40000 }).catch(() => undefined);
+  const redditCards = await ui.$$eval('#rh-panel-discuss li.card', (c) => c.length);
+  const redditMeta = await ui.$eval('#rh-panel-discuss', (p) => (p.querySelector('.state h3') ? `state: ${p.querySelector('.state h3').textContent}` : (p.querySelector('.panel-title .meta')?.innerText ?? '')));
+  const aboutEpisode = await ui.$eval('#rh-panel-discuss', (p) => /Reddit on this episode/i.test(p.innerText)).catch(() => false);
+  const ownSub = await ui.$eval('#rh-panel-discuss', (p) => p.querySelector('.chip-sub')?.textContent ?? '').catch(() => '');
+  ok('Discuss shows threads about the episode, starting with the show’s own subreddit (or a friendly state)', aboutEpisode && (redditCards > 0 || redditMeta.startsWith('state')), `${redditCards} cards — ${ownSub || 'no subreddit chip'} — ${redditMeta}`);
+  await ui.screenshot({ path: join(OUT, 'popup-discuss.png') });
+
+  await ui.click('#rh-tab-read');
+  await ui.waitForFunction(() => /Found \d+ related|No strong matches|Couldn't find/.test(document.querySelector('#rh-panel-read')?.innerText ?? ''), { timeout: 40000 }).catch(() => undefined);
+  const status = await ui.$eval('#rh-panel-read .status-line', (e) => e.innerText).catch(() => '');
+  const articles = await ui.$$eval('#rh-panel-read li.card', (cards) => cards.slice(0, 5).map((c) => ({ title: c.querySelector('.card-title')?.textContent, pub: c.querySelector('.sub-link')?.textContent, label: c.querySelector('.relevance')?.textContent, why: c.querySelector('.why')?.innerText.replace(/\n/g, ' ').slice(0, 120), href: c.querySelector('.card-title a')?.href })));
+  ok('Read: real Substack / Medium feeds fetched from the service worker (no CORS, via host permissions)', articles.length > 0, `${status.trim()} — e.g. "${articles[0]?.title}" (${articles[0]?.pub})`);
   ok('every article link is an https URL', articles.every((a) => a.href?.startsWith('https://')), articles.map((a) => new URL(a.href).host).join(', '));
+  const newsOffer = await ui.$eval('#rh-panel-read', (p) => /Add news coverage/.test(p.innerText)).catch(() => false);
+  ok('Read offers news sites (opt-in: nothing is fetched from them until allowed)', newsOffer);
   writeFileSync(join(OUT, 'articles.json'), JSON.stringify(articles, null, 2));
-  await ui.screenshot({ path: join(OUT, 'popup-youtube.png') });
+  await ui.screenshot({ path: join(OUT, 'popup-read.png') });
 
-  // Reddit tab in real Chrome: threads about the video (real network → JSON, or degraded to feeds)
-  await ui.click('#rh-tab-reddit');
-  await ui.waitForFunction(() => document.querySelectorAll('#rh-panel-reddit li.card').length > 0 || document.querySelector('#rh-panel-reddit .state'), { timeout: 40000 }).catch(() => undefined);
-  const redditCards = await ui.$$eval('#rh-panel-reddit li.card', (c) => c.length);
-  const redditMeta = await ui.$eval('#rh-panel-reddit', (p) => (p.querySelector('.state h3') ? `state: ${p.querySelector('.state h3').textContent}` : (p.querySelector('.panel-title h2')?.innerText ?? '') + ' | ' + (p.querySelector('.panel-title .meta')?.innerText ?? '')));
-  const aboutVideo = await ui.$eval('#rh-panel-reddit', (p) => /about this video/i.test(p.innerText)).catch(() => false);
-  ok('Reddit tab shows threads about the video (or a friendly state) — no trending feed', aboutVideo && (redditCards > 0 || redditMeta.startsWith('state')), `${redditCards} cards — ${redditMeta}`);
-  await ui.screenshot({ path: join(OUT, 'popup-reddit.png') });
+  // About: Wikidata, live — the exact title, its cast and review links
+  await ui.click('#rh-tab-about');
+  await ui.waitForFunction(() => document.querySelectorAll('#rh-panel-about .cast-row').length > 0 || document.querySelector('#rh-panel-about .state'), { timeout: 30000 }).catch(() => undefined);
+  const about = await ui.$eval('#rh-panel-about', (p) => ({
+    title: p.querySelector('.about-title')?.textContent ?? p.querySelector('.state h3')?.textContent,
+    cast: [...p.querySelectorAll('.cast-row')].slice(0, 4).map((r) => r.querySelector('.cast-name')?.textContent),
+    social: p.querySelectorAll('.cast-row a.social').length,
+    links: [...p.querySelectorAll('a.link-tile')].map((a) => new URL(a.href).hostname),
+  }));
+  ok('About: Wikidata names the exact title, its cast (with X / Instagram) and IMDb / Rotten Tomatoes links', /Black Mirror/.test(about.title ?? '') && about.cast.length > 0 && about.links.includes('www.imdb.com'), `${about.title} — ${about.cast.join(', ')} — ${about.social} social links — ${about.links.join(', ')}`);
+  await ui.screenshot({ path: join(OUT, 'popup-about.png') });
 
-  // Netflix & Reddit-thread contexts
-  const ui2 = await openUi(`popup.html?tab=${nfId}`);
-  await ui2.waitForSelector('.context-title', { timeout: 15000 });
-  const nfCtx = await ui2.$eval('.context-bar', (e) => e.innerText.replace(/\n+/g, ' | '));
-  ok('popup shows Netflix: Black Mirror · Season 7, Episode 2', /Black Mirror/.test(nfCtx) && /Netflix/.test(nfCtx) && /Season 7, Episode 2/.test(nfCtx), nfCtx);
+  await ui.click('#rh-tab-next');
+  await ui.waitForFunction(() => document.querySelectorAll('#rh-panel-next li.next-card').length > 0 || document.querySelector('#rh-panel-next .state'), { timeout: 45000 }).catch(() => undefined);
+  const next = await ui.$$eval('#rh-panel-next li.next-card', (c) => c.slice(0, 3).map((e) => `${e.querySelector('.card-title')?.textContent} — ${e.querySelector('.next-why')?.textContent}`));
+  ok('Watch next: titles with the same cast or creator, each with its real connection', next.length > 0 && next.every((t) => /With |From /.test(t)), next.join(' | '));
+  await ui.screenshot({ path: join(OUT, 'popup-next.png') });
 
   const ui3 = await openUi(`popup.html?tab=${await tabIdFor('https://www.netflix.com/watch/81234568')}`);
-  await ui3.waitForSelector('#rh-panel-reading .state h3', { timeout: 15000 }).catch(() => undefined);
-  await ui3.click('#rh-tab-reading').catch(() => undefined);
-  const fallback = await ui3.$eval('#rh-panel-reading', (p) => p.innerText).catch(() => '');
-  ok('hidden Netflix label → "We couldn\'t automatically identify…" + manual box', /couldn.t automatically identify what you.re watching/i.test(fallback) && /What are you watching/i.test(fallback), fallback.replace(/\n+/g, ' | ').slice(0, 110));
+  await ui3.waitForSelector('.subject-bar.notice', { timeout: 15000 }).catch(() => undefined);
+  const fallback = await ui3.$eval('.subject-wrap', (p) => p.innerText).catch(() => '');
+  ok('hidden Netflix label → "Couldn’t identify what’s playing" + search', /identify what.s playing/i.test(fallback) && /search above/i.test(fallback), fallback.replace(/\n+/g, ' | ').slice(0, 110));
 
   const ui4 = await openUi(`popup.html?tab=${exId}`);
-  await ui4.waitForSelector('#rh-tab-reddit', { timeout: 15000 });
-  await new Promise((r) => setTimeout(r, 1500));
-  await ui4.click('#rh-tab-reading');
-  const idle = await ui4.$eval('#rh-panel-reading', (p) => p.innerText.replace(/\n+/g, ' | ')).catch(() => '');
-  ok('ordinary site: nothing is read ("Go deeper on anything"; no page content leaks into the UI)', /Go deeper on anything/.test(idle) && !/bank|secret/i.test(idle), idle.slice(0, 140));
+  await ui4.waitForSelector('.subject-bar.notice', { timeout: 15000 });
+  const idle = await ui4.$eval('.app', (p) => p.innerText.replace(/\n+/g, ' | ')).catch(() => '');
+  ok('ordinary site: nothing is read ("Open a Netflix title"; no page content leaks into the UI)', /Open a Netflix title/i.test(idle) && !/bank|secret/i.test(idle), idle.slice(0, 140));
 
-  // search flow
-  await ui4.type('.search input', 'Nvidia');
+  // title search: pick a show, every tab follows it
+  await ui4.type('.search input', 'Sacred Games');
+  await ui4.waitForSelector('.title-list:not([hidden]) .title-option:not(.search-all)', { timeout: 20000 });
+  const firstOption = await ui4.$eval('.title-list .title-option', (e) => e.innerText.replace(/\n+/g, ' '));
   await ui4.keyboard.press('Enter');
-  await ui4.waitForFunction(() => /Found \d+|No strong matches/.test(document.querySelector('#rh-panel-reading .status-line')?.innerText ?? ''), { timeout: 40000 }).catch(() => undefined);
-  const nvidia = await ui4.$eval('#rh-panel-reading', (p) => `${p.querySelector('.context-bar')?.innerText.replace(/\n+/g, ' | ')} :: ${p.querySelector('.status-line')?.innerText}`);
-  ok('manual search ("Nvidia") works', /EXPLORING/i.test(nvidia) && /Nvidia/.test(nvidia), nvidia.slice(0, 140));
+  await ui4.waitForFunction(() => /EXPLORING/i.test(document.querySelector('.subject-bar')?.innerText ?? ''), { timeout: 15000 });
+  const picked = await ui4.$eval('.subject-bar', (e) => e.innerText.replace(/\n+/g, ' | '));
+  ok('title search: typing shows movies & series from Wikidata; Enter picks one', /Sacred Games/.test(firstOption) && /Series/i.test(firstOption) && /Sacred Games/.test(picked), `${firstOption} → ${picked}`);
+  await ui4.click('#rh-tab-about');
+  await ui4.waitForSelector('#rh-panel-about .cast-row', { timeout: 30000 }).catch(() => undefined);
+  const pickedCast = await ui4.$$eval('#rh-panel-about .cast-row .cast-name strong', (c) => c.slice(0, 3).map((e) => e.textContent));
+  ok('…and About follows the picked title (Indian Netflix original)', pickedCast.length > 0, pickedCast.join(', '));
+  await ui4.screenshot({ path: join(OUT, 'popup-picked.png') });
+
+  // free-text search: the last row of the dropdown
+  await ui4.click('.search input');
+  await ui4.type('.search input', 'Nvidia');
+  await ui4.waitForSelector('.title-list:not([hidden]) .search-all', { timeout: 20000 });
+  await ui4.click('.title-option.search-all');
+  await ui4.click('#rh-tab-read');
+  await ui4.waitForFunction(() => /Found \d+|No strong matches/.test(document.querySelector('#rh-panel-read .status-line')?.innerText ?? ''), { timeout: 40000 }).catch(() => undefined);
+  const nvidia = await ui4.$eval('#rh-panel-read', (p) => `${p.querySelector('.context-bar')?.innerText.replace(/\n+/g, ' | ')} :: ${p.querySelector('.status-line')?.innerText}`);
+  ok('free-text search ("Search Reddit and articles for “Nvidia”") still works', /EXPLORING/i.test(nvidia) && /Nvidia/.test(nvidia), nvidia.slice(0, 140));
 
   // ── 4. settings page + persistence + detection switch ─────────────────────
   const opts = await openUi('options.html#privacy');
   await opts.waitForSelector('.section', { timeout: 15000 });
-  await opts.click('button[aria-label="Detect YouTube videos & Shorts"], button[aria-label="Detect YouTube"]');
+  await opts.click('button[aria-label="Detect what you’re watching on Netflix"]');
   await new Promise((r) => setTimeout(r, 600));
   const stored = await sw.evaluate(async () => (await chrome.storage.local.get('rh.settings'))['rh.settings']?.privacy);
-  ok('Settings toggle persists to chrome.storage.local', stored?.youtubeDetection === false, JSON.stringify(stored));
+  ok('Settings toggle persists to chrome.storage.local', stored?.netflixDetection === false && stored?.detectionEnabled === false, JSON.stringify(stored));
 
-  const ui5 = await openUi(`popup.html?tab=${ytId}`);
-  await ui5.waitForSelector('#rh-tab-reading', { timeout: 15000 });
-  await new Promise((r) => setTimeout(r, 1500));
-  const disabled = await ui5.$eval('#rh-panel-reading', (p) => p.innerText.replace(/\n+/g, ' | ')).catch(() => '');
-  ok('with YouTube detection OFF the page is not read ("Page detection is off")', /detection is off/i.test(disabled) && !/Fireship/.test(disabled), disabled.slice(0, 120));
-  const badgeOff = await (async () => { await new Promise((r) => setTimeout(r, 500)); return sw.evaluate((id) => chrome.action.getBadgeText({ tabId: id }), ytId); })();
+  const ui5 = await openUi(`popup.html?tab=${nfId}`);
+  await ui5.waitForSelector('.subject-bar.notice', { timeout: 15000 }).catch(() => undefined);
+  const disabled = await ui5.$eval('.app', (p) => p.innerText.replace(/\n+/g, ' | ')).catch(() => '');
+  ok('with Netflix detection OFF the page is not read ("Netflix detection is off")', /detection is off/i.test(disabled) && !/Black Mirror/.test(disabled), disabled.slice(0, 120));
+  const badgeOff = await (async () => { await new Promise((r) => setTimeout(r, 500)); return sw.evaluate((id) => chrome.action.getBadgeText({ tabId: id }), nfId); })();
   ok('badge cleared when detection is turned off', badgeOff === '', JSON.stringify(badgeOff));
 
   // secrets are write-only

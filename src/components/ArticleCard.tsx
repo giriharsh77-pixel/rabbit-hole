@@ -18,7 +18,7 @@ export const ArticleCard = memo(function ArticleCard({ article, onSeeReddit }: P
   return (
     <li className="card" aria-label={article.title}>
       <div className="card-top">
-        <span className="badge muted">Article</span>
+        <span className="badge muted">{article.provider === 'news' ? 'News' : 'Article'}</span>
         <span
           className="relevance"
           data-label={article.label}
@@ -65,7 +65,7 @@ export const ArticleCard = memo(function ArticleCard({ article, onSeeReddit }: P
       <div className="actions">
         {url && (
           <a className="btn primary" href={url} target="_blank" rel="noopener noreferrer">
-            Read on {article.provider === 'medium' ? 'Medium' : 'Substack'} <ArrowRightIcon />
+            Read on {article.provider === 'medium' ? 'Medium' : article.provider === 'news' ? article.publicationName : 'Substack'} <ArrowRightIcon />
           </a>
         )}
         <button type="button" className="btn" onClick={() => onSeeReddit(article)}>

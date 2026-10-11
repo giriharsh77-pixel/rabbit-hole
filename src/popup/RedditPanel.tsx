@@ -1,24 +1,21 @@
 import { useMemo } from 'react';
 import { EmptyState, ErrorState } from '../components/States';
-import { ArrowRightIcon, CloseIcon, RefreshIcon, SearchIcon } from '../components/icons';
+import { CloseIcon, RefreshIcon, SearchIcon } from '../components/icons';
 import { ListSkeleton } from '../components/Skeleton';
 import { RedditCard } from '../components/RedditCard';
-import { generateRedditQueries } from '../services/context/queries';
+import { generateRedditQueries, parseEpisode } from '../services/context/queries';
 import type { ContentContext } from '../types/context';
+import type { RpcParams } from '../types/messages';
 import type { RedditFetchMeta, ScoredRedditPost } from '../types/reddit';
 import type { Settings } from '../types/settings';
-import { useRedditSearch } from './data';
+import type { TitleInfo } from '../types/title';
+import { useRedditDiscuss, useRedditSearch } from './data';
 
 export interface RedditFocus {
   /** Shown as: Reddit discussions about “label” */
   label: string;
   queries: string[];
   kind: 'search' | 'article';
-}
-
-export interface PageBridge {
-  title: string;
-  onSee: () => void;
 }
 
 interface Props {
@@ -28,39 +25,62 @@ interface Props {
   now: number;
   focus: RedditFocus | null;
   onClearFocus: () => void;
-  /** What the user is watching right now (YouTube / Netflix) — the tab shows threads about it. */
+  /** What the user is watching on Netflix (or picked in the title search) — the tab shows threads about it. */
   watching: ContentContext | null;
-  pageBridge: PageBridge | null;
+  /** The exact title (Wikidata): its subreddit, cast and characters sharpen the search. */
+  title: TitleInfo | null;
+  titleLoading: boolean;
   onFindReading: (post: ScoredRedditPost) => void;
   /** Put the cursor in the search box. */
-  onSearch: () => void;
+  onSearch: (prefill?: string) => void;
 }
 
 const providerName = (meta: RedditFetchMeta) =>
   meta.provider === 'oauth' ? 'Reddit API' : meta.provider === 'json' ? 'public Reddit data' : 'public feed';
 
+/** What to ask Reddit about a known title: its subreddit, the episode, cast and character names. */
+export function discussParams(watching: ContentContext, title: TitleInfo): RpcParams<'reddit/discuss'> {
+  const ep = parseEpisode(watching.episode);
+  const names = [...title.cast.slice(0, 12).map((m) => m.name), ...title.cast.slice(0, 12).flatMap((m) => (m.character ? [m.character] : []))];
+  return {
+    // Netflix's name is the one viewers use ("Delhi Crime", not "Delhi Crime Story")
+    title: watching.platform === 'netflix' ? watching.title : title.title,
+    kind: title.kind,
+    names,
+    ...(title.subreddit ? { ownSubreddit: title.subreddit } : {}),
+    ...(ep.name ? { episodeName: ep.name } : {}),
+    ...(ep.season !== undefined ? { season: ep.season } : {}),
+  };
+}
+
 /**
- * The Reddit tab: discussions about what's playing, search results, or
+ * The Discuss tab: Reddit discussions about what's playing, search results, or
  * "What Reddit thinks" about an article. There is no general trending feed —
  * everything shown here is about something the user is looking at or asked for.
  */
 export function RedditPanel(props: Props) {
-  const { settings, active, now, focus, watching } = props;
+  const { settings, active, now, focus, watching, title, titleLoading } = props;
   const focusResults = useRedditSearch(focus ? focus.queries : null, 12);
 
+  const wanted = !!watching && active && !focus;
+  // A known title gets the precise search (its subreddit, cast, characters)…
+  const discussQuery = useMemo(() => (wanted && watching && title ? discussParams(watching, title) : null), [wanted, watching, title]);
+  const discuss = useRedditDiscuss(discussQuery);
+  // …otherwise strict phrase search, all time (once we know Wikidata has no match).
   const relatedQueries = useMemo(
-    () => (watching && active && !focus ? generateRedditQueries(watching, 3) : null),
-    [watching, active, focus],
+    () => (wanted && watching && !title && !titleLoading ? generateRedditQueries(watching, 3) : null),
+    [wanted, watching, title, titleLoading],
   );
-  // All time: episode and video discussions are often years old — and still the best ones.
-  // Strict: only threads that clearly match; never padded with Reddit's loose matches.
-  const related = useRedditSearch(relatedQueries, 15, { time: 'all', strict: true });
+  const fallback = useRedditSearch(relatedQueries, 15, { time: 'all', strict: true });
+  const related = discussQuery ? discuss : fallback;
+  const chips = discussQuery ? (discuss.data?.searched ?? []) : (relatedQueries ?? []).map((q) => q.replace(/["“”]/g, ''));
+  const scopes = discussQuery ? (discuss.data?.scopes ?? []) : ['all of Reddit'];
 
   const panelProps = {
     className: 'panel',
     role: 'tabpanel',
-    id: `${props.idPrefix}-panel-reddit`,
-    'aria-labelledby': `${props.idPrefix}-tab-reddit`,
+    id: `${props.idPrefix}-panel-discuss`,
+    'aria-labelledby': `${props.idPrefix}-tab-discuss`,
     hidden: !active,
   } as const;
 
@@ -78,12 +98,12 @@ export function RedditPanel(props: Props) {
     return (
       <div {...panelProps}>
         <div className="panel-title split-heading">
-          <h2>Reddit</h2>
+          <h2>Discuss</h2>
         </div>
         <div className="panel-title">
           <h2>{focus.kind === 'article' ? 'What Reddit thinks' : 'Reddit results'}</h2>
           <button type="button" className="btn small ghost" onClick={props.onClearFocus}>
-            <CloseIcon /> {watching ? 'Back to this video' : 'Clear'}
+            <CloseIcon /> {watching ? `Back to ${watching.title}` : 'Clear'}
           </button>
         </div>
         <p className="status-line" aria-live="polite">
@@ -117,12 +137,10 @@ export function RedditPanel(props: Props) {
     return (
       <div {...panelProps}>
         <div className="panel-title split-heading">
-          <h2>Reddit</h2>
+          <h2>Discuss</h2>
         </div>
         <div className="panel-title">
-          <h2>
-            <span aria-hidden="true">{watching.platform === 'netflix' ? '🍿' : '🎬'}</span> About {subject}
-          </h2>
+          <h2>Reddit on {subject}</h2>
         </div>
         <p className="status-line" aria-live="polite">
           {related.status === 'success' ? (
@@ -140,16 +158,21 @@ export function RedditPanel(props: Props) {
             </>
           )}
         </p>
-        {relatedQueries && relatedQueries.length > 0 && (
+        {chips.length > 0 && (
           <div className="tag-row" aria-label="Searched Reddit for">
-            {relatedQueries.map((q) => (
+            {scopes.includes(`r/${title?.subreddit ?? ''}`) && title?.subreddit && (
+              <a className="chip chip-static chip-sub" href={`https://www.reddit.com/r/${title.subreddit}/`} target="_blank" rel="noopener noreferrer">
+                r/{title.subreddit}
+              </a>
+            )}
+            {chips.map((q) => (
               <span key={q} className="chip chip-static">
-                {q.replace(/["“”]/g, '')}
+                {q}
               </span>
             ))}
           </div>
         )}
-        {(related.status === 'loading' || related.status === 'idle') && (
+        {(related.status === 'loading' || related.status === 'idle' || titleLoading) && (
           <ListSkeleton count={3} withAside={settings.reddit.showThumbnails} label="Finding related threads" />
         )}
         {related.status === 'error' && <ErrorState error={related.error} subject="reddit" onRetry={related.reload} />}
@@ -157,19 +180,19 @@ export function RedditPanel(props: Props) {
           <EmptyState
             title="No Reddit threads about this yet"
             actions={
-              <button type="button" className="btn primary" onClick={props.onSearch}>
+              <button type="button" className="btn primary" onClick={() => props.onSearch()}>
                 <SearchIcon /> Search Reddit
               </button>
             }
           >
-            Reddit doesn’t seem to have discussed {subject}. Try a broader topic in the search box.
+            Reddit doesn’t seem to have discussed {subject} — or not in a way we could tell apart from other uses of the name. Try searching for something broader.
           </EmptyState>
         )}
         {results.length > 0 && cards(results)}
         {related.status === 'success' && related.data && (
           <div className="panel-title" style={{ marginTop: 14 }}>
             <span className="meta" aria-live="polite">
-              Reddit search · all time · {providerName(related.data.meta)}
+              Searched {scopes.join(', ')} · all time · {providerName(related.data.meta)}
             </span>
             <button type="button" className="btn small ghost" onClick={related.reload} aria-label="Search Reddit again">
               <RefreshIcon /> Refresh
@@ -180,34 +203,22 @@ export function RedditPanel(props: Props) {
     );
   }
 
-  // ── nothing playing: offer the article bridge, or explain the tab ──────────
+  // ── nothing playing: explain the tab ───────────────────────────────────────
   return (
     <div {...panelProps}>
       <div className="panel-title split-heading">
-        <h2>Reddit</h2>
+        <h2>Discuss</h2>
       </div>
-      {props.pageBridge ? (
-        <div className="bridge">
-          <div className="bridge-text">
-            <small>You're reading</small>
-            <span title={props.pageBridge.title}>{props.pageBridge.title}</span>
-          </div>
-          <button type="button" className="btn primary small" onClick={props.pageBridge.onSee}>
-            See what Reddit thinks <ArrowRightIcon />
+      <EmptyState
+        title="Reddit threads about what you watch"
+        actions={
+          <button type="button" className="btn" onClick={() => props.onSearch()}>
+            <SearchIcon /> Search for a movie or show
           </button>
-        </div>
-      ) : (
-        <EmptyState
-          title="Reddit threads about what you watch"
-          actions={
-            <button type="button" className="btn" onClick={props.onSearch}>
-              <SearchIcon /> Search Reddit
-            </button>
-          }
-        >
-          Open a YouTube video or a Netflix title and this tab shows Reddit’s discussions about it — or search any topic.
-        </EmptyState>
-      )}
+        }
+      >
+        Open a Netflix title and this tab shows Reddit’s discussions about it — or search for any movie or show.
+      </EmptyState>
     </div>
   );
 }
@@ -221,9 +232,7 @@ function subjectLabel(ctx: ContentContext): string {
       return 'this movie';
     case 'show':
       return 'this show';
-    case 'short':
-      return 'this Short';
     default:
-      return 'this video';
+      return 'this title';
   }
 }

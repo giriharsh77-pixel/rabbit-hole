@@ -36,8 +36,8 @@ describe('Medium tags', () => {
     expect(tags).not.toContain('basketball');
   });
 
-  it('uses the subject and topics for a video', () => {
-    const video = buildContext({ platform: 'youtube', kind: 'video', url: 'https://www.youtube.com/watch?v=abc', title: 'How AI Agents Will Change Software Development', keywords: ['ai agents', 'software development'], source: 't', confidence: 'high' });
+  it('uses the subject and topics for a headline (e.g. a Reddit thread card)', () => {
+    const video = buildContext({ platform: 'reddit', kind: 'thread', url: 'https://www.reddit.com/r/x/comments/abc/y/', title: 'How AI Agents Will Change Software Development', keywords: ['ai agents', 'software development'], source: 't', confidence: 'high' });
     expect(mediumTags(video)).toEqual(expect.arrayContaining(['ai-agents']));
     expect(mediumTags(video).length).toBeLessThanOrEqual(4);
   });

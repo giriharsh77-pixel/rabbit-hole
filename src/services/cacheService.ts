@@ -11,7 +11,8 @@
  *    aborted when *every* waiter has gone away.
  *
  * TTLs used by the extension (see TTL below):
- *    Reddit search 5 min · Substack search 10 min · page context until the tab changes
+ *    Reddit search 5 min · Substack search 10 min · title search 1 h · title facts 24 h
+ *    · page context until the tab changes
  */
 import { abortError, raceAbort } from '../utils/abort';
 import { serializeError, toAppError } from '../utils/errors';
@@ -22,6 +23,11 @@ export const TTL = {
   substackSearch: 10 * 60_000,
   substackFeed: 30 * 60_000,
   aiAnalysis: 60 * 60_000,
+  /** Wikidata changes slowly: search results 1 h, title facts (cast, ids) 24 h. */
+  titleSearch: 60 * 60_000,
+  titleInfo: 24 * 60 * 60_000,
+  /** Ratings, reviews, Netflix India availability (from the backend). */
+  titleInsights: 6 * 60 * 60_000,
   /** Safety net only: page context is dropped as soon as its tab navigates or closes. */
   pageContext: 6 * 60 * 60_000,
   /** How long an expired entry may still be served when a refresh fails. */

@@ -4,6 +4,7 @@
  * handlers never assume well-formed input.
  */
 import { buildContext, manualContext, sanitizeContext } from '../services/contextService';
+import { titleContext } from '../services/titleService';
 import type { Platform, RawPageMetadata } from '../types/context';
 import type { AppStatus, RpcMethod, RpcParams, RpcResult } from '../types/messages';
 import type { Settings } from '../types/settings';
@@ -31,7 +32,7 @@ export interface HandlerDeps {
   onDataCleared?: () => void;
 }
 
-const PLATFORMS: readonly Platform[] = ['youtube', 'netflix', 'reddit', 'substack', 'manual', 'unknown'];
+const PLATFORMS: readonly Platform[] = ['netflix', 'title', 'reddit', 'substack', 'manual', 'unknown'];
 const SEARCH_WINDOWS: readonly string[] = ['day', 'week', 'month', 'year', 'all'];
 
 function sanitizeRaw(input: unknown): RawPageMetadata {
@@ -65,11 +66,21 @@ export function createHandlers(deps: HandlerDeps): { handlers: Handlers; context
     'context/current': async (p) => {
       return contextManager.current({ tabId: p?.tabId, refresh: p?.refresh });
     },
-    'context/usePage': async (p) => contextManager.usePage({ tabId: p?.tabId }),
     'context/analyze': async (p) => {
       const raw = sanitizeRaw(p?.raw);
       return raw.platform === 'manual' ? manualContext(raw.title) : buildContext(raw);
     },
+
+    // ── titles (Wikidata) ──────────────────────────────────────────────────
+    'title/search': async (p, { signal }) => services.titles.search(cleanText(p?.query, 80), { signal }),
+    'title/context': async (p, { signal }) => {
+      const qid = typeof p?.qid === 'string' ? p.qid : '';
+      const info = await services.titles.info(qid, { signal });
+      return { info, context: titleContext(info, deps.now?.() ?? Date.now()) };
+    },
+    'title/resolve': async (p, { signal }) => services.titles.resolve(sanitizeContext(p?.context), { signal }),
+    'title/insights': async (p, { signal }) => services.titles.insights(typeof p?.qid === 'string' ? p.qid : '', { signal }),
+    'title/related': async (p, { signal }) => services.titles.related(typeof p?.qid === 'string' ? p.qid : '', { signal }),
 
     // ── reddit ─────────────────────────────────────────────────────────────
     'reddit/search': async (p, { signal }) => {
@@ -82,6 +93,25 @@ export function createHandlers(deps: HandlerDeps): { handlers: Handlers; context
         ...(p?.time && SEARCH_WINDOWS.includes(p.time) ? { time: p.time } : {}),
         ...(p?.strict === true ? { strict: true } : {}),
       });
+    },
+
+    'reddit/discuss': async (p, { signal }) => {
+      const title = cleanText(p?.title, 160);
+      if (!title) throw new AppError('NO_CONTEXT', 'Nothing to search for', { retryable: false });
+      const ownSubreddit = sanitizeSubredditList(p?.ownSubreddit ? [p.ownSubreddit] : [], 1)[0];
+      const episodeName = cleanText(p?.episodeName, 100);
+      const season = typeof p?.season === 'number' && Number.isInteger(p.season) && p.season > 0 && p.season < 100 ? p.season : undefined;
+      return services.reddit.discuss(
+        {
+          title,
+          kind: p?.kind === 'movie' ? 'movie' : 'series',
+          names: Array.isArray(p?.names) ? p.names.map((n) => cleanText(n, 80)).filter(Boolean).slice(0, 24) : [],
+          ...(ownSubreddit ? { ownSubreddit } : {}),
+          ...(episodeName ? { episodeName } : {}),
+          ...(season !== undefined ? { season } : {}),
+        },
+        { signal, ...(p?.limit !== undefined ? { limit: p.limit } : {}) },
+      );
     },
 
     // ── substack ───────────────────────────────────────────────────────────
@@ -137,14 +167,18 @@ export function createHandlers(deps: HandlerDeps): { handlers: Handlers; context
     'status/get': async (): Promise<AppStatus> => {
       const [settings, secrets, ai] = await Promise.all([services.settings.get(), services.secrets.status(), services.ai.status()]);
       let backendSearch = false;
+      const backendFeatures = { titles: false, ratings: false, press: false };
       if (services.backend) {
-        backendSearch = await services.backend.features().then((f) => f.search).catch(() => false);
+        const f = await services.backend.features().catch(() => undefined);
+        backendSearch = !!f?.search;
+        if (f) Object.assign(backendFeatures, { titles: f.titles, ratings: f.ratings, press: f.press });
       }
       const substackProviders: AppStatus['substack']['providers'] = [];
       if (backendSearch) substackProviders.push('backend');
       if (secrets.braveApiKey.configured) substackProviders.push('brave');
       substackProviders.push('feeds');
       if (settings.reading.includeMedium) substackProviders.push('medium');
+      if (settings.reading.includeNews) substackProviders.push('news');
       return {
         reddit: { providers: [...(secrets.redditClientId.configured ? (['oauth'] as const) : []), 'json', 'rss'] },
         substack: {
@@ -154,6 +188,7 @@ export function createHandlers(deps: HandlerDeps): { handlers: Handlers; context
         },
         ai,
         backendConfigured: !!BUILD_ENV.backendUrl,
+        backend: backendFeatures,
         version: EXTENSION_VERSION,
       };
     },

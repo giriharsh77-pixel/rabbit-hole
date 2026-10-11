@@ -30,7 +30,7 @@ const define = {
   __RH_PREVIEW__: JSON.stringify(false),
 };
 
-const CONTENT_SCRIPTS = ['youtube', 'netflix', 'reddit', 'generic'];
+const CONTENT_SCRIPTS = ['netflix'];
 
 async function main() {
   console.log(`▸ Rabbit Hole build (${mode}${watch ? ', watch' : ''})`);

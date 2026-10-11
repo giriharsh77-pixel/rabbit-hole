@@ -29,9 +29,9 @@ function article(over: Partial<ArticleCandidate> & { id: string; title: string }
 }
 
 const video = buildContext({
-  platform: 'youtube',
-  kind: 'video',
-  url: 'https://www.youtube.com/watch?v=x',
+  platform: 'unknown',
+  kind: 'page',
+  url: 'https://example.com/story',
   title: 'How AI Agents Will Change Software Development',
   creator: 'Fireship',
   keywords: ['ai agents', 'software development', 'ai coding', 'developer tools'],
@@ -140,7 +140,7 @@ describe('explanations', () => {
     const r = scoreCandidate(video, onTopic, { now: NOW });
     expect(r.whyBy).toBe('heuristic');
     expect(r.why).toMatch(/AI agents/i);
-    expect(r.why).toMatch(/video you're watching/);
+    expect(r.why).toMatch(/page you're on/);
     expect(r.matchedTopics.length).toBeGreaterThan(0);
   });
 

@@ -41,7 +41,7 @@ const event = () => {
 describe.skipIf(!existsSync(dist))('built service worker (dist/background.js)', () => {
   it('boots with no DOM, registers its listeners, and serves RPC', async () => {
     const ext = 'chrome-extension://testid/';
-    const events = { onConnect: event(), onInstalled: event(), onStartup: event(), tabsActivated: event(), tabsUpdated: event(), tabsRemoved: event(), storageChanged: event() };
+    const events = { onConnect: event(), onInstalled: event(), onStartup: event(), tabsActivated: event(), tabsUpdated: event(), tabsRemoved: event(), storageChanged: event(), permissionsAdded: event(), permissionsRemoved: event() };
     const local = fakeArea();
     const session = fakeArea();
     vi.stubGlobal('chrome', {
@@ -49,7 +49,7 @@ describe.skipIf(!existsSync(dist))('built service worker (dist/background.js)', 
       storage: { local, session, onChanged: events.storageChanged },
       tabs: { onActivated: events.tabsActivated, onUpdated: events.tabsUpdated, onRemoved: events.tabsRemoved, get: vi.fn(), query: vi.fn(async () => []) },
       action: { setBadgeText: vi.fn(), setBadgeBackgroundColor: vi.fn() },
-      permissions: { contains: vi.fn(async () => false) },
+      permissions: { contains: vi.fn(async () => false), onAdded: events.permissionsAdded, onRemoved: events.permissionsRemoved },
       scripting: { executeScript: vi.fn() },
     });
     // a service worker has no window/document
@@ -58,7 +58,7 @@ describe.skipIf(!existsSync(dist))('built service worker (dist/background.js)', 
     await import(/* @vite-ignore */ pathToFileURL(dist).href);
 
     // top-level, synchronous listener registration (an MV3 requirement)
-    for (const e of [events.onConnect, events.onInstalled, events.onStartup, events.tabsActivated, events.tabsUpdated, events.tabsRemoved, events.storageChanged]) {
+    for (const e of [events.onConnect, events.onInstalled, events.onStartup, events.tabsActivated, events.tabsUpdated, events.tabsRemoved, events.storageChanged, events.permissionsAdded, events.permissionsRemoved]) {
       expect(e.listeners.length).toBeGreaterThan(0);
     }
 

@@ -10,13 +10,14 @@
  * provider fails the last good data is served as stale, otherwise a typed
  * AppError reaches the UI.
  */
-import type { RedditFetchMeta, RedditPost, RedditProviderId, RedditSearchResponse } from '../types/reddit';
+import type { DiscussResponse, RedditFetchMeta, RedditPost, RedditProviderId, RedditSearchResponse } from '../types/reddit';
 import type { Settings } from '../types/settings';
 import { AppError, toAppError } from '../utils/errors';
 import { clamp } from '../utils/format';
 import { hashString, normalizeText, phraseKey, uniqueBy } from '../utils/text';
 import { CacheService, TTL } from './cacheService';
 import { mergePosts, scorePosts } from './ranking/reddit';
+import { discussPlan, titleMatch, type DiscussSubject } from './reddit/aboutTitle';
 import { JsonProvider, OAuthProvider, RssProvider, type RedditProvider, type SearchRequest } from './reddit/providers';
 
 export interface RedditServiceDeps {
@@ -190,6 +191,57 @@ export class RedditService {
     const posts = (opts.strict || onTopic.length >= 3 ? onTopic : ranked).slice(0, limit).map((x) => x.p);
 
     return { posts, meta: result.value.meta, query: queries[0] ?? '' };
+  }
+
+  // ─── threads about one movie / show ───────────────────────────────────────
+
+  /**
+   * Threads about a specific title: its own subreddit first, then TV / film
+   * communities, then all of Reddit — and only threads that are clearly about
+   * the show (see reddit/aboutTitle.ts).  All time: the best episode
+   * discussions are often years old.
+   */
+  async discuss(subject: DiscussSubject, opts: { limit?: number; signal?: AbortSignal } = {}): Promise<DiscussResponse> {
+    const settings = await this.deps.getSettings();
+    const plan = discussPlan(subject);
+    const limit = clamp(opts.limit ?? 15, 1, 25);
+    const key = `reddit:discuss:${hashString(JSON.stringify(plan))}:${settings.reddit.includeNsfw ? 1 : 0}`;
+
+    const result = await this.deps.cache.getOrFetch<CachedSearch>(
+      key,
+      TTL.redditSearch,
+      async (signal) => {
+        const providers = await this.providers(settings);
+        const { value, provider, degradedFrom } = await this.runChain(providers, async (p) => {
+          // one failing scope (e.g. a private subreddit) shouldn't sink the others
+          const settled = await Promise.allSettled(plan.map(({ label: _label, ...req }) => p.search({ ...req, limit: 15 }, signal)));
+          const lists = settled.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+          if (lists.length === 0) throw (settled[0] as PromiseRejectedResult).reason;
+          return lists;
+        });
+        let posts = mergePosts(value).filter((p) => !p.stickied);
+        if (!settings.reddit.includeNsfw) posts = posts.filter((p) => !p.over18);
+        return { posts, meta: { provider: provider.id, fetchedAt: this.now(), ...(degradedFrom.length ? { degradedFrom } : {}) } };
+      },
+      { ...(opts.signal ? { signal: opts.signal } : {}), allowStale: true },
+    );
+
+    const scored = scorePosts(result.value.posts, { now: this.now(), preferredSubreddits: settings.reddit.preferredSubreddits });
+    const posts = scored
+      .map((p) => ({ p, m: titleMatch(subject, p) }))
+      .filter((x) => x.m.keep)
+      .map((x) => ({ p: x.p, sort: (0.4 + x.m.match) * x.m.boost * (1 + Math.log10(1 + x.p.trendingScore) + 0.25 * Math.log10(1 + (x.p.score ?? 0))) }))
+      .sort((a, b) => b.sort - a.sort)
+      .slice(0, limit)
+      .map((x) => x.p);
+
+    return {
+      posts,
+      meta: result.value.meta,
+      query: plan[0]?.query ?? subject.title,
+      scopes: [...new Set(plan.map((q) => q.label))],
+      searched: [...new Set(plan.map((q) => q.query.replace(/^subreddit:\S+$/, 'top threads').replace(/["“”]/g, '')))],
+    };
   }
 }
 

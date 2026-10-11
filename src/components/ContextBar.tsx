@@ -10,7 +10,7 @@ interface Props {
   onDismiss?: (() => void) | undefined;
 }
 
-/** `● Watching — <title> — YouTube · Fireship` */
+/** `● Watching — <title> — Netflix · Season 1, Episode 5 — Basketball` */
 export function ContextBar({ context, used = [], verb = 'Watching', onDismiss }: Props) {
   const source = [
     platformLabel(context.platform),

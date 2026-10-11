@@ -34,8 +34,8 @@ describe('settings validation', () => {
   });
 
   it('merges partial updates without losing siblings', () => {
-    const next = mergeSettings(DEFAULT_SETTINGS, { privacy: { youtubeDetection: false }, reddit: { includeNsfw: true } });
-    expect(next.privacy).toMatchObject({ youtubeDetection: false, netflixDetection: true, detectionEnabled: true });
+    const next = mergeSettings(DEFAULT_SETTINGS, { privacy: { netflixDetection: false }, reddit: { includeNsfw: true } });
+    expect(next.privacy).toMatchObject({ netflixDetection: false, detectionEnabled: true });
     expect(next.reddit.includeNsfw).toBe(true);
     expect(next.reddit.showThumbnails).toBe(true);
   });

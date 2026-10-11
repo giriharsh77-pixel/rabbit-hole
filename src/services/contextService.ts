@@ -16,7 +16,7 @@ import { AppError } from '../utils/errors';
 import type { AiTopicAnalysis } from './ai/types';
 import { cleanText } from '../utils/sanitize';
 import { phraseKey, truncate, uniqueBy } from '../utils/text';
-import { extractTopics } from './context/topics';
+import { extractTopics, regionTagOf } from './context/topics';
 
 export { detectPlatform, isAutoDetectable, parseUrl, platformLabel } from './context/platform';
 export { generateQueries } from './context/queries';
@@ -56,6 +56,10 @@ export function buildContext(raw: RawPageMetadata, now: number = Date.now()): Co
   if (raw.genres?.length) ctx.genres = raw.genres.slice(0, 6);
   if (raw.subreddit) ctx.subreddit = raw.subreddit;
   if (raw.publication) ctx.publication = cleanText(raw.publication, 120);
+  const region = regionTagOf(raw.title);
+  if (region) ctx.regionTag = region;
+  if (raw.titleId && /^Q\d{1,12}$/.test(raw.titleId)) ctx.titleId = raw.titleId;
+  if (raw.year) ctx.year = raw.year;
   return ctx;
 }
 
@@ -119,8 +123,8 @@ export function describeUsedInfo(raw: RawPageMetadata | undefined, ctx: ContentC
   return fields;
 }
 
-const PLATFORMS: readonly Platform[] = ['youtube', 'netflix', 'reddit', 'substack', 'manual', 'unknown'];
-const KINDS: readonly ContentKind[] = ['video', 'short', 'movie', 'episode', 'show', 'thread', 'article', 'page', 'query'];
+const PLATFORMS: readonly Platform[] = ['netflix', 'title', 'reddit', 'substack', 'manual', 'unknown'];
+const KINDS: readonly ContentKind[] = ['movie', 'episode', 'show', 'thread', 'article', 'page', 'query'];
 const ORIGINS: readonly ConceptOrigin[] = ['title', 'keywords', 'description', 'genre', 'entity', 'ontology', 'ai', 'manual'];
 
 function strs(v: unknown, maxItems: number, maxLen: number): string[] {
@@ -173,5 +177,9 @@ export function sanitizeContext(raw: unknown): ContentContext {
   if (subreddit) ctx.subreddit = subreddit;
   const publication = cleanText(o.publication, 100);
   if (publication) ctx.publication = publication;
+  if (typeof o.titleId === 'string' && /^Q\d{1,12}$/.test(o.titleId)) ctx.titleId = o.titleId;
+  const regionTag = cleanText(o.regionTag, 24);
+  if (regionTag) ctx.regionTag = regionTag;
+  if (typeof o.year === 'number' && Number.isInteger(o.year) && o.year > 1870 && o.year < 2200) ctx.year = o.year;
   return ctx;
 }

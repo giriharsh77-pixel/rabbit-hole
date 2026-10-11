@@ -1,19 +1,11 @@
 /**
- * Extractor registry.  Add a platform = add an extractor here (and a URL rule
- * in ../platform.ts).  Order matters: the first match wins, `generic` is last.
+ * Extractor registry.  Rabbit Hole reads one kind of page: Netflix (movies and
+ * series).  Everything else is reached through the title search.
  */
 import type { PlatformExtractor, RawPageMetadata } from '../../../types/context';
-import { genericExtractor } from './generic';
 import { netflixExtractor } from './netflix';
-import { redditExtractor } from './reddit';
-import { youtubeExtractor } from './youtube';
 
-export const EXTRACTORS: readonly PlatformExtractor[] = [
-  youtubeExtractor,
-  netflixExtractor,
-  redditExtractor,
-  genericExtractor,
-];
+export const EXTRACTORS: readonly PlatformExtractor[] = [netflixExtractor];
 
 export async function extractFromDocument(doc: Document, url: URL): Promise<RawPageMetadata | null> {
   for (const extractor of EXTRACTORS) {
@@ -28,7 +20,4 @@ export async function extractFromDocument(doc: Document, url: URL): Promise<RawP
   return null;
 }
 
-export { extractGeneric } from './generic';
 export { extractNetflix } from './netflix';
-export { extractReddit } from './reddit';
-export { extractYouTube } from './youtube';

@@ -6,7 +6,10 @@
  *   • Reddit  — real titles/links from a captured public Atom feed, with
  *               SYNTHETIC scores/comment counts (clearly preview data)
  *   • Substack — real RSS captured from public feeds on 2026-10-07
- * and a fake "current tab" chosen with  ?demo=youtube|netflix|reddit|substack|idle|undetected
+ *   • Wikidata — the real, keyless service (title search, cast, links)
+ *   • ?backend=demo — the real backend handler, in-page, over SAMPLE TMDB / OMDb /
+ *     NYT / Guardian responses (labelled as samples; numbers are made up)
+ * and a fake "current tab" chosen with  ?demo=netflix|office|movie|idle|undetected
  */
 import { createServices } from '../background/container';
 import { createHandlers } from '../background/handlers';
@@ -18,6 +21,7 @@ import type { RawPageMetadata } from '../types/context';
 import type { RedditPost } from '../types/reddit';
 import { attachRpcPort, type RpcClientPort, type RpcServerPort } from '../utils/rpc';
 import { docsRedditPosts } from './docsSample';
+import { createHandler } from '../../server/src/handler';
 import redditHotAtom from './fixtures/reddit-hot.atom.xml?raw';
 
 const feedFixtures = import.meta.glob('./fixtures/feeds/*.xml', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
@@ -98,14 +102,52 @@ const json = (body: unknown, status = 200) =>
 /** `?slow=2500` delays every mocked response, to capture loading states. */
 const slowMs = Number(new URLSearchParams(location.search).get('slow') ?? 0) || 0;
 
-function previewFetch(input: RequestInfo | URL): Promise<Response> {
-  const res = routeFetch(input);
+function previewFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const res = routeFetch(input, init);
   return slowMs ? res.then((r) => new Promise<Response>((resolve) => setTimeout(() => resolve(r), slowMs))) : res;
 }
 
-function routeFetch(input: RequestInfo | URL): Promise<Response> {
+// ─── ?backend=demo: the real handler over sample upstream data ──────────────
+
+const DEMO_BACKEND = 'https://backend.preview';
+const sampleUpstream = (async (input: RequestInfo | URL) => {
+  const url = new URL(String(input));
+  const id = url.pathname.match(/\/(movie|tv)\/(\d+)/);
+  if (url.hostname === 'api.themoviedb.org' && url.pathname.endsWith('/watch/providers')) {
+    const on = Number(id?.[2] ?? 0) % 2 === 0;
+    return json({ results: { IN: on ? { flatrate: [{ provider_id: 8, provider_name: 'Netflix' }] } : {} } });
+  }
+  if (url.hostname === 'api.themoviedb.org' && url.pathname.startsWith('/3/find/')) return json({ tv_results: [], movie_results: [] });
+  if (url.hostname === 'api.themoviedb.org' && id) {
+    const tv = id[1] === 'tv';
+    const pick = (tmdb: number, title: string, y: string) => ({ id: tmdb, [tv ? 'name' : 'title']: title, [tv ? 'first_air_date' : 'release_date']: `${y}-01-01`, overview: 'Sample overview (preview data).' });
+    return json({
+      vote_average: 8.1,
+      vote_count: 1234,
+      reviews: {
+        results: [
+          { id: 'aaaaaaaaaaaaaaaaaaaaaaaa', author: 'Sample reviewer', author_details: { rating: 8 }, content: 'Preview sample review — in the real extension this is a TMDB user review, trimmed to a few lines, with a link to read it in full.', created_at: '2026-01-15T10:00:00Z' },
+          { id: 'bbbbbbbbbbbbbbbbbbbbbbbb', author: 'Another sample', content: 'A second preview sample review. Reviews come from TMDB through the backend; nothing here is written by Rabbit Hole.', created_at: '2025-06-02T10:00:00Z' },
+        ],
+      },
+      recommendations: { results: tv ? [pick(8592, 'Parks and Recreation', '2009'), pick(48891, 'Brooklyn Nine-Nine', '2013'), pick(18347, 'Community', '2009')] : [pick(546554, 'Knives Out', '2019'), pick(1124, 'The Prestige', '2006')] },
+      similar: { results: tv ? [pick(4589, 'Arrested Development', '2003'), pick(62649, 'Superstore', '2015')] : [pick(10528, 'Sherlock Holmes', '2009')] },
+      'watch/providers': { results: { IN: { link: `https://www.themoviedb.org/${id[1]}/${id[2]}/watch?locale=IN`, flatrate: [{ provider_id: 8, provider_name: 'Netflix' }] } } },
+    });
+  }
+  if (url.hostname === 'www.omdbapi.com') return json({ Response: 'True', imdbRating: '8.0', imdbVotes: '100,000', Ratings: [{ Source: 'Rotten Tomatoes', Value: '80%' }, { Source: 'Metacritic', Value: '70/100' }] });
+  return new Response('not mocked', { status: 404 });
+}) as typeof fetch;
+const demoBackend = createHandler({ tmdbApiKey: 'preview', omdbApiKey: 'preview', allowedOrigins: [], rateLimitPerMinute: 1000, fetch: sampleUpstream });
+
+function routeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
   const params = new URLSearchParams(location.search);
+
+  if (url.origin === DEMO_BACKEND) return demoBackend(new Request(url, init));
+
+  // Wikidata is public, keyless and CORS-enabled: the preview uses the real thing.
+  if (url.hostname === 'www.wikidata.org' || url.hostname === 'query.wikidata.org') return fetch(url, init);
 
   if (url.hostname === 'www.reddit.com' && params.get('fail') === 'reddit') {
     return Promise.resolve(new Response('blocked', { status: 403 }));
@@ -145,20 +187,6 @@ function routeFetch(input: RequestInfo | URL): Promise<Response> {
 // ─── fake current tab ────────────────────────────────────────────────────────
 
 const DEMOS: Record<string, { url: string; raw: RawPageMetadata | null }> = {
-  youtube: {
-    url: 'https://www.youtube.com/watch?v=preview123',
-    raw: {
-      platform: 'youtube',
-      kind: 'video',
-      url: 'https://www.youtube.com/watch?v=preview123',
-      title: 'How AI Agents Will Change Software Development',
-      creator: 'Fireship',
-      description: 'AI agents are about to change how we write code. We look at autonomous coding agents and what they mean for developers and developer tools.',
-      keywords: ['ai agents', 'software development', 'ai coding', 'developer tools'],
-      source: 'visible video title',
-      confidence: 'high',
-    },
-  },
   netflix: {
     url: 'https://www.netflix.com/watch/80000000',
     raw: {
@@ -176,28 +204,34 @@ const DEMOS: Record<string, { url: string; raw: RawPageMetadata | null }> = {
       confidence: 'high',
     },
   },
-  reddit: {
-    url: 'https://www.reddit.com/r/MachineLearning/comments/abc123/sample_thread/',
+  office: {
+    url: 'https://www.netflix.com/watch/80000002',
     raw: {
-      platform: 'reddit',
-      kind: 'thread',
-      url: 'https://www.reddit.com/r/MachineLearning/comments/abc123/sample_thread/',
-      title: '[D] How are teams evaluating AI agents beyond simple pass/fail benchmarks?',
-      subreddit: 'MachineLearning',
-      source: 'thread title',
+      platform: 'netflix',
+      kind: 'episode',
+      url: 'https://www.netflix.com/watch/80000002',
+      title: 'The Office (U.S.)',
+      episode: 'Season 1, Episode 5 — Basketball',
+      season: 1,
+      episodeNumber: 5,
+      genres: ['Sitcom', 'Comedy'],
+      people: ['Steve Carell', 'Rainn Wilson', 'John Krasinski', 'Jenna Fischer'],
+      description: 'A mockumentary on a group of typical office workers, where the workday consists of ego clashes and inappropriate behavior.',
+      source: 'player title label + Netflix title page',
       confidence: 'high',
     },
   },
-  substack: {
-    url: 'https://sample.substack.com/p/sample-post',
+  movie: {
+    url: 'https://www.netflix.com/watch/80000003',
     raw: {
-      platform: 'substack',
-      kind: 'article',
-      url: 'https://sample.substack.com/p/sample-post',
-      title: 'Sample post: why autonomous agents change how software teams work',
-      publication: 'Sample Newsletter',
-      description: 'A look at autonomous coding agents and what they change for software teams.',
-      source: 'page metadata (JSON-LD)',
+      platform: 'netflix',
+      kind: 'movie',
+      url: 'https://www.netflix.com/watch/80000003',
+      title: 'Glass Onion: A Knives Out Mystery',
+      genres: ['Mystery', 'Comedy'],
+      people: ['Daniel Craig', 'Edward Norton', 'Janelle Monáe'],
+      description: 'Famed detective Benoit Blanc heads to Greece to peel back the layers of a mystery surrounding a tech billionaire and his eclectic crew of friends.',
+      source: 'player title label + Netflix title page',
       confidence: 'high',
     },
   },
@@ -210,15 +244,6 @@ function demoTabs(demo: string): TabAdapter {
   return {
     resolve: async () => ({ id: 1, url: d.url, title: 'Preview' }),
     extract: async () => d.raw,
-    extractGeneric: async () => ({
-      platform: 'unknown',
-      kind: 'page',
-      url: d.url,
-      title: 'The surprising economics of nuclear energy',
-      description: 'A deep dive into the cost curves of reactors and why they stalled.',
-      source: 'page metadata (Open Graph)',
-      confidence: 'high',
-    }),
   };
 }
 
@@ -232,6 +257,7 @@ export async function createPreviewConnect(): Promise<() => RpcClientPort> {
     session: new MemoryStore(),
     fetchImpl: previewFetch as typeof fetch,
     hasOrigin: async () => false,
+    ...(new URLSearchParams(location.search).get('backend') === 'demo' ? { backendUrl: DEMO_BACKEND } : {}),
   });
   const { handlers } = createHandlers({ services, tabs: demoTabs(demo) });
   const allowedOrigin = location.origin + '/';

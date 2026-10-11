@@ -3,7 +3,7 @@
  * never sent anywhere).  Every read goes through `validateSettings`, so a
  * corrupt or hand-edited value can never crash the UI or the background worker.
  */
-import type { DeepPartial, Settings, ThemeMode } from '../types/settings';
+import type { DeepPartial, Settings, SourcePreference, ThemeMode } from '../types/settings';
 import { clampInt } from '../utils/format';
 import { sanitizePublicationSlug, sanitizeStringList, sanitizeSubredditList } from '../utils/sanitize';
 import type { KeyValueStore } from './cacheService';
@@ -26,10 +26,13 @@ export const DEFAULT_SETTINGS: Settings = {
     extraPublications: [],
     includeCustomDomains: false,
     includeMedium: true,
+    includeNews: false,
+    sources: {},
+    onlyPreferred: false,
+    englishOnly: true,
   },
   privacy: {
     detectionEnabled: true,
-    youtubeDetection: true,
     netflixDetection: true,
     aiEnabled: false,
   },
@@ -43,6 +46,15 @@ function bool(v: unknown, fallback: boolean): boolean {
 
 function obj(v: unknown): Record<string, unknown> {
   return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+}
+
+/** `{ variety: 'prefer', pinkvilla: 'hide' }` — ids are short slugs, values one of two words. */
+function sanitizeSources(v: unknown): Record<string, SourcePreference> {
+  const out: Record<string, SourcePreference> = {};
+  for (const [k, pref] of Object.entries(obj(v)).slice(0, 60)) {
+    if (/^[a-z0-9-]{2,40}$/.test(k) && (pref === 'prefer' || pref === 'hide')) out[k] = pref;
+  }
+  return out;
 }
 
 /** Merge arbitrary stored data onto the defaults, clamping everything. */
@@ -75,10 +87,13 @@ export function validateSettings(raw: unknown): Settings {
         .slice(0, 20),
       includeCustomDomains: bool(reading.includeCustomDomains, d.reading.includeCustomDomains),
       includeMedium: bool(reading.includeMedium, d.reading.includeMedium),
+      includeNews: bool(reading.includeNews, d.reading.includeNews),
+      sources: sanitizeSources(reading.sources),
+      onlyPreferred: bool(reading.onlyPreferred, d.reading.onlyPreferred),
+      englishOnly: bool(reading.englishOnly, d.reading.englishOnly),
     },
     privacy: {
       detectionEnabled: bool(privacy.detectionEnabled, d.privacy.detectionEnabled),
-      youtubeDetection: bool(privacy.youtubeDetection, d.privacy.youtubeDetection),
       netflixDetection: bool(privacy.netflixDetection, d.privacy.netflixDetection),
       aiEnabled: bool(privacy.aiEnabled, d.privacy.aiEnabled),
     },

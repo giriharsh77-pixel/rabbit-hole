@@ -1,0 +1,303 @@
+{
+  "checked": "2026-10-10",
+  "outlets": [
+    {
+      "id": "indian-express",
+      "name": "The Indian Express",
+      "region": "India",
+      "hosts": [
+        "indianexpress.com"
+      ],
+      "feeds": [
+        "https://indianexpress.com/section/entertainment/web-series/feed/",
+        "https://indianexpress.com/section/entertainment/feed/"
+      ],
+      "tier": 3
+    },
+    {
+      "id": "hindustan-times",
+      "name": "Hindustan Times",
+      "region": "India",
+      "hosts": [
+        "www.hindustantimes.com"
+      ],
+      "feeds": [
+        "https://www.hindustantimes.com/feeds/rss/entertainment/rssfeed.xml",
+        "https://www.hindustantimes.com/feeds/rss/entertainment/web-series/rssfeed.xml"
+      ],
+      "tier": 2
+    },
+    {
+      "id": "the-hindu",
+      "name": "The Hindu",
+      "region": "India",
+      "hosts": [
+        "www.thehindu.com"
+      ],
+      "feeds": [
+        "https://www.thehindu.com/entertainment/feeder/default.rss",
+        "https://www.thehindu.com/entertainment/movies/feeder/default.rss"
+      ],
+      "tier": 3
+    },
+    {
+      "id": "ndtv",
+      "name": "NDTV",
+      "region": "India",
+      "hosts": [
+        "www.ndtv.com"
+      ],
+      "feeds": [
+        "https://feeds.feedburner.com/ndtvmovies-latest"
+      ],
+      "tier": 2
+    },
+    {
+      "id": "times-of-india",
+      "name": "The Times of India",
+      "region": "India",
+      "hosts": [
+        "timesofindia.indiatimes.com"
+      ],
+      "feeds": [
+        "https://timesofindia.indiatimes.com/rssfeeds/1081479906.cms"
+      ],
+      "tier": 2
+    },
+    {
+      "id": "firstpost",
+      "name": "Firstpost",
+      "region": "India",
+      "hosts": [
+        "www.firstpost.com"
+      ],
+      "feeds": [
+        "https://www.firstpost.com/commonfeeds/v1/mfp/rss/entertainment.xml"
+      ],
+      "tier": 2
+    },
+    {
+      "id": "pinkvilla",
+      "name": "Pinkvilla",
+      "region": "India",
+      "hosts": [
+        "www.pinkvilla.com"
+      ],
+      "feeds": [
+        "https://www.pinkvilla.com/rss.xml"
+      ],
+      "tier": 1
+    },
+    {
+      "id": "nyt",
+      "name": "The New York Times",
+      "region": "US",
+      "hosts": [
+        "www.nytimes.com"
+      ],
+      "feeds": [
+        "https://rss.nytimes.com/services/xml/rss/nyt/Television.xml",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Movies.xml"
+      ],
+      "tier": 3
+    },
+    {
+      "id": "washington-post",
+      "name": "The Washington Post",
+      "region": "US",
+      "hosts": [
+        "www.washingtonpost.com"
+      ],
+      "feeds": [
+        "https://feeds.washingtonpost.com/rss/entertainment"
+      ],
+      "tier": 3
+    },
+    {
+      "id": "variety",
+      "name": "Variety",
+      "region": "US",
+      "hosts": [
+        "variety.com"
+      ],
+      "feeds": [
+        "https://variety.com/feed/"
+      ],
+      "topic": {
+        "series": "https://variety.com/t/{slug}/feed/",
+        "movie": "https://variety.com/t/{slug}/feed/"
+      },
+      "tier": 3
+    },
+    {
+      "id": "hollywood-reporter",
+      "name": "The Hollywood Reporter",
+      "region": "US",
+      "hosts": [
+        "www.hollywoodreporter.com"
+      ],
+      "feeds": [
+        "https://www.hollywoodreporter.com/feed/"
+      ],
+      "topic": {
+        "series": "https://www.hollywoodreporter.com/t/{slug}/feed/",
+        "movie": "https://www.hollywoodreporter.com/t/{slug}/feed/"
+      },
+      "tier": 3
+    },
+    {
+      "id": "deadline",
+      "name": "Deadline",
+      "region": "US",
+      "hosts": [
+        "deadline.com"
+      ],
+      "feeds": [
+        "https://deadline.com/feed/"
+      ],
+      "topic": {
+        "series": "https://deadline.com/tag/{slug}/feed/",
+        "movie": "https://deadline.com/tag/{slug}/feed/"
+      },
+      "tier": 2
+    },
+    {
+      "id": "indiewire",
+      "name": "IndieWire",
+      "region": "US",
+      "hosts": [
+        "www.indiewire.com"
+      ],
+      "feeds": [
+        "https://www.indiewire.com/feed/"
+      ],
+      "topic": {
+        "series": "https://www.indiewire.com/t/{slug}/feed/",
+        "movie": "https://www.indiewire.com/t/{slug}/feed/"
+      },
+      "tier": 3
+    },
+    {
+      "id": "rolling-stone",
+      "name": "Rolling Stone",
+      "region": "US",
+      "hosts": [
+        "www.rollingstone.com"
+      ],
+      "feeds": [
+        "https://www.rollingstone.com/tv-movies/feed/"
+      ],
+      "topic": {
+        "series": "https://www.rollingstone.com/t/{slug}/feed/",
+        "movie": "https://www.rollingstone.com/t/{slug}/feed/"
+      },
+      "tier": 2
+    },
+    {
+      "id": "decider",
+      "name": "Decider",
+      "region": "US",
+      "hosts": [
+        "decider.com"
+      ],
+      "feeds": [
+        "https://decider.com/feed/"
+      ],
+      "topic": {
+        "series": "https://decider.com/tag/{slug}/feed/",
+        "movie": "https://decider.com/tag/{slug}/feed/"
+      },
+      "tier": 2
+    },
+    {
+      "id": "whats-on-netflix",
+      "name": "What’s on Netflix",
+      "region": "US",
+      "hosts": [
+        "www.whats-on-netflix.com"
+      ],
+      "feeds": [
+        "https://www.whats-on-netflix.com/feed/"
+      ],
+      "tier": 2
+    },
+    {
+      "id": "av-club",
+      "name": "The A.V. Club",
+      "region": "US",
+      "hosts": [
+        "www.avclub.com"
+      ],
+      "feeds": [
+        "https://www.avclub.com/rss.xml"
+      ],
+      "tier": 2
+    },
+    {
+      "id": "collider",
+      "name": "Collider",
+      "region": "US",
+      "hosts": [
+        "collider.com"
+      ],
+      "feeds": [
+        "https://collider.com/feed/"
+      ],
+      "tier": 1
+    },
+    {
+      "id": "screen-rant",
+      "name": "Screen Rant",
+      "region": "US",
+      "hosts": [
+        "screenrant.com"
+      ],
+      "feeds": [
+        "https://screenrant.com/feed/"
+      ],
+      "tier": 1
+    },
+    {
+      "id": "guardian",
+      "name": "The Guardian",
+      "region": "UK",
+      "hosts": [
+        "www.theguardian.com"
+      ],
+      "feeds": [
+        "https://www.theguardian.com/uk/tv-and-radio/rss",
+        "https://www.theguardian.com/uk/film/rss"
+      ],
+      "topic": {
+        "series": "https://www.theguardian.com/tv-and-radio/{slug}/rss",
+        "movie": "https://www.theguardian.com/film/{slug}/rss"
+      },
+      "tier": 3
+    },
+    {
+      "id": "bbc",
+      "name": "BBC",
+      "region": "UK",
+      "hosts": [
+        "www.bbc.co.uk",
+        "www.bbc.com"
+      ],
+      "feeds": [
+        "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml"
+      ],
+      "tier": 3
+    },
+    {
+      "id": "den-of-geek",
+      "name": "Den of Geek",
+      "region": "UK",
+      "hosts": [
+        "www.denofgeek.com"
+      ],
+      "feeds": [
+        "https://www.denofgeek.com/feed/"
+      ],
+      "tier": 1
+    }
+  ]
+}

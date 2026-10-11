@@ -3,7 +3,8 @@
  *
  *     npm run server:dev          # reads ./.env then ./server/.env
  *
- * Environment: BRAVE_API_KEY, ANTHROPIC_API_KEY, ANTHROPIC_MODEL, ALLOWED_ORIGINS,
+ * Environment: BRAVE_API_KEY, ANTHROPIC_API_KEY, ANTHROPIC_MODEL, TMDB_API_KEY, OMDB_API_KEY,
+ * NYT_API_KEY, GUARDIAN_API_KEY, ALLOWED_ORIGINS,
  * RATE_LIMIT_PER_MINUTE, PORT (default 8787), HOST (default 127.0.0.1).
  */
 import { existsSync } from 'node:fs';
@@ -56,5 +57,7 @@ server.listen(port, host, () => {
   console.log(`Rabbit Hole backend listening on http://${host}:${port}`);
   console.log(`  search: ${config.braveApiKey ? 'enabled' : 'disabled (set BRAVE_API_KEY)'}`);
   console.log(`  ai:     ${config.anthropicApiKey ? 'enabled' : 'disabled (set ANTHROPIC_API_KEY)'}`);
+  console.log(`  titles: ${config.tmdbApiKey ? 'enabled' : 'disabled (set TMDB_API_KEY)'} · ratings: ${config.omdbApiKey ? 'enabled' : 'disabled (set OMDB_API_KEY)'}`);
+  console.log(`  press:  ${config.nytApiKey || config.guardianApiKey ? 'enabled' : 'disabled (set NYT_API_KEY and/or GUARDIAN_API_KEY)'}`);
   console.log(`  origins: ${config.allowedOrigins.length ? config.allowedOrigins.join(', ') : 'any chrome-extension://'}`);
 });

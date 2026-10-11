@@ -3,8 +3,12 @@ import type { SerializedError } from './errors';
 
 export type RelevanceLabel = 'highly-relevant' | 'very-relevant' | 'related' | 'somewhat-related';
 
-/** `medium` = Medium's public tag feeds (keyless), searched alongside Substack. */
-export type SubstackProviderId = 'backend' | 'brave' | 'feeds' | 'medium';
+/**
+ * `medium` = Medium's public tag feeds (keyless), searched alongside Substack.
+ * `news` = news & entertainment outlets' public RSS feeds (opt-in).
+ * `archive` = NYT / Guardian archive search, through the backend.
+ */
+export type SubstackProviderId = 'backend' | 'brave' | 'feeds' | 'medium' | 'news' | 'archive';
 
 /** An article found by a provider, before ranking.  Never contains invented data. */
 export interface ArticleCandidate {

@@ -1,12 +1,12 @@
 /** Data hooks: thin, cancellable wrappers over the background RPC. */
 import { useCallback, useEffect, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../services/settingsService';
-import type { ContentContext, CurrentContextResponse, RawPageMetadata } from '../types/context';
-import type { SerializedError } from '../types/errors';
-import type { RedditSearchResponse } from '../types/reddit';
+import type { ContentContext, RawPageMetadata } from '../types/context';
+import type { DiscussResponse, RedditSearchResponse } from '../types/reddit';
+import type { RpcParams } from '../types/messages';
 import type { DeepPartial, Settings } from '../types/settings';
 import type { DiscoveryResponse } from '../types/substack';
-import { isAbortError, serializeError } from '../utils/errors';
+import type { RelatedTitles, TitleCandidate, TitleInfo, TitleInsights } from '../types/title';
 import { useAsync } from './hooks';
 import { call } from './rpc';
 
@@ -51,32 +51,38 @@ export function useSettingsState(): {
 // ─── current page context ───────────────────────────────────────────────────
 
 export function useCurrentContext(tabId: number | undefined) {
-  const [override, setOverride] = useState<CurrentContextResponse | undefined>();
-  const [usePageError, setUsePageError] = useState<SerializedError | undefined>();
-  const [usingPage, setUsingPage] = useState(false);
   const state = useAsync((signal) => call('context/current', { ...(tabId !== undefined ? { tabId } : {}) }, signal), `ctx:${tabId ?? 'active'}`);
+  return { status: state.status, response: state.data, error: state.error, reload: state.reload };
+}
 
-  const usePage = useCallback(async () => {
-    setUsingPage(true);
-    setUsePageError(undefined);
-    try {
-      setOverride(await call('context/usePage', { ...(tabId !== undefined ? { tabId } : {}) }));
-    } catch (err) {
-      if (!isAbortError(err)) setUsePageError(serializeError(err));
-    } finally {
-      setUsingPage(false);
-    }
-  }, [tabId]);
+// ─── titles (Wikidata) ──────────────────────────────────────────────────────
 
-  return {
-    status: state.status,
-    response: override ?? state.data,
-    error: state.error,
-    reload: state.reload,
-    usePage,
-    usingPage,
-    usePageError,
-  };
+/** Typeahead results; keeps the previous list while the next one loads so the dropdown doesn't flicker. */
+export function useTitleSearch(query: string) {
+  const q = query.trim();
+  return useAsync<TitleCandidate[]>(q.length >= 2 ? (signal) => call('title/search', { query: q }, signal) : null, `title-search:${q.toLowerCase()}`, {
+    keepPrevious: true,
+  });
+}
+
+/** A picked title: its facts and a context to search from. */
+export function useTitleContext(qid: string | null) {
+  return useAsync<{ info: TitleInfo; context: ContentContext }>(qid ? (signal) => call('title/context', { qid }, signal) : null, `title-ctx:${qid ?? ''}`);
+}
+
+/** Which exact title the Netflix tab shows (null when Wikidata has no confident match). */
+export function useTitleResolve(context: ContentContext | null) {
+  const key = context ? `title-resolve:${context.title}:${context.regionTag ?? ''}:${context.kind}:${context.year ?? ''}` : 'off';
+  return useAsync<TitleInfo | null>(context ? (signal) => call('title/resolve', { context }, signal) : null, key);
+}
+
+/** Ratings, reviews, similar titles, Netflix India (null: no backend with those keys). */
+export function useTitleInsights(qid: string | null) {
+  return useAsync<TitleInsights | null>(qid ? (signal) => call('title/insights', { qid }, signal) : null, `title-insights:${qid ?? ''}`);
+}
+
+export function useRelatedTitles(qid: string | null) {
+  return useAsync<RelatedTitles>(qid ? (signal) => call('title/related', { qid }, signal) : null, `title-related:${qid ?? ''}`);
 }
 
 // ─── reddit ──────────────────────────────────────────────────────────────────
@@ -94,6 +100,11 @@ export function useRedditSearch(
       : null,
     key,
   );
+}
+
+export function useRedditDiscuss(params: RpcParams<'reddit/discuss'> | null) {
+  const key = params ? `discuss:${JSON.stringify(params)}` : 'off';
+  return useAsync<DiscussResponse>(params ? (signal) => call('reddit/discuss', params, signal) : null, key);
 }
 
 // ─── context analysis + discovery ───────────────────────────────────────────

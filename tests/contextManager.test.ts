@@ -8,35 +8,41 @@ import type { RawPageMetadata } from '../src/types/context';
 import { AppError } from '../src/utils/errors';
 import { mockFetch } from './helpers';
 
-const youtube: RawPageMetadata = { platform: 'youtube', kind: 'video', url: 'https://www.youtube.com/watch?v=abc123XYZ', title: 'How AI Agents Will Change Software Development', creator: 'Fireship', source: 'visible video title', confidence: 'high' };
+const episode: RawPageMetadata = {
+  platform: 'netflix',
+  kind: 'episode',
+  url: 'https://www.netflix.com/watch/80100172',
+  title: 'The Office (U.S.)',
+  episode: 'Season 1, Episode 5 — Basketball',
+  season: 1,
+  episodeNumber: 5,
+  source: 'player title label',
+  confidence: 'high',
+};
 
-function setup(tab: TabInfo | undefined, extract: RawPageMetadata | null | Error = youtube) {
+function setup(tab: TabInfo | undefined, extract: RawPageMetadata | null | Error = episode) {
   const services = createServices({ local: new MemoryStore(), session: new MemoryStore(), fetchImpl: mockFetch() });
   const extractFn = vi.fn(async () => {
     if (extract instanceof Error) throw extract;
     return extract;
   });
-  const tabs: TabAdapter = {
-    resolve: async () => tab,
-    extract: extractFn,
-    extractGeneric: vi.fn(async () => ({ platform: 'unknown', kind: 'page', url: tab?.url ?? '', title: 'A page', source: 'page metadata', confidence: 'high' }) as RawPageMetadata),
-  };
+  const tabs: TabAdapter = { resolve: async () => tab, extract: extractFn };
   return { services, tabs, extractFn, mgr: new ContextManager({ services, tabs }) };
 }
 
-const YT_TAB = { id: 7, url: youtube.url };
+const WATCH_TAB = { id: 7, url: episode.url };
 
-describe('current page context', () => {
-  it('reads a YouTube watch page and explains what it used', async () => {
-    const { mgr } = setup(YT_TAB);
+describe('current page context (Netflix only)', () => {
+  it('reads a Netflix episode and explains what it used', async () => {
+    const { mgr } = setup(WATCH_TAB);
     const r = await mgr.current({});
     expect(r.state).toBe('ready');
-    expect(r.context).toMatchObject({ platform: 'youtube', creator: 'Fireship' });
+    expect(r.context).toMatchObject({ platform: 'netflix', kind: 'episode', title: 'The Office' });
     expect(r.used.map((u) => u.label)).toEqual(expect.arrayContaining(['Title', 'Sent to search']));
   });
 
   it('caches per tab until the tab navigates', async () => {
-    const { mgr, extractFn } = setup(YT_TAB);
+    const { mgr, extractFn } = setup(WATCH_TAB);
     await mgr.current({});
     await mgr.current({});
     expect(extractFn).toHaveBeenCalledTimes(1);
@@ -47,66 +53,47 @@ describe('current page context', () => {
     expect(extractFn).toHaveBeenCalledTimes(3);
   });
 
-  it('never reads an unsupported site automatically — only offers to', async () => {
-    const { mgr, extractFn } = setup({ id: 1, url: 'https://bank.example/account' });
-    const r = await mgr.current({});
-    expect(r).toMatchObject({ state: 'idle', canUsePage: true });
-    expect(extractFn).not.toHaveBeenCalled();
+  it('never reads any other site — not YouTube, Reddit, Substack or anything else', async () => {
+    for (const url of ['https://bank.example/account', 'https://www.youtube.com/watch?v=abc', 'https://www.reddit.com/r/television/comments/abc/x/', 'https://pub.substack.com/p/post']) {
+      const { mgr, extractFn } = setup({ id: 1, url });
+      expect(await mgr.current({})).toMatchObject({ state: 'idle' });
+      expect(extractFn).not.toHaveBeenCalled();
+    }
   });
 
-  it('does not offer "use this page" when opened from the dashboard tab', async () => {
-    const { mgr } = setup({ id: 1, url: 'https://example.com/' });
-    expect((await mgr.current({ tabId: 1 })).canUsePage).toBe(false);
+  it('respects the privacy switches', async () => {
+    const off = setup(WATCH_TAB);
+    await off.services.settings.update({ privacy: { netflixDetection: false } });
+    expect(await off.mgr.current({})).toMatchObject({ state: 'disabled', platform: 'netflix' });
+    const master = setup(WATCH_TAB);
+    await master.services.settings.update({ privacy: { detectionEnabled: false } });
+    expect((await master.mgr.current({})).state).toBe('disabled');
+    expect(off.extractFn).not.toHaveBeenCalled();
+    expect(master.extractFn).not.toHaveBeenCalled();
   });
 
-  it('respects the privacy switches, per platform and globally', async () => {
-    const { mgr, services, extractFn } = setup(YT_TAB);
-    await services.settings.update({ privacy: { youtubeDetection: false } });
-    expect(await mgr.current({})).toMatchObject({ state: 'disabled', platform: 'youtube' });
-    await services.settings.update({ privacy: { youtubeDetection: true, detectionEnabled: false } });
-    expect((await mgr.current({})).state).toBe('disabled');
-    expect(extractFn).not.toHaveBeenCalled();
-
-    const n = setup({ id: 2, url: 'https://www.netflix.com/watch/80100172' });
-    await n.services.settings.update({ privacy: { netflixDetection: false } });
-    expect((await n.mgr.current({})).state).toBe('disabled');
-  });
-
-  it('reports "undetected" so the UI can offer manual search', async () => {
-    const none = setup({ id: 2, url: 'https://www.netflix.com/watch/80100172' }, null);
+  it('reports "undetected" so the UI can offer the title search', async () => {
+    const none = setup(WATCH_TAB, null);
     expect(await none.mgr.current({})).toMatchObject({ state: 'undetected', platform: 'netflix', reason: expect.stringContaining("couldn't automatically identify") });
-
-    const blocked = setup(YT_TAB, new AppError('PERMISSION', 'nope'));
+    const blocked = setup(WATCH_TAB, new AppError('PERMISSION', 'nope'));
     expect((await blocked.mgr.current({})).state).toBe('undetected');
   });
 
-  it('handles "no tab" and non-watch pages on supported sites', async () => {
+  it('handles "no tab", the Netflix home page, and title pages', async () => {
     expect((await setup(undefined).mgr.current({})).state).toBe('no-tab');
-    expect((await setup({ id: 3, url: 'https://www.youtube.com/' }).mgr.current({})).state).toBe('idle');
-  });
-
-  it('recognises Reddit threads and Substack articles for the cross-links', async () => {
-    const thread: RawPageMetadata = { platform: 'reddit', kind: 'thread', url: 'https://www.reddit.com/r/technology/comments/abc/x/', title: 'A VPN story', subreddit: 'technology', source: 'thread title', confidence: 'high' };
-    const r = await setup({ id: 4, url: thread.url }, thread).mgr.current({});
-    expect(r).toMatchObject({ state: 'ready', platform: 'reddit', context: { kind: 'thread', subreddit: 'technology' } });
-  });
-
-  it('reads an arbitrary page only on explicit request', async () => {
-    const { mgr, tabs } = setup({ id: 5, url: 'https://example.com/post' });
-    const r = await mgr.usePage({});
-    expect(tabs.extractGeneric).toHaveBeenCalledOnce();
-    expect(r).toMatchObject({ state: 'ready', context: { title: 'A page' } });
+    expect((await setup({ id: 3, url: 'https://www.netflix.com/browse' }).mgr.current({})).state).toBe('idle');
+    const titlePage = setup({ id: 4, url: 'https://www.netflix.com/title/70136120' });
+    expect((await titlePage.mgr.current({})).state).toBe('ready');
+    expect(titlePage.extractFn).toHaveBeenCalledOnce();
   });
 });
 
 describe('toolbar badge', () => {
-  it('shows only on watch pages with detection enabled for that platform', () => {
-    const on = { youtube: true, netflix: true };
-    expect(badgeFor('https://www.youtube.com/watch?v=abc', on)).toBe(true);
-    expect(badgeFor('https://www.youtube.com/', on)).toBe(false);
-    expect(badgeFor('https://www.youtube.com/watch?v=abc', { ...on, youtube: false })).toBe(false);
-    expect(badgeFor('https://www.netflix.com/watch/1', on)).toBe(true);
-    expect(badgeFor('https://example.com/', on)).toBe(false);
-    expect(badgeFor(undefined, on)).toBe(false);
+  it('shows only on Netflix watch pages, and only with detection on', () => {
+    expect(badgeFor('https://www.netflix.com/watch/1', true)).toBe(true);
+    expect(badgeFor('https://www.netflix.com/watch/1', false)).toBe(false);
+    expect(badgeFor('https://www.netflix.com/browse', true)).toBe(false);
+    expect(badgeFor('https://www.youtube.com/watch?v=abc', true)).toBe(false);
+    expect(badgeFor(undefined, true)).toBe(false);
   });
 });

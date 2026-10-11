@@ -1,17 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Logo } from '../components/Logo';
-import { SearchBar } from '../components/SearchBar';
-import { ExpandIcon, SettingsIcon, ShieldIcon } from '../components/icons';
+import { SubjectBar, SubjectNotice } from '../components/SubjectBar';
+import { TitleSearch } from '../components/TitleSearch';
+import { ExpandIcon, EyeIcon, LockIcon, PlayIcon, SettingsIcon, ShieldIcon } from '../components/icons';
 import { Tabs, type TabDef } from '../components/Tabs';
 import { buildContext, generateQueries } from '../services/contextService';
 import type { ContentContext, RawPageMetadata, UsedInfoField } from '../types/context';
 import type { ScoredRedditPost } from '../types/reddit';
 import type { RankedArticle } from '../types/substack';
+import type { TitleCandidate } from '../types/title';
 import { applyTheme } from './theme';
-import { useAnalyzed, useCurrentContext, useDiscovery, useSettingsState } from './data';
+import { AboutPanel } from './AboutPanel';
+import { useAnalyzed, useCurrentContext, useDiscovery, useSettingsState, useTitleContext, useTitleInsights, useTitleResolve, useTitleSearch } from './data';
 import { useDebounced, useMediaQuery, useNow } from './hooks';
 import { ReadingPanel, type ReadingSource } from './ReadingPanel';
-import { RedditPanel, type PageBridge, type RedditFocus } from './RedditPanel';
+import { RedditPanel, type RedditFocus } from './RedditPanel';
+import { WatchNextPanel } from './WatchNextPanel';
+import { NEWS_ORIGINS, requestOrigins } from './permissions';
 
 export interface AppProps {
   /** `popup`: the toolbar popup.  `tab`: the full dashboard page. */
@@ -20,7 +25,7 @@ export interface AppProps {
   sourceTabId: number | undefined;
 }
 
-type TabId = 'reddit' | 'reading';
+type TabId = 'discuss' | 'read' | 'about' | 'next';
 
 const PRIVACY_NOTE = 'Only short search terms leave your browser.';
 
@@ -54,48 +59,45 @@ export function App({ mode, sourceTabId }: AppProps) {
 
   useEffect(() => applyTheme(settings.appearance.theme), [settings.appearance.theme]);
 
-  // ── navigation state ───────────────────────────────────────────────────────
-  // Related Reading leads; the user's explicit choice wins.
-  const [userTab, setUserTab] = useState<TabId | null>(null);
-  const chooseTab = useCallback((t: TabId) => setUserTab(t), []);
+  const [tab, setTab] = useState<TabId>('discuss');
 
-  // ── search ─────────────────────────────────────────────────────────────────
+  // ── search: pick a title, or search the words themselves ───────────────────
   const [typed, setTyped] = useState('');
-  const [query, setQuery] = useState('');
-  const debounced = useDebounced(typed, 450);
+  const debounced = useDebounced(typed, 250);
+  const titleSearch = useTitleSearch(debounced);
   const searchRef = useRef<HTMLInputElement | null>(null);
 
+  const [picked, setPicked] = useState<TitleCandidate | null>(null);
+  const [query, setQuery] = useState('');
   const [threadBridge, setThreadBridge] = useState<RawPageMetadata | null>(null);
-  const [pageBridgeActive, setPageBridgeActive] = useState(false);
   const [articleFocus, setArticleFocus] = useState<RedditFocus | null>(null);
-  const [usedPage, setUsedPage] = useState(false);
 
-  useEffect(() => {
-    const q = debounced.trim();
-    if (q.length >= 2) setQuery(q);
-    else if (q.length === 0) setQuery('');
-  }, [debounced]);
-
-  const commitQuery = useCallback((value: string) => {
-    const q = value.trim();
-    setTyped(value);
-    setQuery(q);
-    if (q) {
-      setThreadBridge(null);
-      setArticleFocus(null);
-    }
+  const focusSearch = useCallback((prefill?: string) => {
+    if (prefill !== undefined) setTyped(prefill);
+    searchRef.current?.focus();
   }, []);
 
-  const clearQuery = useCallback(() => {
+  const pickTitle = useCallback((t: TitleCandidate) => {
+    setPicked(t);
     setTyped('');
     setQuery('');
+    setThreadBridge(null);
+    setArticleFocus(null);
+    searchRef.current?.blur();
+  }, []);
+
+  const searchAll = useCallback((q: string) => {
+    setQuery(q.trim());
+    setThreadBridge(null);
+    setArticleFocus(null);
+    searchRef.current?.blur();
   }, []);
 
   // "/" jumps to search from anywhere
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
-      const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+      const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
       if (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         searchRef.current?.focus();
@@ -105,28 +107,30 @@ export function App({ mode, sourceTabId }: AppProps) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // ── what is the user looking at? ───────────────────────────────────────────
+  // ── what are the tabs about? a picked title, else what's playing on Netflix ─
   const page = useCurrentContext(sourceTabId);
   const response = page.response;
-  const currentContext = response?.state === 'ready' ? (response.context ?? null) : null;
-  const isWatching = !!currentContext && (currentContext.platform === 'youtube' || currentContext.platform === 'netflix');
+  const netflixContext = response?.state === 'ready' && response.context?.platform === 'netflix' ? response.context : null;
 
-  const tab: TabId = userTab ?? 'reading';
+  const pickedTitle = useTitleContext(picked?.qid ?? null);
+  const resolved = useTitleResolve(picked ? null : netflixContext);
 
-  useEffect(() => {
-    if (page.response?.state === 'ready' && page.response.context && page.response.platform === 'unknown') setUsedPage(true);
-  }, [page.response]);
+  const subject: ContentContext | null = picked ? (pickedTitle.data?.context ?? null) : netflixContext;
+  const titleInfo = picked ? pickedTitle.data?.info : resolved.data;
+  const titleLoading = picked ? pickedTitle.status === 'loading' || pickedTitle.status === 'idle' : resolved.status === 'loading';
+  const titleError = picked ? pickedTitle.error : resolved.error;
+  const reloadTitle = picked ? pickedTitle.reload : resolved.reload;
+  // ratings, reviews, similar titles, Netflix India — only with a backend (null otherwise)
+  const insights = useTitleInsights(titleInfo?.qid ?? null);
 
-  // ── reading source (priority: search > Reddit card > this page) ────────────
+  // ── Read: a free-text search > a Reddit thread > the subject ───────────────
   const manualRaw = useMemo<RawPageMetadata | null>(
     () => (query ? { platform: 'manual', kind: 'query', url: '', title: query, source: 'your search', confidence: 'high' } : null),
     [query],
   );
   const bridgeRaw = !query ? threadBridge : null;
-  const useCurrent = !query && !threadBridge && !!currentContext && (isWatching || usedPage || pageBridgeActive);
-
   const analyzed = useAnalyzed(manualRaw ?? bridgeRaw);
-  const context: ContentContext | null = useCurrent ? currentContext : (analyzed.data ?? null);
+  const readContext: ContentContext | null = manualRaw || bridgeRaw ? (analyzed.data ?? null) : subject;
 
   const source: ReadingSource = useMemo(() => {
     if (manualRaw) return { kind: 'query', verb: 'Exploring', used: [{ label: 'Your search', value: manualRaw.title }] };
@@ -140,85 +144,125 @@ export function App({ mode, sourceTabId }: AppProps) {
         ],
       };
     }
-    if (useCurrent) {
-      const used: UsedInfoField[] = response?.used ?? [];
-      return { kind: 'current', verb: isWatching ? 'Watching' : 'Reading', used };
-    }
+    if (subject) return { kind: 'current', verb: 'Watching', used: [] };
     return { kind: 'none', verb: 'Exploring', used: [] };
-  }, [manualRaw, bridgeRaw, useCurrent, response?.used, isWatching]);
+  }, [manualRaw, bridgeRaw, subject]);
 
-  const readingActive = split || tab === 'reading';
-  const discovery = useDiscovery(readingActive ? context : null);
+  const readingActive = split || tab === 'read';
+  const discovery = useDiscovery(readingActive ? readContext : null);
 
-  // ── cross-links: Reddit ⇄ Substack ─────────────────────────────────────────
-  const onFindReading = useCallback(
-    (post: ScoredRedditPost) => {
-      clearQuery();
-      setArticleFocus(null);
-      setThreadBridge({
-        platform: 'reddit',
-        kind: 'thread',
-        url: post.permalink,
-        title: post.title,
-        subreddit: post.subreddit,
-        ...(post.preview ? { description: post.preview } : {}),
-        source: 'Reddit thread card',
-        confidence: 'high',
-      });
-      chooseTab('reading');
-    },
-    [chooseTab, clearQuery],
-  );
+  // ── cross-links: Reddit ⇄ articles ─────────────────────────────────────────
+  const onFindReading = useCallback((post: ScoredRedditPost) => {
+    setQuery('');
+    setArticleFocus(null);
+    setThreadBridge({
+      platform: 'reddit',
+      kind: 'thread',
+      url: post.permalink,
+      title: post.title,
+      subreddit: post.subreddit,
+      ...(post.preview ? { description: post.preview } : {}),
+      source: 'Reddit thread card',
+      confidence: 'high',
+    });
+    setTab('read');
+  }, []);
 
-  const onSeeReddit = useCallback(
-    (article: RankedArticle) => {
-      const ctx = buildContext({
-        platform: 'substack',
-        kind: 'article',
-        url: article.url,
-        title: article.title,
-        description: article.excerpt,
-        source: 'article card',
-        confidence: 'high',
-      });
-      const queries = generateQueries(ctx, { max: 2 }).map((q) => q.text);
-      setArticleFocus({ label: article.title, queries: queries.length ? queries : [article.title], kind: 'article' });
-      chooseTab('reddit');
-    },
-    [chooseTab],
-  );
+  const onSeeReddit = useCallback((article: RankedArticle) => {
+    const ctx = buildContext({
+      platform: 'substack',
+      kind: 'article',
+      url: article.url,
+      title: article.title,
+      description: article.excerpt,
+      source: 'article card',
+      confidence: 'high',
+    });
+    const queries = generateQueries(ctx, { max: 2 }).map((q) => q.text);
+    setArticleFocus({ label: article.title, queries: queries.length ? queries : [article.title], kind: 'article' });
+    setTab('discuss');
+  }, []);
 
   const redditFocus: RedditFocus | null = articleFocus ?? (query ? { label: query, queries: [query], kind: 'search' } : null);
 
-  const pageBridge: PageBridge | null =
-    !redditFocus && currentContext && response?.platform === 'substack' && currentContext.kind === 'article'
-      ? {
-          title: currentContext.title,
-          onSee: () => {
-            const queries = generateQueries(currentContext, { max: 2 }).map((q) => q.text);
-            setArticleFocus({ label: currentContext.title, queries: queries.length ? queries : [currentContext.title], kind: 'article' });
-          },
-        }
-      : null;
-
   const onDismissSource = useCallback(() => {
-    clearQuery();
+    setQuery('');
     setThreadBridge(null);
-    setPageBridgeActive(false);
-  }, [clearQuery]);
+  }, []);
 
   const tabs: TabDef<TabId>[] = [
-    // threads about what's playing (see RedditPanel)
-    { id: 'reddit', label: 'Reddit', dot: isWatching },
-    {
-      id: 'reading',
-      label: 'Related Reading',
-      count: discovery.status === 'success' ? (discovery.data?.articles.length ?? 0) : undefined,
-      dot: isWatching,
-    },
+    { id: 'discuss', label: 'Discuss', dot: !!subject },
+    { id: 'read', label: 'Read', count: discovery.status === 'success' ? (discovery.data?.articles.length ?? 0) : undefined },
+    { id: 'about', label: 'About' },
+    { id: 'next', label: 'Watch next' },
   ];
 
-  const detectionOn = () => update({ privacy: { detectionEnabled: true, youtubeDetection: true, netflixDetection: true } });
+  const detectionOn = () => update({ privacy: { detectionEnabled: true, netflixDetection: true } });
+
+  // ── the subject slot ───────────────────────────────────────────────────────
+  const pageUsed: UsedInfoField[] = response?.used ?? [];
+  let subjectSlot: ReactNode = null;
+  if (picked) {
+    subjectSlot = (
+      <SubjectBar
+        verb="Exploring"
+        title={picked.title}
+        year={picked.year}
+        meta={[picked.kind === 'movie' ? 'Movie' : 'Series', picked.description ?? '']}
+        used={[
+          { label: 'Picked in', value: 'Title search (Wikidata)' },
+          { label: 'Sent to search', value: `The title “${picked.title}” and short topic queries — nothing from your browser.` },
+        ]}
+        onDismiss={() => setPicked(null)}
+        dismissLabel={netflixContext ? 'Back to what’s playing on Netflix' : 'Clear the picked title'}
+      />
+    );
+  } else if (netflixContext) {
+    subjectSlot = (
+      <SubjectBar
+        verb="Watching"
+        title={netflixContext.title}
+        year={titleInfo?.year}
+        meta={['Netflix', netflixContext.episode ?? (netflixContext.kind === 'movie' ? 'Movie' : '')]}
+        used={pageUsed}
+      />
+    );
+  } else if (page.status === 'loading' || page.status === 'idle') {
+    subjectSlot = <div className="subject-bar skeleton-bar" aria-hidden="true" />;
+  } else if (response?.state === 'undetected') {
+    subjectSlot = (
+      <SubjectNotice icon={<PlayIcon />}>
+        Couldn’t identify what’s playing — Netflix hides its labels during playback. Move your mouse over the player and reopen, or search above.
+      </SubjectNotice>
+    );
+  } else if (response?.state === 'disabled') {
+    subjectSlot = (
+      <SubjectNotice
+        icon={<LockIcon />}
+        actions={
+          <>
+            <button type="button" className="btn small" onClick={detectionOn}>
+              Turn on detection
+            </button>
+            <button type="button" className="btn small ghost" onClick={() => openSettings('#privacy')}>
+              Privacy settings
+            </button>
+          </>
+        }
+      >
+        Netflix detection is off. Search for a movie or show above, or turn it on.
+      </SubjectNotice>
+    );
+  } else {
+    subjectSlot = (
+      <SubjectNotice icon={<EyeIcon />}>
+        Open a Netflix title and Rabbit Hole follows along — or search any movie or show above.
+      </SubjectNotice>
+    );
+  }
+
+  // About / Watch next follow titles only, not a free-text topic search
+  const titleSubject = query ? null : subject;
 
   return (
     <div className={`app mode-${mode}${split ? ' split' : ''}`}>
@@ -227,7 +271,7 @@ export function App({ mode, sourceTabId }: AppProps) {
           <Logo />
           <div className="brand-text">
             <h1 className="brand-title">Rabbit Hole</h1>
-            <p className="brand-sub">See what the internet is talking about — and go deeper.</p>
+            <p className="brand-sub">Go deeper on what you watch.</p>
           </div>
         </div>
         <div className="header-actions">
@@ -242,42 +286,82 @@ export function App({ mode, sourceTabId }: AppProps) {
         </div>
       </header>
 
-      <SearchBar value={typed} onChange={setTyped} onSubmit={commitQuery} onClear={clearQuery} inputRef={searchRef} />
+      <TitleSearch
+        value={typed}
+        onChange={setTyped}
+        results={titleSearch.data}
+        loading={titleSearch.status === 'loading' || debounced.trim() !== typed.trim()}
+        error={titleSearch.error}
+        onPick={pickTitle}
+        onSearchAll={searchAll}
+        onClear={() => setTyped('')}
+        inputRef={searchRef}
+      />
 
-      {!split && <Tabs tabs={tabs} value={tab} onChange={chooseTab} idPrefix={idPrefix} />}
+      <div className="subject-wrap">{subjectSlot}</div>
+
+      {!split && <Tabs tabs={tabs} value={tab} onChange={setTab} idPrefix={idPrefix} />}
 
       <main className="panels">
         <RedditPanel
           idPrefix={idPrefix}
           settings={settings}
-          active={split || tab === 'reddit'}
+          active={split || tab === 'discuss'}
           now={now}
           focus={redditFocus}
-          onClearFocus={() => (articleFocus ? setArticleFocus(null) : clearQuery())}
-          watching={isWatching ? currentContext : null}
-          pageBridge={pageBridge}
+          onClearFocus={() => (articleFocus ? setArticleFocus(null) : setQuery(''))}
+          watching={subject}
+          title={titleSubject ? (titleInfo ?? null) : null}
+          titleLoading={!!titleSubject && titleLoading}
           onFindReading={onFindReading}
-          onSearch={() => searchRef.current?.focus()}
+          onSearch={focusSearch}
         />
         <ReadingPanel
           idPrefix={idPrefix}
           active={readingActive}
           source={source}
-          context={context}
-          contextLoading={source.kind !== 'current' && source.kind !== 'none' && analyzed.status === 'loading'}
-          contextError={source.kind !== 'current' && source.kind !== 'none' ? analyzed.error : undefined}
-          page={{ loading: page.status === 'loading' || page.status === 'idle', response, error: page.error }}
+          context={readContext}
+          contextLoading={(source.kind === 'query' || source.kind === 'bridge') && analyzed.status === 'loading'}
+          contextError={source.kind === 'query' || source.kind === 'bridge' ? analyzed.error : undefined}
+          subjectLoading={!!picked && pickedTitle.status === 'loading'}
           discovery={discovery}
-          onManual={commitQuery}
-          onUsePage={() => void page.usePage()}
-          usingPage={page.usingPage}
-          usePageError={page.usePageError}
-          onStartBridge={() => setPageBridgeActive(true)}
+          onSearch={focusSearch}
           onSeeReddit={onSeeReddit}
           onDismissSource={onDismissSource}
           onOpenSettings={() => openSettings()}
-          onEnableDetection={detectionOn}
+          newsOn={settings.reading.includeNews}
+          onEnableNews={() => {
+            void requestOrigins(NEWS_ORIGINS).then((ok) => ok && update({ reading: { includeNews: true } }));
+          }}
         />
+        <div className="panel-stack">
+          <AboutPanel
+            idPrefix={idPrefix}
+            active={split || tab === 'about'}
+            subject={titleSubject}
+            info={titleInfo}
+            loading={titleLoading}
+            error={titleError}
+            onRetry={reloadTitle}
+            onSearch={focusSearch}
+            insights={insights.data}
+            insightsLoading={insights.status === 'loading'}
+          />
+          <WatchNextPanel
+            idPrefix={idPrefix}
+            active={split || tab === 'next'}
+            subject={titleSubject}
+            info={titleInfo}
+            infoLoading={titleLoading}
+            insights={insights.data}
+            insightsLoading={insights.status === 'loading'}
+            onPick={(t) => {
+              pickTitle(t);
+              setTab('about');
+            }}
+            onSearch={focusSearch}
+          />
+        </div>
       </main>
 
       <footer className="footer">

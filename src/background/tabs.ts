@@ -18,14 +18,10 @@ export interface TabInfo {
 export interface TabAdapter {
   resolve(tabId?: number): Promise<TabInfo | undefined>;
   extract(tab: TabInfo, platform: Platform): Promise<RawPageMetadata | null>;
-  extractGeneric(tab: TabInfo): Promise<RawPageMetadata | null>;
 }
 
 const SCRIPT_FOR: Partial<Record<Platform, string>> = {
-  youtube: 'content/youtube.js',
   netflix: 'content/netflix.js',
-  reddit: 'content/reddit.js',
-  substack: 'content/generic.js',
 };
 
 async function ask(tabId: number): Promise<RawPageMetadata | null> {
@@ -71,17 +67,11 @@ export const chromeTabs: TabAdapter = {
     if (!file) return null;
     return askWithInjection(tab.id, file);
   },
-
-  /** User-initiated read of an arbitrary page (relies on `activeTab`). */
-  async extractGeneric(tab) {
-    return askWithInjection(tab.id, 'content/generic.js');
-  },
 };
 
 /** Should we show the "●" badge for this URL? (pure; used by the tab listeners) */
-export function badgeFor(url: string | undefined, enabled: { youtube: boolean; netflix: boolean }): boolean {
+export function badgeFor(url: string | undefined, netflixEnabled: boolean): boolean {
   if (!url) return false;
   const info = detectPlatform(url);
-  if (!info.isWatchPage) return false;
-  return (info.platform === 'youtube' && enabled.youtube) || (info.platform === 'netflix' && enabled.netflix);
+  return info.isWatchPage && info.platform === 'netflix' && netflixEnabled;
 }

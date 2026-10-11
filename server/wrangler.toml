@@ -3,6 +3,10 @@
 #   npx wrangler login
 #   npx wrangler secret put BRAVE_API_KEY          # Substack search
 #   npx wrangler secret put ANTHROPIC_API_KEY      # optional AI layer
+#   npx wrangler secret put TMDB_API_KEY           # similar titles, reviews, Netflix India (About, Watch next)
+#   npx wrangler secret put OMDB_API_KEY           # IMDb / Rotten Tomatoes / Metacritic ratings (About)
+#   npx wrangler secret put NYT_API_KEY            # NYT archive (Read)
+#   npx wrangler secret put GUARDIAN_API_KEY       # Guardian archive (Read)
 #   npx wrangler deploy
 name = "rabbit-hole-api"
 main = "src/worker.ts"

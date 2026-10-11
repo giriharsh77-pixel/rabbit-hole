@@ -66,3 +66,10 @@ export interface RedditSearchResponse {
   meta: RedditFetchMeta;
   query: string;
 }
+
+export interface DiscussResponse extends RedditSearchResponse {
+  /** Where it looked, e.g. ["r/DunderMifflin", "TV subreddits", "all of Reddit"]. */
+  scopes: string[];
+  /** What it searched for. */
+  searched: string[];
+}

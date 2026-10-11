@@ -5,6 +5,10 @@ interface Env {
   BRAVE_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
   ANTHROPIC_MODEL?: string;
+  TMDB_API_KEY?: string;
+  OMDB_API_KEY?: string;
+  NYT_API_KEY?: string;
+  GUARDIAN_API_KEY?: string;
   ALLOWED_ORIGINS?: string;
   RATE_LIMIT_PER_MINUTE?: string;
 }

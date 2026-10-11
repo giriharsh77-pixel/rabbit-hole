@@ -9,11 +9,14 @@
  * plus a URL rule in services/context/platform.ts.
  */
 
-export type Platform = 'youtube' | 'netflix' | 'reddit' | 'substack' | 'manual' | 'unknown';
+/**
+ * `netflix`: read from the open Netflix tab.  `title`: a movie or show picked in
+ * the title search.  `reddit` / `substack` contexts come from result cards
+ * ("Find deeper reading"), never from reading those sites.
+ */
+export type Platform = 'netflix' | 'title' | 'reddit' | 'substack' | 'manual' | 'unknown';
 
 export type ContentKind =
-  | 'video'
-  | 'short'
   | 'movie'
   | 'episode'
   | 'show'
@@ -37,10 +40,10 @@ export interface RawPageMetadata {
   genres?: string[];
   /** Cast / creators listed by the page (Netflix JSON-LD). */
   people?: string[];
-  /** Keywords the page itself declares (e.g. YouTube's `meta[name=keywords]`). */
+  /** Keywords the page itself declares (e.g. `meta[name=keywords]`). */
   keywords?: string[];
   hashtags?: string[];
-  /** Platform category, e.g. YouTube "Science & Technology". */
+  /** Platform category, e.g. "TV Comedies". */
   category?: string;
   /** Reddit */
   subreddit?: string;
@@ -48,6 +51,9 @@ export interface RawPageMetadata {
   publication?: string;
   videoId?: string;
   publishedAt?: string;
+  /** Wikidata item id, for titles picked in the title search. */
+  titleId?: string;
+  year?: number;
   /** Which strategy produced the data (shown in "What Rabbit Hole used"). */
   source: string;
   confidence: 'high' | 'medium' | 'low';
@@ -94,6 +100,12 @@ export interface ContentContext {
   genres?: string[];
   subreddit?: string;
   publication?: string;
+  /** Wikidata item of the movie / show, once known (picked in search, or resolved). */
+  titleId?: string;
+  /** Netflix's catalogue qualifier, e.g. "U.S." from "The Office (U.S.)" — tells versions apart. */
+  regionTag?: string;
+  /** First release year, when known — tells remakes apart. */
+  year?: number;
   analyzedBy: 'heuristic' | 'ai';
   /** Search queries proposed by the optional AI layer (preferred over generated ones). */
   aiQueries?: string[];
@@ -116,7 +128,7 @@ export interface UsedInfoField {
 export type CurrentContextState =
   /** A context was extracted and analysed. */
   | 'ready'
-  /** On YouTube/Netflix but the page gave us nothing usable → manual search. */
+  /** On Netflix but the page gave us nothing usable → title search. */
   | 'undetected'
   /** The user switched detection off (master or per-platform). */
   | 'disabled'
@@ -132,8 +144,6 @@ export interface CurrentContextResponse {
   context?: ContentContext;
   /** Human-readable reason for non-ready states. */
   reason?: string;
-  /** True when the user may explicitly ask us to read this (non-platform) page. */
-  canUsePage: boolean;
   /** Exactly what was read from the page / sent for searching. */
   used: UsedInfoField[];
 }

@@ -1,20 +1,22 @@
 # 🐇 Rabbit Hole
 
-> **See what the internet is talking about — and go deeper.**
+> **Go deeper on what you watch.**
 
-Rabbit Hole is a Chrome (Manifest V3) extension with two tabs:
+Rabbit Hole is a Chrome (Manifest V3) extension for **Netflix** — movies and series. It follows what you're watching (or any title you search for) and gives you four tabs:
 
-- **Reddit** — the Reddit threads *about what you're watching*: searched across all time by the show and episode (e.g. "The Office" + "Basketball"), or by the video's headline and topic — never its URL. Only threads that clearly match are shown; there is no generic trending feed.
-- **Related Reading** — detects what you're watching on **YouTube** or **Netflix**, works out what it's really about, and finds thoughtful writing on **Substack** and **Medium** on the same ideas — with a plain-language *"why this is relevant"* for every pick.
+- **Discuss** — Reddit threads *about this title*: the show's own subreddit first (e.g. r/DunderMifflin), then TV / film communities, then all of Reddit — and only threads that are clearly about the show, so "The Office" never brings up office-politics rants.
+- **Read** — essays, reviews and coverage from **Substack**, **Medium** and (opt-in) **22 news & entertainment outlets** — The Indian Express, Hindustan Times, The Hindu, The New York Times, The Guardian, Variety, Deadline… — with a plain-language *"why this is relevant"* for every pick. You choose which sources you prefer or never want to see.
+- **About** — the cast in billing order with their **X and Instagram** accounts, links to **IMDb**, **Letterboxd**, **Rotten Tomatoes** and Wikipedia — and, with the backend, the **ratings**, a few **viewer reviews** and whether it's **on Netflix India**.
+- **Watch next** — movies and shows with the **same cast** or the **same director / creator**, each with the real connection ("With Steve Carell and Ed Helms"); with the backend, also TMDB's **similar titles**, each marked **On Netflix India** when it is. Filter by type, decade and Netflix India.
 
-The two are bridged: **Find deeper reading →** on any Reddit thread, **See what Reddit thinks →** on any article.
+Off Netflix, the search box — **"Search a movie or show…"** — makes all four tabs work for any title. Tabs are bridged: **Find deeper reading →** on any Reddit thread, **See what Reddit thinks →** on any article, **Explore** on any Watch next pick.
 
 ```
-I'm watching something → Rabbit Hole understands the topic → it finds what Reddit is
-discussing → it finds thoughtful writing → I discover something → I go deeper
+I'm watching something → Rabbit Hole knows exactly which title it is → what Reddit says
+about it → what's been written about it → who's in it → what to watch next
 ```
 
-It is built privacy-first: nothing is read until you open it, only on a handful of sites, and only short topic queries ever leave your browser.
+It is built privacy-first: it reads only Netflix, only when you open it, and only the title and short search terms ever leave your browser.
 
 ---
 
@@ -59,14 +61,14 @@ Load it into Chrome:
 1. Open **`chrome://extensions`**
 2. Switch on **Developer mode** (top right)
 3. Click **Load unpacked** and choose the **`dist/`** folder
-4. Pin Rabbit Hole from the puzzle-piece menu. A **●** badge appears on its icon whenever you're on a YouTube/Netflix watch page.
+4. Pin Rabbit Hole from the puzzle-piece menu. A **●** badge appears on its icon whenever you're on a Netflix watch page.
 
 | Command | What it does |
 | --- | --- |
 | `npm run build` | Typecheck (`tsc`), then a production build into `dist/` |
 | `npm run dev` | Development build in watch mode (embeds dev-only keys from `.env`) |
 | `npm run dev:ui` | UI-only preview at <http://127.0.0.1:5199/popup.html> with fixtures — see below |
-| `npm test` | Run the 242-test suite (Vitest) |
+| `npm test` | Run the 261-test suite (Vitest) |
 | `npm run verify` | typecheck → build → tests → release gate (below) |
 | `npm run test:e2e` | **Real-Chrome smoke test** (needs `CHROME_PATH`; see [Testing](#testing)) |
 | `npm run verify:release` | Proves dev keys can't reach a production bundle; scans the build for `eval`, inline/remote scripts, module syntax in content scripts |
@@ -76,33 +78,39 @@ Load it into Chrome:
 
 ### UI preview (`npm run dev:ui`)
 
-Designing the interface doesn't require reloading the extension. The preview serves the real UI with the real background services running in-page, a mocked network and a fake "current tab":
+Designing the interface doesn't require reloading the extension. The preview serves the real UI with the real background services running in-page, a mocked Reddit / Substack / Medium network, the **real** (keyless) Wikidata, and a fake "current tab":
 
 ```
-http://127.0.0.1:5199/popup.html?demo=youtube      # a YouTube video is playing
+http://127.0.0.1:5199/popup.html?demo=office       # The Office (U.S.) S1E5 on Netflix
 http://127.0.0.1:5199/popup.html?demo=netflix      # a Black Mirror episode
-http://127.0.0.1:5199/popup.html?demo=undetected   # Netflix, label hidden → manual fallback
-http://127.0.0.1:5199/popup.html?demo=reddit       # on a Reddit thread
-http://127.0.0.1:5199/popup.html?demo=substack     # on a Substack article
+http://127.0.0.1:5199/popup.html?demo=movie        # Glass Onion
+http://127.0.0.1:5199/popup.html?demo=undetected   # Netflix, label hidden → search fallback
 http://127.0.0.1:5199/popup.html?demo=idle         # any other site
-http://127.0.0.1:5199/popup.html?mode=tab          # the full dashboard (two columns when wide)
+http://127.0.0.1:5199/popup.html?mode=tab          # the full dashboard (three columns when wide)
 http://127.0.0.1:5199/popup.html?fail=reddit       # simulate Reddit blocking us
+http://127.0.0.1:5199/popup.html?demo=office&backend=demo   # + the real backend handler over SAMPLE TMDB/OMDb data
 http://127.0.0.1:5199/options.html                 # Settings
 ```
 
-Reddit numbers in the preview are **synthetic** (real titles from a captured public feed, invented scores); Substack data is real RSS captured on 2026‑10‑07. The shim is compiled out of the extension build.
+Reddit numbers in the preview are **synthetic** (real titles from a captured public feed, invented scores); Substack data is real RSS captured on 2026‑10‑07; Medium stories are labelled samples. The shim is compiled out of the extension build.
 
 ---
 
 ## Credentials & the optional backend
 
-**Nothing is required.** Out of the box Rabbit Hole uses public Reddit data and a curated list of Substack publications' public RSS feeds. Add credentials to unlock more:
+**Nothing is required.** Out of the box Rabbit Hole uses Wikidata (title facts, cast, links), public Reddit data, a curated list of Substack publications' public RSS feeds, Medium's tag feeds and — if you allow them — news outlets' RSS feeds. Add credentials to unlock more:
 
 | Credential | Unlocks | Where it goes |
 | --- | --- | --- |
 | **Reddit client ID** (public identifier, not a secret) | Reddit's official OAuth API: full counts, documented rate limits | `.env` → `VITE_REDDIT_CLIENT_ID`, or Settings |
 | **Brave Search API key** | Searching *all* of Substack (via `site:substack.com`) | Settings, or a backend (recommended) |
 | **Anthropic API key** | Optional AI layer: better topics/queries, semantic scoring, explanations | Settings, or a backend (recommended) |
+
+| **TMDB key** *(backend)* | About: viewer reviews · Watch next: *Similar titles* and *On Netflix India* (watch providers, data by JustWatch) | the backend's `TMDB_API_KEY` |
+| **OMDb key** *(backend)* | About: IMDb, Rotten Tomatoes and Metacritic ratings | the backend's `OMDB_API_KEY` |
+| **NYT / Guardian keys** *(backend)* | Read: those papers' archives — coverage of older titles | `NYT_API_KEY`, `GUARDIAN_API_KEY` |
+
+The last three exist **only** on the backend (there is no bring-your-own-key option for them). Without them About shows the facts and links from Wikidata, Watch next shows same-cast / same-creator picks, and each tab says what a backend would add. Where to get every key: [`server/README.md`](server/README.md).
 
 ### Reddit client ID
 
@@ -152,15 +160,15 @@ The optional AI layer uses the official Anthropic SDK and defaults to **`claude-
                                                  │ (cancellable; aborts work if the popup closes)
         ┌────────────────────────────────────────▼───────────────────────────────────────┐
         │                      background service worker (MV3)                            │
-        │  contextManager ─ redditService ─ substackService ─ aiService ─ cacheService    │
+        │  contextManager ─ titleService ─ redditService ─ substackService ─ cacheService │
         │  tab tracking · badge · de-duplicated in-flight requests                       │
         └───────┬───────────────────────┬──────────────────────┬──────────────────────────┘
                 │ on demand             │ Reddit               │ Substack
      ┌──────────▼──────────┐   OAuth → public JSON → Atom   search API / backend / RSS feeds
-     │ content scripts     │
-     │ youtube · netflix · │
-     │ reddit · generic    │   They only answer "what is on this page?" — no observers,
-     └─────────────────────┘   no polling, no injected UI, no playback interference.
+     │ content script      │   Wikidata: title search, cast, ids (titleService)
+     │ netflix only        │   News outlets' RSS (opt-in) · Medium tag feeds
+     └─────────────────────┘   It only answers "what is on this page?" — no observers,
+                               no polling, no injected UI, no playback interference.
 ```
 
 ### The context pipeline
@@ -182,15 +190,25 @@ For the spec's examples:
 
 | Watching | Derived concepts (on-device, no AI) |
 | --- | --- |
-| *How AI Agents Will Change Software Development* — Fireship | AI agents · software development · future of AI agents · software engineering · AI automation · AI coding · developer tools · agentic workflows |
-| *Why OpenAI's New Model Changes Everything* | OpenAI · frontier AI · AI models · AI industry · model competition · reasoning models |
 | Netflix: *Black Mirror* — S7:E2 | Black Mirror · Charlie Brooker · dystopian fiction · technology and society · surveillance · science fiction · artificial intelligence · digital culture |
+| Netflix: *The Office (U.S.)* — S1:E5 | The Office · Steve Carell · sitcom · mockumentary · workplace comedy · television |
 
 With the AI layer on, a model replaces the ontology expansion and also writes the search queries.
 
+### Which title is it? (Wikidata)
+
+Every tab works from one exact title, resolved on [Wikidata](https://www.wikidata.org) (free, keyless, CC0) by `src/services/titleService.ts`:
+
+- **Search** — `wbsearchentities`, then one SPARQL query keeps only items that are movies or series (by their *instance of* class) and adds the year. If the query service is down, Wikidata's own descriptions ("2022 film directed by …") are used instead.
+- **Resolve a Netflix page** — "The Office (U.S.)" is matched by exact name, kind (series vs movie), Netflix's catalogue tag (*U.S.* → "American sitcom"), year, and — for remakes and same-name films — overlap with the cast Netflix lists. Below a confidence threshold it shows nothing rather than guess.
+- **Facts** — `wbgetentities` gives the cast in billing order (statement order, or an explicit ordinal), characters, director / creator, genres, the show's subreddit, IMDb / Letterboxd / Rotten Tomatoes / TMDB ids and the Wikipedia article; SPARQL adds the cast's current X and Instagram usernames. Links are built only from those validated ids (Letterboxd via its `/imdb/<id>/` redirect when it has no slug).
+- **Watch next** — SPARQL finds movies and series that share the leading six cast members, or the director / creator, ranked by how many people they share, then how well known they are. "Similar titles" and Netflix India availability need TMDB (planned, backend).
+
+Wikidata requests send only the title being looked up, identify the extension with an `Api-User-Agent` header as Wikimedia asks, and are cached (search 1 h, facts 24 h).
+
 ### Netflix
 
-Detection is strictly limited to what the page already shows the signed-in viewer: the player's title label (`S7:E2 · Episode name`), the Media Session if the page sets one, and the public title page's JSON-LD / Open Graph tags (a same-origin request for the page you could open yourself). It **never** touches the `<video>` element, DRM/EME, network streams, or credentials. Netflix hides its player labels while you watch and changes its markup without notice, so every step is optional; when nothing can be established you get *"We couldn't automatically identify what you're watching."* and a manual search box.
+Detection is strictly limited to what the page already shows the signed-in viewer: the player's title label (`S7:E2 · Episode name`), the Media Session if the page sets one, and the public title page's JSON-LD / Open Graph tags (a same-origin request for the page you could open yourself). It **never** touches the `<video>` element, DRM/EME, network streams, or credentials. Netflix hides its player labels while you watch and changes its markup without notice, so every step is optional; when nothing can be established you get *"Couldn't identify what's playing"* and the title search.
 
 ---
 
@@ -213,6 +231,10 @@ In feed mode there are no upvote/comment counts, so ranking uses Reddit's own or
 - **Search** is delegated to a documented search API (Brave, `site:substack.com`), through your key or the backend.
 - **Keyless fallback:** a curated, health-checked directory of **61 publications** (`src/services/substack/seeds.json`) whose public RSS feeds are read (only the newest ~12 items, streamed and cut off early — some feeds are megabytes). The ranker then picks the best matches. Coverage is deliberately limited and the UI says "Searching a curated publication list". Custom-domain newsletters (Astral Codex Ten, Noahpinion, …) need an opt-in Chrome permission for those specific sites. Re-verify the list with `npm run seeds:verify`.
 
+**News outlets publish RSS feeds; they don't offer search.** Read uses two kinds of feed per outlet (`src/services/news/outlets.json`, all checked live): *topic* feeds, one per title, where the site has them (Variety, The Hollywood Reporter, Deadline, IndieWire, Rolling Stone, Decider, The Guardian) — these cover older titles too; and recent *section* feeds (The Indian Express, Hindustan Times, The Hindu, NDTV, The Times of India, Firstpost, NYT, BBC, …), from which only articles that name the title — in quotes, as a capitalised name, or next to its cast — are kept. Indian outlets offer only section feeds, so their coverage is limited to recent articles. News is opt-in: Chrome asks for those 22 sites once.
+
+**Wikidata is community-edited.** Cast order, handles and ids are as good as Wikidata's data; a missing subreddit or handle simply isn't shown.
+
 **Never fabricated.** Titles, publications, authors, dates and URLs come only from the feed/search response and are validated (HTTPS, allowed hosts, plausible dates). A missing author or date stays missing; the UI never invents one.
 
 **"Semantic" relevance without an LLM** is a concept-weighted cosine similarity over stemmed terms, using the expanded concept graph — a lexical approximation, not embeddings. It is good at ranking obvious matches and honest about weak ones; the AI layer is the upgrade path.
@@ -226,33 +248,34 @@ Declared in `manifest.config.mjs` (the manifest is generated; `tests/manifest.te
 | Permission | Why it is needed |
 | --- | --- |
 | `storage` | Settings (local), API keys you add (local, background-only), and RAM-only caches (`storage.session`). |
-| `activeTab` | Lets you click **"Use this page"** to read a page on *any* site, only for that tab, only after you click. Replaces broad host access. |
-| `scripting` | Injects the small reader into a tab on demand (tabs opened before install; "Use this page"). |
-| Host: `www.reddit.com`, `oauth.reddit.com` | Reddit's feeds/JSON and the official API. |
-| Host: `www.youtube.com`, `m.youtube.com`, `www.netflix.com` | Content scripts that answer "what's playing?"; lets the extension see those tabs' URLs for the ● badge. |
-| Host: `*.substack.com` | Publication RSS feeds and the content script for Substack article pages. |
-| Host: `medium.com` | Medium's public tag feeds (`medium.com/feed/tag/<topic>`) for Related Reading. Switch off under Settings → Related Reading → *Include Medium*. |
+| `scripting` | Injects the small reader into a Netflix tab that was open before the extension was installed. |
+| Host: `www.reddit.com`, `oauth.reddit.com` | Reddit's feeds/JSON and the official API (Discuss). |
+| Host: `www.netflix.com` | The one content script, which answers "what's playing?"; lets the extension see Netflix tabs' URLs for the ● badge. |
+| Host: `www.wikidata.org`, `query.wikidata.org` | Title search, cast, subreddit and IMDb / Letterboxd / Rotten Tomatoes ids (About, Watch next). |
+| Host: `*.substack.com` | Publication RSS feeds (Read). |
+| Host: `medium.com` | Medium's public tag feeds (`medium.com/feed/tag/<topic>`) for Read. Switch off under Settings → Read → *Include Medium*. |
 | Host: *your backend's origin* | Added at build time only if `VITE_BACKEND_URL` is set. |
 | **Optional** hosts: `api.search.brave.com`, `api.anthropic.com` | Requested at runtime when you add that key. |
 | **Optional** hosts: 33 custom-domain newsletter feeds | Requested at runtime when you turn on *Include custom-domain newsletters*. |
+| **Optional** hosts: 22 news outlets' feed origins | Requested at runtime when you turn on *News sites* (Settings → Read, or *Add news sites* in the Read tab). |
 
-**Not requested:** `tabs`, `history`, `webRequest`, `cookies`, `<all_urls>`, or any `*://*/*` pattern.
+**Not requested:** `tabs`, `activeTab`, `history`, `webRequest`, `cookies`, `<all_urls>`, or any `*://*/*` pattern.
 
 ---
 
 ## Privacy & security
 
-**What it reads.** Only the page you have open, only when you open Rabbit Hole, and only on YouTube, Netflix, Reddit threads and Substack. On any other site it reads nothing unless you click *Use this page*. YouTube and Netflix detection can each be switched off (or all detection, in **Settings → Privacy**). The popup shows a *"What Rabbit Hole used"* panel listing exactly the fields extracted and what was sent.
+**What it reads.** Only the Netflix page you have open, only when you open Rabbit Hole — the title, episode, genres and cast it shows. No other site is ever read (the extension can't even see other tabs' URLs). Detection can be switched off in **Settings → Privacy**; title search still works. The popup shows a *"What Rabbit Hole used"* panel listing exactly the fields extracted and what was sent.
 
 **What it stores.** Your settings and any keys you add — in `chrome.storage.local`, never synced. Caches and the per-tab page context live in `chrome.storage.session` (RAM; wiped when the browser closes) and are dropped when the tab navigates. **No browsing history is kept.** *Clear cached data* and *Delete everything* are in Settings.
 
-**What it sends.** Short topic queries ("AI agents") to Reddit and a search provider; with AI enabled (off by default) a title, channel and ≤500 characters of description. Never page contents, URLs you visit, history, cookies (unless you opt in for Reddit) or any identifier. No analytics, no tracking, no data sold.
+**What it sends.** The title to Wikidata; the title, episode name and short topic queries to Reddit, Medium and a search provider; with news on, the title as a slug ("the-office") to the seven outlets that have per-title pages (the other feeds are fetched without it); with AI enabled (off by default) a title and ≤500 characters of description. Never page contents, URLs you visit, history, cookies (unless you opt in for Reddit) or any identifier. No analytics, no tracking, no data sold.
 
 **Hardening.**
 
 - **Strict CSP:** `script-src 'self'; object-src 'self'; base-uri 'none'` plus an image allow-list for Reddit's CDN. No `eval`, no inline scripts, no remote code (verified on the build output).
 - **All external text is inert.** Everything from the network or a web page is rendered only through React text nodes — there is no `innerHTML` (or any other HTML sink) in the shipped code; the one place HTML is parsed, Netflix's public title page, goes through `DOMParser` into a detached document where nothing executes — after control/bidi-character stripping and length caps.
-- **Every URL is validated** before it is shown or followed: HTTPS only, no embedded credentials, host allow-lists (Reddit, Substack), look-alike hosts rejected.
+- **Every URL is validated** before it is shown or followed: HTTPS only, no embedded credentials, host allow-lists (Reddit, Substack, each news outlet's own site), look-alike hosts rejected. About and Watch next links are built only from ids that pass strict patterns (`tt\d+`, `[a-z0-9-]+`, X / Instagram username rules).
 - **Every response is validated** (Reddit JSON/Atom, RSS, search results, backend and LLM output); malformed items are dropped, never trusted.
 - **Keys:** write-only from the UI (masked status only), stored apart from settings, `storage.local` access level locked to trusted contexts, never in URLs, dev keys stripped from production builds.
 - **RPC:** the background only accepts connections from its own extension pages; a content script running in a website is refused. Method names are checked with `hasOwn`.
@@ -262,9 +285,24 @@ Declared in `manifest.config.mjs` (the manifest is generated; `tests/manifest.te
 
 ## The ranking algorithms
 
+### Discuss: is this thread about the show? (`src/services/reddit/aboutTitle.ts`)
+
+For a known title, up to four searches run (all time): the show's **own subreddit** (the episode by name, or its top threads), **TV or film subreddits**, then **all of Reddit** (title + episode, and the title). A thread is kept only if:
+
+```
+in the show's own subreddit                                       → keep
+in a work / career / office-furniture / Microsoft-Office subreddit → only if it also names the cast or a character
+otherwise it must contain the title as a phrase AND
+    be in a TV / film community,  OR  write it as a name ("The Office", not "the office"),
+    OR mention a cast / character name (full name or a distinctive surname),  OR  talk like a viewer
+    ("episode", "season", "rewatch", "finale", …)
+```
+
+Ranking multiplies by where it was posted (own subreddit × 1.5, TV/film × 1.2) and rewards mentions of the episode. Tested on live data: of 22 all-of-Reddit results for "The Office", it kept the r/DunderMifflin, r/theoffice and r/television threads and dropped police-"officer" videos, return-to-office complaints and Oval Office news. Without a Wikidata match it falls back to strict phrase search.
+
 ### Reddit thread ranking (`src/services/redditService.ts`, `src/services/ranking/reddit.ts`)
 
-Threads about what you're watching come from Reddit's search (all time, sorted by relevance), then:
+Free-text searches and "See what Reddit thinks" use Reddit's search (all time, sorted by relevance), then:
 
 ```
 match  = best query match: quoted names ("The Office") must appear as a phrase, other words by stem;
@@ -296,6 +334,8 @@ relevanceScore = 100 × ( semanticSimilarity × 0.45 + keywordMatch × 0.20
 
 Each term is normalised to 0–1. When the content has no named entities, that 15 % is redistributed proportionally so a perfect match can still reach 100. Labels: **Highly relevant** ≥ 70 · **Very relevant** ≥ 52 · **Related** ≥ 36 · **Somewhat related**. The top two labels *also* require genuine content overlap, so source quality and freshness alone can never earn "Highly relevant". The UI shows labels only (the number is a tooltip, explicitly "not an accuracy claim").
 
+**Your sources** (Settings → Read): *Hide* removes a source before ranking (a hidden news outlet isn't even fetched); *Prefer* ranks it as a top-tier publication; *Only my preferred sources* shows nothing else once you've preferred one; *English only* (on by default) drops articles in other languages and scripts.
+
 Details worth knowing: ubiquitous stems ("ai", "data", "new") are down-weighted like a cheap IDF; a publication's topic tags choose *which feeds to read* but never inflate an article's score; unknown dates get a neutral recency (never a guess); results are re-ranked for **diversity** (max 2 per publication); the AI layer, when on, blends its judgement into the semantic term and supplies the explanation.
 
 ---
@@ -309,12 +349,15 @@ popup.html · options.html  Vite entry pages
 src/
   background/              service worker: container (composition root), handlers (RPC),
                            contextManager, tabs, index (listeners, badge)
-  content/                 youtube.ts · netflix.ts · reddit.ts · generic.ts (+ runtime.ts)
-  popup/                   App, RedditPanel, ReadingPanel, data hooks, theme
-  options/                 Settings page
-  components/              RedditCard · ArticleCard · ContextBar · Tabs · SearchBar · skeletons · states
+  content/                 netflix.ts (+ runtime.ts)
+  popup/                   App, RedditPanel (Discuss), ReadingPanel (Read), AboutPanel, WatchNextPanel,
+                           data hooks, permissions, theme
+  options/                 Settings page (incl. Your sources)
+  components/              TitleSearch · SubjectBar · RedditCard · ArticleCard · ContextBar · Tabs · skeletons · states
   services/
-    redditService.ts       provider chain, breaker, search + ranking        → reddit/*
+    titleService.ts        Wikidata: title search, resolve, facts, Watch next
+    redditService.ts       provider chain, breaker, search + Discuss         → reddit/* (aboutTitle.ts)
+    news/                  outlets.json · newsProvider.ts (Read → news)
     substackService.ts     discovery orchestration                        → substack/*, search/brave.ts
     contextService.ts      the pipeline facade                            → context/*
     rankingService.ts      facade over ranking/reddit.ts + ranking/relevance.ts
@@ -325,7 +368,7 @@ src/
   types/                   all shared contracts
   dev/                     UI preview shim + fixtures (not shipped)
 server/                    optional backend (Cloudflare Worker / Node) — see server/README.md
-tests/                     242 tests
+tests/                     261 tests
 docs/                      project report, usability evaluation form, flowcharts, screens (+ generators)
 ```
 
@@ -334,13 +377,13 @@ docs/                      project report, usability evaluation form, flowcharts
 ## Testing
 
 ```bash
-npm test            # 242 tests across 18 files
+npm test            # 261 tests across 21 files
 npm run verify      # typecheck → build → tests → release gate
 ```
 
 ### Real-Chrome end-to-end test
 
-`npm run test:e2e` loads the built `dist/` into a real Chrome, serves fixture pages at the **real** YouTube / Netflix / Reddit URLs (so the real content scripts inject), and drives the real popup and Settings pages against the real service worker — 28 checks: extraction on a video, a Short, a Netflix episode and a Reddit thread; the ● badge; Substack feeds fetched live through host permissions; the Netflix hidden-controls fallback; manual search; the privacy switch (detection off ⇒ nothing is read, badge cleared); that **no content script runs on, and the extension cannot even see the URL of, an ordinary website**; and zero CSP violations / uncaught errors.
+`npm run test:e2e` loads the built `dist/` into a real Chrome, serves fixture pages at the **real** Netflix / YouTube / Reddit URLs (so the real content script injects where it should), and drives the real popup and Settings pages against the real service worker — 31 checks: Netflix episode extraction and the ● badge; that YouTube, Reddit and an ordinary website are **not read** (no content script, URL not even visible); the four tabs; Discuss (or its friendly blocked state); Read with live Substack / Medium feeds and the news offer; **About and Watch next from live Wikidata**; the hidden-controls fallback; title search (type → pick → every tab follows); free-text search; the privacy switch; and zero CSP violations / uncaught errors.
 
 ```bash
 npx @puppeteer/browsers install chrome@stable     # Chrome for Testing; prints the executable path
@@ -351,7 +394,7 @@ Use Chrome for Testing or Chromium — branded Chrome 137+ ignores `--load-exten
 
 ### Automated unit/integration coverage
 
-Automated coverage: Reddit ranking · topic extraction · query generation · relevance scoring · platform detection · YouTube metadata extraction (watch, Shorts, stale-SPA-meta) · Netflix metadata extraction (episode, movie, JSON-LD, Media Session, enrichment, fallback) · cache behaviour (TTLs, stale-if-error, de-duplication, ref-counted cancellation, eviction, quota failure) · API failure handling (rate limits, blocks, timeouts, offline, invalid responses, provider fallback, circuit breaker, empty results, cancellation) · sanitisation · settings/secrets · RPC security · the backend (CORS, rate limit, validation, no leaks) · manifest invariants · and a smoke test that **boots the built `dist/background.js` with no DOM** and drives it over its RPC port.
+Automated coverage: the backend's title-insights and press endpoints (TMDB v3 / v4 auth, IMDb → TMDB lookup, Netflix India from watch providers, review clean-up, caching, unconfigured / bad-key behaviour) and the extension's re-validation of them · Wikidata title search / resolve / facts (incl. the query service being down) · the Discuss filter and plan · news feeds, title matching and source preferences · English detection · Reddit ranking · topic extraction · query generation · relevance scoring · platform detection · Netflix metadata extraction (episode, movie, JSON-LD, Media Session, enrichment, fallback) · cache behaviour (TTLs, stale-if-error, de-duplication, ref-counted cancellation, eviction, quota failure) · API failure handling (rate limits, blocks, timeouts, offline, invalid responses, provider fallback, circuit breaker, empty results, cancellation) · sanitisation · settings/secrets · RPC security · the backend (CORS, rate limit, validation, no leaks) · manifest invariants · and a smoke test that **boots the built `dist/background.js` with no DOM** and drives it over its RPC port.
 
 ### Manual test checklist
 
@@ -359,19 +402,20 @@ Run `npm run build`, load `dist/`, then:
 
 | Scenario | Expect |
 | --- | --- |
-| **YouTube video** (`/watch?v=…`) | ● badge; popup opens on *Related Reading*; "Watching" bar with title + channel; "Found N related articles on Substack and Medium"; the **Reddit** tab shows "About this video" threads |
-| **YouTube Short** (`/shorts/…`) | Same, with the Short's title/channel; hashtags stripped from the title |
-| **YouTube, navigate to another video without reloading** | Reopen → the new video (not the previous one) |
-| **Netflix movie** | Title detected (open the popup while the player controls are visible) |
-| **Netflix TV episode** | Show + "Season 7, Episode 2 — Common People" |
-| **Netflix, controls hidden** | "We couldn't automatically identify what you're watching." + manual box |
-| **Reddit thread** | "Reddit thread — Find deeper reading →" on the Reading tab |
-| **A Substack article** | "You're reading … — See what Reddit thinks →" on the Reddit tab |
-| **Any normal site** | Nothing is read; "Use this page" is offered; the site is unaffected |
+| **Netflix TV episode** | ● badge; "Watching" bar: show + "Season 1, Episode 5 — Basketball"; **Discuss** opens with r/<show> chip and threads about the episode |
+| **Netflix movie** | Title detected (open the popup while the player controls are visible); Discuss searches film subreddits |
+| **About** | Cast in billing order with X / Instagram; IMDb, Letterboxd (movies), Rotten Tomatoes, Wikipedia links |
+| **Watch next** | Picks "With <cast>" / "From <creator>"; filters by type, decade, sort; *Explore* switches every tab to that title |
+| **Netflix, controls hidden** | "Couldn't identify what's playing" + the title search |
+| **Title search** | Type "sacred ga" → *Sacred Games (2018) · Series · Indian web series*; Enter → every tab follows it; × returns to Netflix |
+| **Free-text search** | The dropdown's last row, *Search Reddit and articles for "…"*, works as before |
+| **Read → Add news sites** | Chrome asks for the 22 sites once; then Read shows NYT / Variety / Indian Express … articles naming the title |
+| **Settings → Your sources** | Hide Medium → no Medium cards; prefer The Guardian → it ranks higher; *Only my preferred sources* |
+| **Any normal site** | Nothing is read; the site is unaffected |
 | **Offline** (DevTools → Network → Offline) | "You appear to be offline" + Try again; previously cached Reddit data still shown, flagged |
 | **Empty results** (search `zxqvbnm`) | "Couldn't find related writing." + manual search |
-| **Detection off** (Settings → Privacy) | "Page detection is off"; no content script is asked anything |
-| **Keyboard** | `/` focuses search · ←/→ switch tabs · Enter submits · Esc clears · everything reachable by Tab with visible focus |
+| **Detection off** (Settings → Privacy) | "Netflix detection is off"; no content script is asked anything; title search still works |
+| **Keyboard** | `/` focuses search · ↑/↓ + Enter pick a title · Esc closes, twice clears · ←/→ switch tabs · everything reachable by Tab with visible focus |
 
 ---
 
@@ -392,7 +436,8 @@ The evaluation form is a **template**: it contains no results, and the extension
 
 ## Extending it
 
-- **New platform (e.g. Spotify, Twitch):** add a `PlatformExtractor` in `src/services/context/extractors/`, a URL rule in `platform.ts`, a 3-line content script in `src/content/`, an entry in `scripts/build.mjs`'s `CONTENT_SCRIPTS`, and its match pattern in `manifest.config.mjs`. Nothing downstream changes.
+- **New news outlet:** add it to `src/services/news/outlets.json` (its RSS feeds, article hosts and — if it has one — its per-title feed URL with `{slug}`); the manifest's optional permissions follow automatically.
+- **New platform (e.g. Prime Video):** add a `PlatformExtractor` in `src/services/context/extractors/`, a URL rule in `platform.ts`, a 3-line content script in `src/content/`, an entry in `scripts/build.mjs`'s `CONTENT_SCRIPTS`, and its match pattern in `manifest.config.mjs`. Nothing downstream changes.
 - **New concepts:** `src/services/context/ontology.ts` is plain data.
 - **New Reddit/Substack data source:** implement `RedditProvider` (`reddit/providers.ts`) or add a search provider in `substackService.searchProviders()`; the validation gate (`substack/candidates.ts`) is shared.
 - **New curated publication:** add it to `seeds.json`, then `npm run seeds:verify`.
@@ -402,11 +447,14 @@ The evaluation form is a **template**: it contains no results, and the extension
 
 ## Known limitations
 
-- **Popup height is capped by Chrome at 600 px** (width 800). The popup is 480 × 600; for the roomy two-column layout use the dashboard button (⤢), which opens the same app in a tab.
+- **Popup height is capped by Chrome at 600 px** (width 800). The popup is 480 × 600; for the roomy three-column layout (Discuss | Read | About + Watch next) use the dashboard button (⤢), which opens the same app in a tab.
+- **Ratings, reviews, similar titles, Netflix India and the NYT / Guardian archives need the backend and its keys.** They are built and tested against each provider's documented responses, but **not yet verified live** — no TMDB / OMDb / NYT / Guardian key was available (the Guardian's old public `test` key now returns 401). The preview (`?backend=demo`) shows them with sample data.
+- **Netflix availability is India only**, and is checked for the top 10 similar titles (one TMDB call each), not for the same-cast / same-creator picks.
+- **Watch next is first-time slow** (5–8 s; Wikidata's query service), then cached for 24 h. It only runs when you open that tab.
 - **Netflix markup is not under our control.** Selectors are best-effort and tested against fixtures, not against live Netflix (it requires a subscription). Expect to adjust `readPlayerLabel` if Netflix changes its player.
 - **Keyless Substack coverage is limited** to the curated list; add a Brave key or the backend for all of Substack. Posts on custom domains can't be found through `site:substack.com`.
 - **Lexical semantics.** Without the AI layer, relevance is term-based; it can't know that two differently-worded ideas are the same.
-- **What was and wasn't verified live.** Verified in **Chrome for Testing 155** (the e2e above), including the real service worker, real content scripts on fixture pages at the real URLs, and live Substack RSS. **Not verified live: Reddit data** — from the machine this was built on, Reddit answered `403` to its JSON endpoints and `429` to its feeds (anonymous traffic, helped along by heavy testing), so the Reddit paths were verified against a captured real Atom feed, mocked JSON/OAuth responses and the unit/failure tests, and in the real browser only as the friendly error state. **Netflix** was verified against fixture pages that mirror its markup, not a live subscription. **The optional AI layer** is unit-tested against a stubbed SDK transport only — no Anthropic key was available, so a live model call has not been made.
+- **What was and wasn't verified live.** Verified in **Chrome for Testing 155** (the e2e above), including the real service worker, real content scripts on fixture pages at the real URLs, live Substack / Medium RSS and live Wikidata (12 real Netflix titles resolved correctly, incl. The Office (U.S.) vs the British one, Sacred Games, RRR, Heeramandi); news feeds were checked live from Node. **Not verified live: Reddit data** — from the machine this was built on, Reddit answered `403` to its JSON endpoints and `429` to its feeds (anonymous traffic, helped along by heavy testing), so the Reddit paths were verified against a captured real Atom feed, mocked JSON/OAuth responses and the unit/failure tests, and in the real browser only as the friendly error state. **Netflix** was verified against fixture pages that mirror its markup, not a live subscription. **The optional AI layer** is unit-tested against a stubbed SDK transport only — no Anthropic key was available, so a live model call has not been made.
 - **Reddit's terms.** Using the public endpoints/feeds from a user's own browser at low volume is common practice, but if you distribute this widely, register an app and ship a client ID or use the backend.
 
 ---
@@ -417,10 +465,11 @@ The evaluation form is a **template**: it contains no results, and the extension
 | --- | --- |
 | Reddit tab says *"Reddit blocked the request"* | Reddit is rejecting anonymous traffic. Add a client ID (Settings), or turn on *Use my Reddit browser session*. The extension already falls back to feed mode automatically. |
 | *"Searching a curated publication list"* | No search provider yet. Add a Brave key in Settings or deploy the backend. |
-| Netflix isn't detected | Move the mouse over the player (so the title label appears), then reopen Rabbit Hole; or type the title. |
+| Netflix isn't detected | Move the mouse over the player (so the title label appears), then reopen Rabbit Hole; or search for the title. |
+| About says *"Couldn't pin down which … this is"* | Wikidata had no confident match. Search for the title and pick the right one. |
 | Nothing detected on a tab that was open before you installed | Reload the tab once. |
 | Changes don't appear after `npm run dev` | Click the reload icon on the extension card at `chrome://extensions`. |
 | `npm run build` fails on types | `npm run typecheck` shows the exact error. |
 | npm prints `install-scripts … not yet covered by allowScripts` | Harmless: newer npm versions gate dependency install scripts (esbuild, fsevents). Everything here builds and tests without approving them. |
 
-*Rabbit Hole is not affiliated with Reddit, Substack, YouTube, Netflix or Anthropic.*
+*Rabbit Hole is not affiliated with Netflix, Reddit, Substack, Medium, Wikidata / the Wikimedia Foundation, IMDb, Letterboxd, Rotten Tomatoes, any news outlet listed, or Anthropic.*

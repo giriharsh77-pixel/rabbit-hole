@@ -1,7 +1,7 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { SerializedError } from '../types/errors';
 import { describeError, type ErrorSubject } from '../utils/errors';
-import { AlertIcon, BookIcon, OfflineIcon, SearchIcon } from './icons';
+import { AlertIcon, BookIcon, OfflineIcon } from './icons';
 
 export function EmptyState({
   icon,
@@ -69,44 +69,5 @@ export function Banner({
       {tone === 'info' ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 7.8v.1" /></svg> : <AlertIcon />}
       <div>{children}</div>
     </div>
-  );
-}
-
-/** "What are you watching? [ … ] [Find related writing]" — the universal fallback. */
-export function ManualSearchForm({
-  label = 'What are you watching?',
-  placeholder = 'e.g. Black Mirror',
-  button = 'Find related writing',
-  initial = '',
-  onSubmit,
-}: {
-  label?: string;
-  placeholder?: string;
-  button?: string;
-  initial?: string;
-  onSubmit: (value: string) => void;
-}) {
-  const [value, setValue] = useState(initial);
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    const v = value.trim();
-    if (v.length >= 2) onSubmit(v);
-  };
-  return (
-    <form className="manual" onSubmit={submit}>
-      <label htmlFor="manual-search">{label}</label>
-      <input
-        id="manual-search"
-        type="text"
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => setValue(e.target.value)}
-        autoComplete="off"
-        spellCheck={false}
-      />
-      <button type="submit" className="btn primary" disabled={value.trim().length < 2}>
-        <SearchIcon /> {button}
-      </button>
-    </form>
   );
 }

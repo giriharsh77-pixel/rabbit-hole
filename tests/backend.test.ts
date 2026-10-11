@@ -28,10 +28,10 @@ describe('backend: access control', () => {
   it('reports health and which features are configured — without revealing keys', async () => {
     const res = await server()(new Request('http://api.test/health', { headers: { origin: EXT } }));
     const body = (await res.json()) as { features: Record<string, boolean> };
-    expect(body.features).toEqual({ search: true, ai: true });
+    expect(body.features).toEqual({ search: true, ai: true, titles: false, ratings: false, press: false });
     expect(JSON.stringify(body)).not.toMatch(/brave-key|ant-key/);
     const bare = await createHandler({ allowedOrigins: [], rateLimitPerMinute: 5 })(new Request('http://api.test/health'));
-    expect(((await bare.json()) as { features: object }).features).toEqual({ search: false, ai: false });
+    expect(((await bare.json()) as { features: object }).features).toEqual({ search: false, ai: false, titles: false, ratings: false, press: false });
   });
 
   it('answers CORS preflight only for allowed origins', async () => {
@@ -126,7 +126,7 @@ describe('extension ⇄ backend contract', () => {
   const client = new BackendClient('http://api.test', bridge);
 
   it('discovers features, searches and parses results', async () => {
-    expect(await client.features()).toEqual({ search: true, ai: true });
+    expect(await client.features()).toEqual({ search: true, ai: true, titles: false, ratings: false, press: false });
     const found = await client.searchSubstack(['AI agents'], 10);
     expect(found[0]).toMatchObject({ provider: 'backend', source: 'search', title: 'AI agents', publicationName: 'Import AI' });
   });

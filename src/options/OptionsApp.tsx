@@ -6,11 +6,14 @@ import type { SecretName, SecretsStatus } from '../types/settings';
 import { useSettingsState } from '../popup/data';
 import { call } from '../popup/rpc';
 import { applyTheme } from '../popup/theme';
+import { NEWS_ORIGINS, newsOutletSummary, removeOrigins, requestOrigins } from '../popup/permissions';
+import { OUTLETS } from '../services/news/outlets';
+import type { SourcePreference } from '../types/settings';
 import { Row, RadioGroup, Slider, Switch, TagInput } from './controls';
 
 const SECTIONS = [
   { id: 'reddit', label: 'Reddit' },
-  { id: 'reading', label: 'Related Reading' },
+  { id: 'reading', label: 'Read' },
   { id: 'privacy', label: 'Privacy' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'integrations', label: 'API & Integrations' },
@@ -19,21 +22,6 @@ const SECTIONS = [
 
 const BRAVE_HOST = 'https://api.search.brave.com/*';
 const ANTHROPIC_HOST = 'https://api.anthropic.com/*';
-
-/** chrome.permissions only exists in the real extension; the UI preview just says yes. */
-async function requestOrigins(origins: string[]): Promise<boolean> {
-  if (typeof chrome === 'undefined' || !chrome.permissions) return true;
-  try {
-    return await chrome.permissions.request({ origins });
-  } catch {
-    return false;
-  }
-}
-
-async function removeOrigins(origins: string[]): Promise<void> {
-  if (typeof chrome === 'undefined' || !chrome.permissions) return;
-  await chrome.permissions.remove({ origins }).catch(() => undefined);
-}
 
 export function OptionsApp() {
   const { settings, loaded, update } = useSettingsState();
@@ -123,8 +111,8 @@ export function OptionsApp() {
 
       {/* ── Related reading ────────────────────────────────────────────────── */}
       <section className="section" id="reading" aria-labelledby="h-reading">
-        <h2 id="h-reading">Related Reading</h2>
-        <p className="lead">How Substack and Medium recommendations are chosen and filtered.</p>
+        <h2 id="h-reading">Read</h2>
+        <p className="lead">Where articles come from, and which sources you’d rather see — or never see.</p>
 
         <Row title="Recommendations" help="Maximum articles shown.">
           <Slider value={rd.recommendationCount} min={5} max={30} label="Number of recommendations" onCommit={(v) => change({ reading: { recommendationCount: v } })} />
@@ -185,11 +173,50 @@ export function OptionsApp() {
             }}
           />
         </Row>
+        <Row
+          title="News sites"
+          help={`Coverage from ${OUTLETS.length} news & entertainment outlets — ${newsOutletSummary()} — read from their public RSS feeds. Chrome will ask you to allow those sites. Only the title (like “the-office”) is sent, and only to sites with a page per title.`}
+        >
+          <Switch
+            checked={rd.includeNews}
+            label="Include news sites"
+            onChange={(v) => {
+              void (async () => {
+                if (v && !(await requestOrigins(NEWS_ORIGINS))) {
+                  setNotice('Permission was not granted, so news sites stay off.');
+                  return;
+                }
+                if (!v) await removeOrigins(NEWS_ORIGINS);
+                setNotice(undefined);
+                change({ reading: { includeNews: v } });
+              })();
+            }}
+          />
+        </Row>
+        <Row title="English only" help="Hide articles that aren’t in English.">
+          <Switch checked={rd.englishOnly} onChange={(v) => change({ reading: { englishOnly: v } })} label="English only" />
+        </Row>
         {notice && (
           <p className="callout" role="alert">
             {notice}
           </p>
         )}
+
+        <h3 className="subhead" id="sources">Your sources</h3>
+        <p className="lead">Prefer the places you like to read — they rank higher. Hide the ones you don’t; they never appear.</p>
+        <Row title="Only my preferred sources" help="When you’ve preferred at least one source, show nothing else.">
+          <Switch checked={rd.onlyPreferred} onChange={(v) => change({ reading: { onlyPreferred: v } })} label="Only my preferred sources" />
+        </Row>
+        <SourceList
+          sources={rd.sources}
+          newsOn={rd.includeNews}
+          onChange={(id, pref) => {
+            const next = { ...rd.sources };
+            if (pref === 'normal') delete next[id];
+            else next[id] = pref;
+            change({ reading: { sources: next } });
+          }}
+        />
       </section>
 
       {/* ── Privacy ────────────────────────────────────────────────────────── */}
@@ -201,7 +228,7 @@ export function OptionsApp() {
           <strong>Exactly what happens</strong>
           <ul>
             <li>
-              <b>Reads:</b> only the page you have open, only when you open Rabbit Hole — and only on YouTube, Netflix, Reddit threads and Substack. Anywhere else it reads nothing unless you click “Use this page”.
+              <b>Reads:</b> only the Netflix page you have open, only when you open Rabbit Hole — the title, episode and cast it shows. No other site is ever read.
             </li>
             <li>
               <b>Stores locally:</b> your settings (and any API keys you add). Caches live in memory only and are wiped when the browser closes. No browsing history, ever.
@@ -212,14 +239,12 @@ export function OptionsApp() {
           </ul>
         </div>
 
-        <Row title="Current-page detection" help="Master switch. Off means Rabbit Hole never reads any page; search still works.">
-          <Switch checked={pv.detectionEnabled} onChange={(v) => change({ privacy: { detectionEnabled: v } })} label="Enable current-page detection" />
-        </Row>
-        <Row title="Detect YouTube videos & Shorts" help="Title, channel, description and keywords shown on the page.">
-          <Switch checked={pv.youtubeDetection} disabled={!pv.detectionEnabled} onChange={(v) => change({ privacy: { youtubeDetection: v } })} label="Detect YouTube" />
-        </Row>
-        <Row title="Detect Netflix titles" help="The title shown in the player and public title-page metadata. Never the video or DRM.">
-          <Switch checked={pv.netflixDetection} disabled={!pv.detectionEnabled} onChange={(v) => change({ privacy: { netflixDetection: v } })} label="Detect Netflix" />
+        <Row title="Detect what you’re watching on Netflix" help="Reads the title shown in the player and public title-page metadata — never the video or DRM. Off means nothing is read; title search still works.">
+          <Switch
+            checked={pv.detectionEnabled && pv.netflixDetection}
+            onChange={(v) => change({ privacy: { detectionEnabled: v, netflixDetection: v } })}
+            label="Detect what you’re watching on Netflix"
+          />
         </Row>
         <Row
           title="AI enhancements (optional)"
@@ -509,6 +534,49 @@ function DataRow({
       >
         {action}
       </button>
+    </div>
+  );
+}
+
+type Pref = SourcePreference | 'normal';
+
+const SOURCE_GROUPS: { title: string; items: { id: string; name: string; news: boolean }[] }[] = [
+  {
+    title: 'Newsletters & blogs',
+    items: [
+      { id: 'substack', name: 'Substack', news: false },
+      { id: 'medium', name: 'Medium', news: false },
+    ],
+  },
+  ...(['India', 'US', 'UK'] as const).map((region) => ({
+    title: `News — ${region}`,
+    items: OUTLETS.filter((o) => o.region === region).map((o) => ({ id: o.id, name: o.name, news: true })),
+  })),
+];
+
+function SourceList({ sources, newsOn, onChange }: { sources: Record<string, SourcePreference>; newsOn: boolean; onChange: (id: string, pref: Pref) => void }) {
+  return (
+    <div className="source-list">
+      {SOURCE_GROUPS.map((g) => (
+        <fieldset key={g.title} className="source-group">
+          <legend>{g.title}</legend>
+          {g.items.map((it) => (
+            <div key={it.id} className={`source-row${it.news && !newsOn ? ' muted' : ''}`}>
+              <span>{it.name}</span>
+              <RadioGroup<Pref>
+                value={sources[it.id] ?? 'normal'}
+                label={`${it.name}: prefer, normal or hide`}
+                options={[
+                  { value: 'prefer', label: 'Prefer' },
+                  { value: 'normal', label: 'Normal' },
+                  { value: 'hide', label: 'Hide' },
+                ]}
+                onChange={(v) => onChange(it.id, v)}
+              />
+            </div>
+          ))}
+        </fieldset>
+      ))}
     </div>
   );
 }

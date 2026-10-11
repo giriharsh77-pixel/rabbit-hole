@@ -6,10 +6,12 @@
  * sends *queries only*; this service holds the keys, calls the upstream APIs
  * and returns validated, minimal JSON.
  *
- *   GET  /health               → { ok, version, features: { search, ai } }
+ *   GET  /health               → { ok, version, features: { search, ai, titles, ratings, press } }
  *   POST /v1/search/substack   { queries: string[], limit? }        → { candidates }
  *   POST /v1/ai/analyze        { title, platform, … }               → { analysis }
  *   POST /v1/ai/refine         { source, candidates }               → { judgements }
+ *   POST /v1/title/insights    { tmdb?: {type,id}, imdbId? }        → { insights }   (TMDB · OMDb)
+ *   POST /v1/press/search      { title, people? }                   → { articles }   (NYT · Guardian)
  *
  * The handler is a plain `(Request) => Promise<Response>` built only on Web
  * standards, so the same code runs on Cloudflare Workers, Node ≥ 20, Deno, Bun,
@@ -23,12 +25,23 @@ import type { ArticleCandidate } from '../../src/types/substack';
 import { AppError, toAppError } from '../../src/utils/errors';
 import { clampInt } from '../../src/utils/format';
 import { cleanText } from '../../src/utils/sanitize';
+import type { TitleInsights } from '../../src/types/title';
+import { omdbRatings } from './upstream/omdb';
+import { guardianSearch, nytSearch, type PressArticle } from './upstream/press';
+import { tmdbFind, tmdbTitle, type TmdbType } from './upstream/tmdb';
 
 export const SERVER_VERSION = '1.0.0';
 
 export interface ServerConfig {
   braveApiKey?: string | undefined;
   anthropicApiKey?: string | undefined;
+  /** TMDB v3 API key or v4 read-access token: similar titles, reviews, Netflix India availability. */
+  tmdbApiKey?: string | undefined;
+  /** OMDb key: IMDb / Rotten Tomatoes / Metacritic ratings. */
+  omdbApiKey?: string | undefined;
+  /** NYT Article Search and Guardian Open Platform keys: older press coverage. */
+  nytApiKey?: string | undefined;
+  guardianApiKey?: string | undefined;
   /** Defaults to claude-opus-5-5; use e.g. claude-haiku-4-5 to cut cost/latency. */
   anthropicModel?: string | undefined;
   /**
@@ -44,6 +57,25 @@ export interface ServerConfig {
 }
 
 const MAX_BODY_BYTES = 40_000;
+
+/** Per-instance memo with a TTL — titles change slowly and TMDB / OMDb have daily quotas. */
+class Memo<T> {
+  private readonly items = new Map<string, { at: number; value: Promise<T> }>();
+  constructor(
+    private readonly ttlMs: number,
+    private readonly now: () => number,
+    private readonly max = 500,
+  ) {}
+  get(key: string, make: () => Promise<T>): Promise<T> {
+    const hit = this.items.get(key);
+    if (hit && this.now() - hit.at < this.ttlMs) return hit.value;
+    const value = make();
+    value.catch(() => this.items.delete(key)); // failures aren't cached
+    this.items.set(key, { at: this.now(), value });
+    if (this.items.size > this.max) this.items.delete(this.items.keys().next().value as string);
+    return value;
+  }
+}
 
 // ─── rate limiting (best-effort, per instance) ──────────────────────────────
 
@@ -168,6 +200,16 @@ export function createHandler(config: ServerConfig): (req: Request) => Promise<R
     return ai;
   };
 
+  const insightsMemo = new Memo<TitleInsights>(6 * 60 * 60_000, now);
+  const pressMemo = new Memo<PressArticle[]>(60 * 60_000, now);
+  const features = () => ({
+    search: !!config.braveApiKey,
+    ai: !!config.anthropicApiKey,
+    titles: !!config.tmdbApiKey,
+    ratings: !!config.omdbApiKey,
+    press: !!(config.nytApiKey || config.guardianApiKey),
+  });
+
   return async function handle(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const origin = req.headers.get('origin');
@@ -181,7 +223,7 @@ export function createHandler(config: ServerConfig): (req: Request) => Promise<R
     if (req.method === 'OPTIONS') return respond(new Response(null, { status: 204 }));
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      return respond(json({ ok: true, version: SERVER_VERSION, features: { search: !!config.braveApiKey, ai: !!config.anthropicApiKey } }, 200));
+      return respond(json({ ok: true, version: SERVER_VERSION, features: features() }, 200));
     }
     if (req.method !== 'POST') return respond(fail('NOT_FOUND', 'Not found.', 404));
 
@@ -263,6 +305,62 @@ export function createHandler(config: ServerConfig): (req: Request) => Promise<R
         return respond(json({ judgements }, 200));
       }
 
+      // ── title insights: ratings, reviews, similar titles, Netflix India ──
+      if (url.pathname === '/v1/title/insights') {
+        if (!config.tmdbApiKey && !config.omdbApiKey) return respond(fail('NOT_CONFIGURED', 'Title insights are not configured on this server.', 501));
+        const t = (body.tmdb ?? {}) as Record<string, unknown>;
+        const tmdbType: TmdbType | undefined = t.type === 'movie' || t.type === 'tv' ? t.type : undefined;
+        const tmdbId = typeof t.id === 'string' && /^\d{1,9}$/.test(t.id) ? t.id : undefined;
+        const imdbId = typeof body.imdbId === 'string' && /^tt\d{5,10}$/.test(body.imdbId) ? body.imdbId : undefined;
+        if (!(tmdbType && tmdbId) && !imdbId) return respond(fail('BAD_REQUEST', 'Send `tmdb: { type, id }` or `imdbId`.', 400));
+
+        const insights = await insightsMemo.get(`${tmdbType}:${tmdbId}:${imdbId}`, async () => {
+          const out: TitleInsights = { reviews: [], similar: [], attribution: [] };
+          let imdb = imdbId;
+          if (config.tmdbApiKey) {
+            const o = { key: config.tmdbApiKey, ...(config.fetch ? { fetch: config.fetch } : {}) };
+            const ref = tmdbType && tmdbId ? { type: tmdbType, id: tmdbId } : await tmdbFind(imdbId!, o);
+            // an id TMDB doesn't know (404) just means "no TMDB data"; a bad key still surfaces as an error
+            const tm = ref ? await tmdbTitle(ref.type, ref.id, o).catch((e: unknown) => (e instanceof AppError && e.status === 404 ? undefined : Promise.reject(e))) : undefined;
+            if (tm) {
+              out.reviews = tm.reviews;
+              out.similar = tm.similar;
+              out.availability = tm.availability;
+              out.tmdbUrl = tm.url;
+              if (tm.score) out.ratings = { tmdb: tm.score };
+              out.attribution.push('TMDB', 'JustWatch');
+              imdb ??= tm.imdbId;
+            }
+          }
+          if (config.omdbApiKey && imdb) {
+            const r = await omdbRatings(imdb, { key: config.omdbApiKey, ...(config.fetch ? { fetch: config.fetch } : {}) }).catch(() => undefined);
+            if (r) {
+              out.ratings = { ...r, ...(out.ratings?.tmdb ? { tmdb: out.ratings.tmdb } : {}) };
+              out.attribution.push('OMDb');
+            }
+          }
+          return out;
+        });
+        return respond(json({ insights }, 200));
+      }
+
+      // ── press archives ─────────────────────────────────────────────────
+      if (url.pathname === '/v1/press/search') {
+        if (!config.nytApiKey && !config.guardianApiKey) return respond(fail('NOT_CONFIGURED', 'Press search is not configured on this server.', 501));
+        const title = cleanText(body.title, 160);
+        if (title.length < 2) return respond(fail('BAD_REQUEST', '`title` is required.', 400));
+        const people = strList(body.people, 6, 80);
+        const articles = await pressMemo.get(`${title.toLowerCase()}|${people.join(',')}`, async () => {
+          const runs: Promise<PressArticle[]>[] = [];
+          if (config.nytApiKey) runs.push(nytSearch(title, people, { key: config.nytApiKey, ...(config.fetch ? { fetch: config.fetch } : {}) }));
+          if (config.guardianApiKey) runs.push(guardianSearch(title, people, { key: config.guardianApiKey, ...(config.fetch ? { fetch: config.fetch } : {}) }));
+          const settled = await Promise.allSettled(runs);
+          if (settled.every((r) => r.status === 'rejected')) throw (settled[0] as PromiseRejectedResult).reason;
+          return settled.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+        });
+        return respond(json({ articles }, 200));
+      }
+
       return respond(fail('NOT_FOUND', 'Not found.', 404));
     } catch (err) {
       if (err instanceof AppError && err.status && err.status >= 400 && err.status < 500 && err.provider === undefined) {
@@ -279,6 +377,10 @@ export function configFromEnv(env: Record<string, string | undefined>): ServerCo
     braveApiKey: env.BRAVE_API_KEY || undefined,
     anthropicApiKey: env.ANTHROPIC_API_KEY || undefined,
     anthropicModel: env.ANTHROPIC_MODEL || undefined,
+    tmdbApiKey: env.TMDB_API_KEY || undefined,
+    omdbApiKey: env.OMDB_API_KEY || undefined,
+    nytApiKey: env.NYT_API_KEY || undefined,
+    guardianApiKey: env.GUARDIAN_API_KEY || undefined,
     allowedOrigins: (env.ALLOWED_ORIGINS ?? '')
       .split(',')
       .map((s) => s.trim())

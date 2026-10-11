@@ -2,10 +2,8 @@
  * ContextManager — "what is the user looking at?" for the active tab.
  *
  * Privacy contract (also shown in the UI):
- *  • YouTube / Netflix (+ Reddit threads / Substack posts for the bridge) are read
- *    only when the extension is opened, and only while detection is enabled.
- *  • Any other site is NEVER read unless the user explicitly clicks
- *    "Use this page" (usePage), which relies on the temporary `activeTab` grant.
+ *  • Netflix is read only when the extension is opened, and only while
+ *    detection is enabled.  No other site is ever read.
  *  • The extracted context is cached per tab *in RAM only* and dropped as soon
  *    as the tab navigates or closes.
  */
@@ -15,7 +13,7 @@ import type { Services } from './container';
 import type { TabAdapter, TabInfo } from './tabs';
 import type { ContentContext, CurrentContextResponse, RawPageMetadata } from '../types/context';
 import type { Settings } from '../types/settings';
-import { AppError, toAppError } from '../utils/errors';
+import { toAppError } from '../utils/errors';
 import { TTL } from '../services/cacheService';
 
 interface CachedPage {
@@ -41,7 +39,7 @@ export class ContextManager {
   }
 
   private respond(partial: Partial<CurrentContextResponse> & Pick<CurrentContextResponse, 'state'>): CurrentContextResponse {
-    return { platform: 'unknown', canUsePage: false, used: [], ...partial };
+    return { platform: 'unknown', used: [], ...partial };
   }
 
   private toReady(page: CachedPage): CurrentContextResponse {
@@ -56,9 +54,7 @@ export class ContextManager {
 
   private detectionAllowed(settings: Settings, platform: ReturnType<typeof detectPlatform>['platform']): boolean {
     if (!settings.privacy.detectionEnabled) return false;
-    if (platform === 'youtube') return settings.privacy.youtubeDetection;
-    if (platform === 'netflix') return settings.privacy.netflixDetection;
-    return true;
+    return platform === 'netflix' && settings.privacy.netflixDetection;
   }
 
   async current(params: { tabId?: number | undefined; refresh?: boolean | undefined }): Promise<CurrentContextResponse> {
@@ -69,11 +65,10 @@ export class ContextManager {
 
     const info = detectPlatform(tab.url);
     const hostname = info.hostname || undefined;
-    // `tab.url` is only visible for sites we hold host permissions for (or via activeTab).
-    const canUsePage = !params.tabId && !isAutoDetectable(info.platform);
 
+    // Anything but Netflix is never read: the popup offers the title search instead.
     if (!isAutoDetectable(info.platform)) {
-      return this.respond({ state: 'idle', platform: info.platform, ...(hostname ? { hostname } : {}), canUsePage });
+      return this.respond({ state: 'idle', platform: info.platform, ...(hostname ? { hostname } : {}) });
     }
     if (!this.detectionAllowed(settings, info.platform)) {
       return this.respond({
@@ -83,8 +78,8 @@ export class ContextManager {
         reason: 'Page detection is turned off in Settings → Privacy.',
       });
     }
-    // Only these pages carry something worth bridging / describing.
-    if (!info.isWatchPage && !info.bridge) {
+    // Watch pages and title pages carry something worth describing.
+    if (!info.isWatchPage && info.kind === 'page') {
       return this.respond({ state: 'idle', platform: info.platform, ...(hostname ? { hostname } : {}) });
     }
 
@@ -117,14 +112,6 @@ export class ContextManager {
     return this.store(tab, raw);
   }
 
-  /** Explicit, user-initiated read of the current (arbitrary) page. */
-  async usePage(params: { tabId?: number | undefined }): Promise<CurrentContextResponse> {
-    const tab = await this.deps.tabs.resolve(params.tabId);
-    if (!tab) throw new AppError('NO_CONTEXT', 'No page to read', { retryable: false });
-    const raw = await this.deps.tabs.extractGeneric(tab);
-    if (!raw) throw new AppError('NO_CONTEXT', "This page didn't expose a title we could use", { retryable: false });
-    return this.store(tab, raw);
-  }
 
   private async store(tab: TabInfo, raw: RawPageMetadata): Promise<CurrentContextResponse> {
     const context = buildContext(raw, this.deps.now?.());

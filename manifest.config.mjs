@@ -16,6 +16,16 @@ const seeds = JSON.parse(
   readFileSync(new URL('./src/services/substack/seeds.json', import.meta.url), 'utf8'),
 );
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+const outlets = JSON.parse(readFileSync(new URL('./src/services/news/outlets.json', import.meta.url), 'utf8'));
+
+/** Origins of the news outlets' RSS feeds (optional — granted when the user turns news on). */
+export function newsOrigins() {
+  const origins = new Set();
+  for (const o of outlets.outlets) {
+    for (const url of [...o.feeds, ...Object.values(o.topic ?? {})]) origins.add(`${new URL(url.replace('{slug}', 'x')).origin}/*`);
+  }
+  return [...origins].sort();
+}
 
 /** Hostnames of seed feeds that are not served from *.substack.com. */
 export function customFeedOrigins() {
@@ -37,13 +47,14 @@ export function createManifest({ backendUrl = '', dev = false } = {}) {
     // Reddit: public JSON/RSS endpoints + the official OAuth API
     'https://www.reddit.com/*',
     'https://oauth.reddit.com/*',
-    // Platforms we can detect "what you're watching" on (content scripts + tab URLs)
-    'https://www.youtube.com/*',
-    'https://m.youtube.com/*',
+    // The one platform we detect "what you're watching" on (content script + tab URLs)
     'https://www.netflix.com/*',
-    // Substack publications hosted on substack.com (RSS feeds + article pages)
+    // Substack publications hosted on substack.com (RSS feeds)
     'https://*.substack.com/*',
     'https://medium.com/*', // Medium's public tag feeds (Related Reading)
+    // Wikidata: which exact movie / show it is, its cast, subreddit and IMDb / Letterboxd ids
+    'https://www.wikidata.org/*',
+    'https://query.wikidata.org/*',
   ];
 
   if (backendUrl) {
@@ -60,7 +71,7 @@ export function createManifest({ backendUrl = '', dev = false } = {}) {
     name: dev ? 'Rabbit Hole (dev)' : 'Rabbit Hole',
     version: pkg.version,
     description:
-      'See what the internet is talking about — and go deeper. Trending Reddit threads plus thoughtful Substack reading related to what you watch.',
+      'Go deeper on what you watch on Netflix: Reddit discussions, related reading, the cast and reviews — for any movie or show.',
     minimum_chrome_version: '116',
     icons: {
       16: 'icons/icon-16.png',
@@ -79,35 +90,19 @@ export function createManifest({ backendUrl = '', dev = false } = {}) {
     },
     options_ui: { page: 'options.html', open_in_tab: true },
     background: { service_worker: 'background.js', type: 'module' },
-    permissions: ['storage', 'activeTab', 'scripting'],
+    permissions: ['storage', 'scripting'],
     host_permissions: hostPermissions,
     // Requested at runtime, per feature, only when the user turns the feature on.
     optional_host_permissions: [
       'https://api.search.brave.com/*', // bring-your-own Brave Search key
       'https://api.anthropic.com/*', //    bring-your-own Anthropic key (AI layer)
       ...customFeedOrigins(), //           custom-domain Substack publications
+      ...newsOrigins(), //                 news & entertainment outlets' RSS feeds (Read → news)
     ],
     content_scripts: [
       {
-        matches: ['https://www.youtube.com/*', 'https://m.youtube.com/*'],
-        js: ['content/youtube.js'],
-        run_at: 'document_idle',
-      },
-      {
         matches: ['https://www.netflix.com/*'],
         js: ['content/netflix.js'],
-        run_at: 'document_idle',
-      },
-      {
-        matches: ['https://www.reddit.com/*'],
-        js: ['content/reddit.js'],
-        run_at: 'document_idle',
-      },
-      {
-        // Substack-hosted publications.  Custom-domain Substacks (and every other
-        // site) are only ever inspected on demand via activeTab + scripting.
-        matches: ['https://*.substack.com/*'],
-        js: ['content/generic.js'],
         run_at: 'document_idle',
       },
     ],

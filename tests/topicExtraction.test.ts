@@ -4,8 +4,9 @@ import { cleanTitle, extractEntities } from '../src/services/context/topics';
 import { generateQueries, generateRedditQueries } from '../src/services/context/queries';
 import type { RawPageMetadata } from '../src/types/context';
 
+/** A headline-style page context (the same heuristics serve article / thread cards and searches). */
 const yt = (title: string, extra: Partial<RawPageMetadata> = {}) =>
-  buildContext({ platform: 'youtube', kind: 'video', url: 'https://www.youtube.com/watch?v=abc', title, source: 'test', confidence: 'high', ...extra });
+  buildContext({ platform: 'unknown', kind: 'page', url: 'https://example.com/story', title, source: 'test', confidence: 'high', ...extra });
 
 const lower = (xs: string[]) => xs.map((x) => x.toLowerCase());
 
@@ -70,8 +71,8 @@ describe('topic extraction', () => {
     expect(lower(ctx.keywords).join(' ')).not.toContain('subscribe');
   });
 
-  it('handles a Short with hashtags', () => {
-    const ctx = buildContext({ platform: 'youtube', kind: 'short', url: 'https://www.youtube.com/shorts/abcde', title: 'This is how a black hole actually forms #space #physics #shorts', source: 't', confidence: 'medium' });
+  it('handles a headline with hashtags', () => {
+    const ctx = buildContext({ platform: 'unknown', kind: 'page', url: 'https://example.com/post', title: 'This is how a black hole actually forms #space #physics #shorts', source: 't', confidence: 'medium' });
     expect(ctx.title).toBe('This is how a black hole actually forms');
     expect(lower(ctx.topics)).toContain('black hole');
     expect(lower(ctx.keywords)).toContain('astrophysics');
@@ -160,7 +161,7 @@ describe('query generation', () => {
   });
 
   it('never emits a query for a lone vague word', () => {
-    const ctx = buildContext({ platform: 'youtube', kind: 'short', url: 'https://www.youtube.com/shorts/abcde', title: 'This is how a black hole actually forms', source: 't', confidence: 'medium' });
+    const ctx = buildContext({ platform: 'unknown', kind: 'page', url: 'https://example.com/post', title: 'This is how a black hole actually forms', source: 't', confidence: 'medium' });
     expect(generateQueries(ctx).map((q) => q.text)).not.toContain('forms');
   });
 });
@@ -193,7 +194,7 @@ describe('Reddit queries for what is playing', () => {
     expect(q.some((x) => /movie$/.test(x))).toBe(true);
   });
 
-  it('leads with a video’s headline and sends only words — never the URL or video id', () => {
+  it('leads with a headline and sends only words — never the URL or an id', () => {
     const q = generateRedditQueries(yt('How AI Agents Will Change Software Development', { keywords: ['ai agents', 'software development'], videoId: 'dQw4w9WgXcQ' }));
     expect(q[0]).toBe('How AI Agents Will Change Software Development');
     expect(q.length).toBeGreaterThan(1);

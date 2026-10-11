@@ -72,3 +72,15 @@ export const LockIcon = (p: IconProps) =>
 
 export const TrashIcon = (p: IconProps) =>
   base(p, <><path d="M4 7h16" /><path d="M10 11v6M14 11v6" /><path d="M6 7l1 13h10l1-13" /><path d="M9 7V4h6v3" /></>);
+
+export const ExternalIcon = (p: IconProps) =>
+  base(p, <><path d="M14 4h6v6" /><path d="M20 4 11 13" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></>);
+
+export const XLogoIcon = (p: IconProps) =>
+  base({ strokeWidth: 0, ...p }, <path fill="currentColor" d="M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.3L5.3 21H2.2l7.2-8.3L1.8 3h6.4l4.4 5.8L17.8 3Zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5Z" />);
+
+export const InstagramIcon = (p: IconProps) =>
+  base(p, <><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><path d="M17.2 6.8v.1" /></>);
+
+export const FilmIcon = (p: IconProps) =>
+  base(p, <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4" /></>);

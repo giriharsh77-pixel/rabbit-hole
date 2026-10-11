@@ -101,7 +101,7 @@ export function deserializeError(s: SerializedError): AppError {
   });
 }
 
-export type ErrorSubject = 'reddit' | 'substack' | 'youtube' | 'netflix' | 'context' | 'generic';
+export type ErrorSubject = 'reddit' | 'substack' | 'netflix' | 'context' | 'wikidata' | 'generic';
 
 /** User-facing copy for an error.  Never exposes raw exception text. */
 export function describeError(
@@ -111,9 +111,9 @@ export function describeError(
   const name: Record<ErrorSubject, string> = {
     reddit: 'Reddit',
     substack: 'Substack search',
-    youtube: 'YouTube',
     netflix: 'Netflix',
     context: 'This page',
+    wikidata: 'Wikidata',
     generic: 'This service',
   };
   const who = name[subject];
@@ -134,7 +134,9 @@ export function describeError(
         hint:
           subject === 'reddit'
             ? 'Reddit restricts anonymous access. Add a Reddit client ID in Settings, or allow requests with your browser session.'
-            : 'Check your credentials in Settings.',
+            : subject === 'wikidata'
+              ? 'Wikidata may be limiting requests from your network. Try again in a few minutes.'
+              : 'Check your credentials in Settings.',
       };
     case 'UNAVAILABLE':
       return { title: `${who} is unavailable right now`, hint: 'It may be having a hiccup. Try again shortly.' };

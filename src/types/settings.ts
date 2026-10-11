@@ -33,12 +33,19 @@ export interface Settings {
     includeCustomDomains: boolean;
     /** Also search Medium's public tag feeds (sends topic words to medium.com). */
     includeMedium: boolean;
+    /** News & entertainment outlets' public RSS feeds (needs the sites' permission, asked for once). */
+    includeNews: boolean;
+    /** Per-source preference: "substack", "medium" or a news outlet id → prefer / hide (absent = normal). */
+    sources: Record<string, SourcePreference>;
+    /** Show only sources marked "prefer" (when any are). */
+    onlyPreferred: boolean;
+    /** Hide articles that aren't in English. */
+    englishOnly: boolean;
   };
 
   privacy: {
     /** Master switch for reading the current page. */
     detectionEnabled: boolean;
-    youtubeDetection: boolean;
     netflixDetection: boolean;
     /** Opt-in: use an LLM for topic extraction / relevance explanations. */
     aiEnabled: boolean;
@@ -64,5 +71,7 @@ export interface SecretStatus {
 }
 
 export type SecretsStatus = Record<SecretName, SecretStatus>;
+
+export type SourcePreference = 'prefer' | 'hide';
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };

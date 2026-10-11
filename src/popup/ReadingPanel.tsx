@@ -1,16 +1,17 @@
 import { ArticleCard } from '../components/ArticleCard';
 import { ContextBar } from '../components/ContextBar';
-import { ArrowRightIcon, EyeIcon, LockIcon, PlayIcon } from '../components/icons';
+import { BookIcon, SearchIcon } from '../components/icons';
 import { ContextSkeleton, ListSkeleton } from '../components/Skeleton';
-import { Banner, EmptyState, ErrorState, ManualSearchForm } from '../components/States';
-import { platformLabel } from '../services/context/platform';
-import type { ContentContext, CurrentContextResponse, UsedInfoField } from '../types/context';
+import { Banner, EmptyState, ErrorState } from '../components/States';
+import type { ContentContext, UsedInfoField } from '../types/context';
 import type { SerializedError } from '../types/errors';
 import type { DiscoveryResponse, RankedArticle } from '../types/substack';
 import { plural } from '../utils/format';
+import { newsOutletSummary } from './permissions';
 import type { AsyncState } from './hooks';
 
 export interface ReadingSource {
+  /** `current`: the movie / show every tab is about.  `query` / `bridge`: a search or a Reddit thread, for this tab only. */
   kind: 'query' | 'bridge' | 'current' | 'none';
   verb: 'Watching' | 'Reading' | 'Exploring';
   used: UsedInfoField[];
@@ -23,110 +24,53 @@ interface Props {
   context: ContentContext | null;
   contextLoading: boolean;
   contextError: SerializedError | undefined;
-  /** The page-detection result (drives the fallback / disabled / idle states). */
-  page: { loading: boolean; response: CurrentContextResponse | undefined; error: SerializedError | undefined };
+  /** A picked title is still loading its facts. */
+  subjectLoading: boolean;
   discovery: AsyncState<DiscoveryResponse> & { reload: () => void };
-  onManual: (query: string) => void;
-  onUsePage: () => void;
-  usingPage: boolean;
-  usePageError: SerializedError | undefined;
-  onStartBridge: () => void;
+  onSearch: (prefill?: string) => void;
   onSeeReddit: (article: RankedArticle) => void;
   onDismissSource: () => void;
   onOpenSettings: () => void;
-  onEnableDetection: () => void;
+  /** News sites are off: offer to add them (asks Chrome for those sites). */
+  newsOn: boolean;
+  onEnableNews: () => void;
 }
 
 export function ReadingPanel(p: Props) {
-  const { source, context, discovery, page } = p;
-  const response = page.response;
+  const { source, context, discovery } = p;
   const articles = discovery.data?.articles ?? [];
 
   const panelProps = {
     className: 'panel',
     role: 'tabpanel',
-    id: `${p.idPrefix}-panel-reading`,
-    'aria-labelledby': `${p.idPrefix}-tab-reading`,
+    id: `${p.idPrefix}-panel-read`,
+    'aria-labelledby': `${p.idPrefix}-tab-read`,
     hidden: !p.active,
   } as const;
   const heading = (
     <div className="panel-title split-heading">
-      <h2>Related Reading</h2>
+      <h2>Read</h2>
     </div>
   );
 
-  // ── nothing to search from: explain why, offer the manual route ────────────
+  // ── nothing to search from yet ─────────────────────────────────────────────
   if (source.kind === 'none') {
-    if (page.loading) {
-      return (
-        <div {...panelProps}>
-          {heading}
-          <ContextSkeleton />
-          <ListSkeleton count={2} label="Reading the current page" />
-        </div>
-      );
-    }
-    const platform = response?.platform;
-    const bridgeable = response?.state === 'ready' && response.context && (response.platform === 'reddit' || response.platform === 'substack');
-
     return (
       <div {...panelProps}>
         {heading}
-        {bridgeable && response.context && (
-          <div className="bridge">
-            <div className="bridge-text">
-              <small>{response.platform === 'reddit' ? 'Reddit thread' : 'Substack article'}</small>
-              <span title={response.context.title}>{response.context.title}</span>
-            </div>
-            <button type="button" className="btn primary small" onClick={p.onStartBridge}>
-              Find deeper reading <ArrowRightIcon />
-            </button>
-          </div>
-        )}
-
-        {response?.state === 'undetected' ? (
-          <EmptyState icon={<PlayIcon />} title="We couldn't automatically identify what you're watching.">
-            {platform === 'netflix'
-              ? 'Netflix hides its player labels while you watch. Move your mouse over the player and reopen Rabbit Hole, or tell us below.'
-              : response.reason}
-            <ManualSearchForm onSubmit={p.onManual} />
-          </EmptyState>
-        ) : response?.state === 'disabled' ? (
-          <EmptyState icon={<LockIcon />} title="Page detection is off">
-            {response.reason ?? 'Turn it on to detect what you’re watching.'}
-            <span className="actions" style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
-              <button type="button" className="btn" onClick={p.onEnableDetection}>
-                Turn on detection
-              </button>
-              <button type="button" className="btn ghost" onClick={p.onOpenSettings}>
-                Privacy settings
-              </button>
-            </span>
-            <ManualSearchForm label="Or search a topic" placeholder="e.g. Black Mirror" onSubmit={p.onManual} />
-          </EmptyState>
-        ) : page.error ? (
-          <ErrorState error={page.error} subject="context">
-            <ManualSearchForm onSubmit={p.onManual} />
-          </ErrorState>
+        {p.subjectLoading ? (
+          <ListSkeleton count={3} label="Finding related writing" />
         ) : (
-          <EmptyState icon={<EyeIcon />} title={bridgeable ? 'Or search any topic' : 'Go deeper on anything'}>
-            {bridgeable
-              ? 'Rabbit Hole finds writing related to the thread or article you’re on.'
-              : 'Open a YouTube video or a Netflix title and Rabbit Hole finds related writing on Substack and Medium. Or search a topic.'}
-            <ManualSearchForm label="What are you watching?" onSubmit={p.onManual} />
-            {response?.canUsePage && (
-              <span className="actions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginTop: 12 }}>
-                <button type="button" className="btn" onClick={p.onUsePage} disabled={p.usingPage}>
-                  {p.usingPage ? 'Reading…' : `Use this page${response.hostname ? ` (${response.hostname})` : ''}`}
-                </button>
-                <small className="meta">Only reads the page when you click — never automatically.</small>
-              </span>
-            )}
-            {p.usePageError && (
-              <span className="meta" role="alert">
-                Couldn’t read this page. Open Rabbit Hole from that page’s toolbar and try again.
-              </span>
-            )}
+          <EmptyState
+            icon={<BookIcon />}
+            title="Writing about what you watch"
+            actions={
+              <button type="button" className="btn" onClick={() => p.onSearch()}>
+                <SearchIcon /> Search for a movie or show
+              </button>
+            }
+          >
+            Essays, reviews and analysis from Substack and Medium about the movie or show you’re on.
           </EmptyState>
         )}
       </div>
@@ -138,22 +82,17 @@ export function ReadingPanel(p: Props) {
   const found = discovery.status === 'success' ? articles.length : 0;
   const limited = discovery.data?.limitedCoverage;
   const withMedium = discovery.data?.providers.some((r) => r.id === 'medium' && r.ok) ?? false;
-  const where = withMedium ? 'Substack or Medium' : 'Substack';
+  const withNews = discovery.data?.providers.some((r) => r.id === 'news' && r.ok) ?? false;
+  const places = ['Substack', withMedium ? 'Medium' : '', withNews ? 'news sites' : ''].filter(Boolean);
+  const where = places.join(places.length > 2 ? ', ' : ' or ').replace(/, ([^,]*)$/, ' or $1');
+  const foundOn = places.join(places.length > 2 ? ', ' : ' and ').replace(/, ([^,]*)$/, ' and $1');
   const searched = (context?.concepts ?? []).filter((c) => c.origin !== 'ontology').slice(0, 5);
 
   return (
     <div {...panelProps}>
       {heading}
-      {context ? (
-        <ContextBar
-          context={context}
-          used={source.used}
-          verb={source.verb}
-          onDismiss={source.kind === 'current' ? undefined : p.onDismissSource}
-        />
-      ) : (
-        <ContextSkeleton />
-      )}
+      {source.kind !== 'current' &&
+        (context ? <ContextBar context={context} used={source.used} verb={source.verb} onDismiss={p.onDismissSource} /> : <ContextSkeleton />)}
 
       <p className="status-line" aria-live="polite">
         {searching ? (
@@ -163,7 +102,7 @@ export function ReadingPanel(p: Props) {
         ) : discovery.status === 'success' ? (
           articles.length > 0 ? (
             <span>
-              Found <strong className="num">{found}</strong> related {plural(found, 'article')}{withMedium ? ' on Substack and Medium' : ' on Substack'}
+              Found <strong className="num">{found}</strong> related {plural(found, 'article')} on {foundOn}
               {discovery.data?.aiUsed ? ' · refined with AI' : ''}
             </span>
           ) : (
@@ -182,7 +121,17 @@ export function ReadingPanel(p: Props) {
         </div>
       )}
 
-      {limited && discovery.status === 'success' && (
+      {!p.newsOn && discovery.status === 'success' && source.kind !== 'bridge' && (
+        <Banner tone="info">
+          <b>Add news coverage?</b> {newsOutletSummary()} — from their public feeds.{' '}
+          <button type="button" className="link" onClick={p.onEnableNews}>
+            Add news sites
+          </button>
+        </Banner>
+      )}
+
+      {/* one banner at a time: the news offer first, then the coverage note */}
+      {limited && discovery.status === 'success' && (p.newsOn || source.kind === 'bridge') && (
         <Banner tone="info">
           <b>Searching curated Substack publications{withMedium ? ' and Medium' : ''}.</b> For all of Substack, connect a search provider in{' '}
           <button type="button" className="link" onClick={p.onOpenSettings}>
@@ -195,9 +144,8 @@ export function ReadingPanel(p: Props) {
       {(p.contextError || discovery.status === 'error') && (
         <ErrorState error={p.contextError ?? discovery.error} subject="substack" onRetry={discovery.reload}>
           <p className="meta" style={{ margin: '12px 0 4px' }}>
-            Couldn't find related writing. Try searching manually:
+            Couldn't find related writing right now.
           </p>
-          <ManualSearchForm label="Search topic" placeholder="Search topic…" button="Search" onSubmit={p.onManual} />
         </ErrorState>
       )}
 
@@ -206,7 +154,6 @@ export function ReadingPanel(p: Props) {
       {discovery.status === 'success' && articles.length === 0 && (
         <EmptyState title="Couldn't find related writing.">
           Nothing on {where} matched closely enough{discovery.data?.totalCandidates ? ` (${discovery.data.totalCandidates} weaker matches hidden — lower the minimum relevance in Settings to see them)` : ''}.
-          <ManualSearchForm label="Try searching manually" placeholder="Search topic…" button="Search" onSubmit={p.onManual} />
         </EmptyState>
       )}
 
@@ -220,7 +167,7 @@ export function ReadingPanel(p: Props) {
 
       {context && source.kind !== 'current' && (
         <p className="meta" style={{ marginTop: 12 }}>
-          {platformLabel(context.platform) === 'Search' ? 'From your search' : `From ${platformLabel(context.platform)}`}
+          {source.kind === 'query' ? 'From your search' : 'From a Reddit thread'}
         </p>
       )}
     </div>

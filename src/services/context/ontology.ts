@@ -156,7 +156,7 @@ const CULTURE: Table = {
   chess: ['strategy', 'games', 'artificial intelligence'],
 };
 
-/** Genres (Netflix `genre`, YouTube category, JSON-LD) → themes writers actually discuss. */
+/** Genres (Netflix `genre`, JSON-LD) → themes writers actually discuss. */
 export const GENRE_CONCEPTS: Table = {
   'sci-fi': ['science fiction', 'speculative fiction', 'technology and society', 'future society'],
   'science fiction': ['speculative fiction', 'technology and society', 'future society', 'worldbuilding'],

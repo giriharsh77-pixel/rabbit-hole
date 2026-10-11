@@ -4,36 +4,53 @@ import type {
   RawPageMetadata,
 } from './context';
 import type { SerializedError } from './errors';
-import type { RedditSearchResponse } from './reddit';
+import type { DiscussResponse, RedditSearchResponse } from './reddit';
 import type { DeepPartial, SecretName, Secrets, SecretsStatus, Settings } from './settings';
 import type { DiscoveryResponse } from './substack';
+import type { RelatedTitles, TitleCandidate, TitleInfo, TitleInsights } from './title';
 
 /** What the UI may know about the extension's capabilities right now. */
 export interface AppStatus {
   reddit: { providers: ('oauth' | 'json' | 'rss')[] };
   substack: {
-    providers: ('backend' | 'brave' | 'feeds' | 'medium')[];
+    providers: ('backend' | 'brave' | 'feeds' | 'medium' | 'news')[];
     /** Only the built-in publication list is available. */
     limitedCoverage: boolean;
     customDomainsAllowed: boolean;
   };
   ai: { available: boolean; via: 'backend' | 'user-key' | null; enabled: boolean };
   backendConfigured: boolean;
+  /** What the backend can do (all false without one). */
+  backend: { titles: boolean; ratings: boolean; press: boolean };
   version: string;
 }
 
 /** Typed popup/options ⇄ background RPC surface. */
 export interface RpcMap {
   'context/current': { params: { tabId?: number; refresh?: boolean }; result: CurrentContextResponse };
-  /** Explicit, user-initiated read of an arbitrary page (activeTab). */
-  'context/usePage': { params: { tabId?: number }; result: CurrentContextResponse };
   /** Run the analysis pipeline on metadata (manual query, Reddit thread, …). */
   'context/analyze': { params: { raw: RawPageMetadata }; result: ContentContext };
 
-  /** `cacheOnly` returns whatever is cached (even stale) or null, so the UI can paint instantly. */
+  /** Movies and series matching what the user typed (Wikidata). */
+  'title/search': { params: { query: string }; result: TitleCandidate[] };
+  /** A title picked in the search: its facts plus a ready-to-search context. */
+  'title/context': { params: { qid: string }; result: { info: TitleInfo; context: ContentContext } };
+  /** Which exact title a Netflix context refers to (null when unsure). */
+  'title/resolve': { params: { context: ContentContext }; result: TitleInfo | null };
+  /** Ratings, reviews, similar titles, Netflix India — null when the backend can't provide them. */
+  'title/insights': { params: { qid: string }; result: TitleInsights | null };
+  /** Watch next: titles sharing the leading cast or the director / creator. */
+  'title/related': { params: { qid: string }; result: RelatedTitles };
+
   'reddit/search': {
     params: { queries: string[]; limit?: number; subreddits?: string[]; time?: 'day' | 'week' | 'month' | 'year' | 'all'; strict?: boolean };
     result: RedditSearchResponse;
+  };
+
+  /** Threads about one movie / show (its subreddit, TV / film communities, all of Reddit). */
+  'reddit/discuss': {
+    params: { title: string; kind: 'movie' | 'series'; ownSubreddit?: string; episodeName?: string; season?: number; names?: string[]; limit?: number };
+    result: DiscussResponse;
   };
 
   'substack/discover': { params: { context: ContentContext; refresh?: boolean }; result: DiscoveryResponse };

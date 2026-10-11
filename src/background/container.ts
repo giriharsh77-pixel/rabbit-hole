@@ -11,7 +11,9 @@ import { SecretsService } from '../services/secretsService';
 import { SettingsService } from '../services/settingsService';
 import { FeedProvider } from '../services/substack/feedProvider';
 import { MediumProvider } from '../services/substack/medium';
+import { NewsProvider } from '../services/news/newsProvider';
 import { SubstackService } from '../services/substackService';
+import { TitleService } from '../services/titleService';
 import { BUILD_ENV } from '../utils/env';
 
 export interface ContainerOptions {
@@ -37,6 +39,8 @@ export interface Services {
   substack: SubstackService;
   ai: AiService;
   feeds: FeedProvider;
+  news: NewsProvider;
+  titles: TitleService;
   backend: BackendClient | undefined;
 }
 
@@ -78,17 +82,28 @@ export function createServices(opts: ContainerOptions): Services {
     ...(opts.now ? { now: opts.now } : {}),
   });
 
+  const news = new NewsProvider({
+    cache,
+    getSettings: () => settings.get(),
+    hasOrigin: opts.hasOrigin ?? (async () => false),
+    ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}),
+    ...(opts.now ? { now: opts.now } : {}),
+  });
+
   const substack = new SubstackService({
     cache,
     getSettings: () => settings.get(),
     ai,
     feeds,
     medium,
+    news,
     getBackend: () => backend,
     getBraveKey: () => secrets.get('braveApiKey'),
     ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}),
     ...(opts.now ? { now: opts.now } : {}),
   });
 
-  return { localStore: opts.local, settings, secrets, cache, sessionStore, reddit, substack, ai, feeds, backend };
+  const titles = new TitleService({ cache, getBackend: () => backend, ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}) });
+
+  return { localStore: opts.local, settings, secrets, cache, sessionStore, reddit, substack, ai, feeds, news, titles, backend };
 }

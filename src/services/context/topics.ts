@@ -53,6 +53,12 @@ const REGION_TAG =
 const FORMAT_NOISE =
   /\b(official|video|audio|lyrics?|trailer|teaser|clip|hd|4k|8k|full (?:episode|movie|video|course|documentary)|live|premiere|ep\.?\s*\d+|episode\s*\d+|part\s*\d+|shorts?|reaction|remastered|out now|subscribe)\b/i;
 
+/** "The Office (U.S.)" → "U.S." — Netflix's way of telling versions of a show apart. */
+export function regionTagOf(rawTitle: string): string | undefined {
+  const m = /\(([^()]{1,24})\)\s*$/.exec(rawTitle.trim());
+  return m && REGION_TAG.test(`(${m[1]})`) && !/^(?:19|20)\d{2}$/.test(m[1]!) ? m[1] : undefined;
+}
+
 export function cleanTitle(rawTitle: string, creator?: string): string {
   let t = decodeEntities(rawTitle)
     .replace(/[\p{Extended_Pictographic}️‍]/gu, ' ')

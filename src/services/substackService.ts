@@ -27,6 +27,9 @@ import { braveSearchSubstack } from './search/brave';
 import { mergeCandidates } from './substack/candidates';
 import type { FeedProvider } from './substack/feedProvider';
 import type { MediumProvider } from './substack/medium';
+import type { NewsProvider } from './news/newsProvider';
+import { looksEnglish } from './ranking/language';
+import { OUTLETS } from './news/outlets';
 
 export interface SubstackServiceDeps {
   cache: CacheService;
@@ -34,6 +37,7 @@ export interface SubstackServiceDeps {
   ai: Pick<AiService, 'enrich' | 'judge'>;
   feeds: Pick<FeedProvider, 'search'>;
   medium?: Pick<MediumProvider, 'search'>;
+  news?: Pick<NewsProvider, 'search'>;
   getBackend: () => BackendClient | undefined;
   getBraveKey: () => Promise<string | undefined>;
   fetchImpl?: typeof fetch;
@@ -96,6 +100,17 @@ export class SubstackService {
     return providers;
   }
 
+  /** NYT / Guardian archive search through the backend — for a named movie or show, unless both are hidden. */
+  private async archive(context: ContentContext, prefs: Settings['reading']['sources']): Promise<Pick<MediumProvider, 'search'> | undefined> {
+    if (context.platform !== 'netflix' && context.platform !== 'title') return undefined;
+    if (prefs.nyt === 'hide' && prefs.guardian === 'hide') return undefined;
+    const backend = this.deps.getBackend();
+    const press = backend ? await backend.features().then((f) => f.press).catch(() => false) : false;
+    if (!backend || !press) return undefined;
+    const people = context.entities.filter((e) => e !== context.title).slice(0, 4);
+    return { search: (ctx, signal) => backend.searchPress(ctx.title, people, signal) };
+  }
+
   async discover(
     input: ContentContext,
     opts: { refresh?: boolean; signal?: AbortSignal } = {},
@@ -125,26 +140,29 @@ export class SubstackService {
     const context = settings.privacy.aiEnabled ? await this.deps.ai.enrich(input, signal) : input;
     const queries = generateQueries(context, { max: 5 });
 
-    // 2 ─ search providers in parallel — and Medium, which widens the net beyond Substack
+    // 2 ─ search providers in parallel — plus Medium and news outlets, which widen the net beyond Substack
     const reports: ProviderReport[] = [];
     const lists: ArticleCandidate[][] = [];
     const searchProviders = await this.searchProviders();
-    const medium = settings.reading.includeMedium ? this.deps.medium : undefined;
-    const mediumRun = medium
-      ? medium.search(context, signal).then(
-          (list) => {
-            lists.push(list);
-            reports.push({ id: 'medium', ok: true, count: list.length });
-          },
-          (err: unknown) => {
-            if (isAbortError(err)) throw err;
-            reports.push({ id: 'medium', ok: false, count: 0, error: serializeError(err, 'medium') });
-          },
-        )
-      : Promise.resolve();
+    const prefs = settings.reading.sources;
+    const extra = (id: 'medium' | 'news' | 'archive', p: Pick<MediumProvider, 'search'> | undefined) =>
+      p
+        ? p.search(context, signal).then(
+            (list) => {
+              lists.push(list);
+              reports.push({ id, ok: true, count: list.length });
+            },
+            (err: unknown) => {
+              if (isAbortError(err)) throw err;
+              reports.push({ id, ok: false, count: 0, error: serializeError(err, id) });
+            },
+          )
+        : Promise.resolve();
 
     await Promise.all([
-      mediumRun,
+      extra('medium', settings.reading.includeMedium && prefs.medium !== 'hide' ? this.deps.medium : undefined),
+      extra('news', settings.reading.includeNews ? this.deps.news : undefined),
+      extra('archive', await this.archive(context, prefs)),
       ...searchProviders.map(async (p) => {
         try {
           const list = await p.run(queries, signal);
@@ -160,7 +178,7 @@ export class SubstackService {
     const substackCount = candidates.filter((c) => c.provider !== 'medium').length;
 
     // 3 ─ public feeds: the keyless path, and a supplement when search is thin
-    if (searchProviders.length === 0 || substackCount < THIN_RESULTS) {
+    if (prefs.substack !== 'hide' && (searchProviders.length === 0 || substackCount < THIN_RESULTS)) {
       try {
         const fromFeeds = await this.deps.feeds.search(context, signal);
         reports.push({ id: 'feeds', ok: true, count: fromFeeds.length });
@@ -178,6 +196,9 @@ export class SubstackService {
         ...(first?.provider ? { provider: first.provider } : {}),
       });
     }
+
+    // 3b ─ the reader's preferences: hidden sources, "only my sources", English only
+    candidates = applySourcePreferences(candidates, settings.reading);
 
     // 4 ─ rank (lexical), optionally let the LLM judge the front-runners, re-rank
     const rankOpts = {
@@ -209,3 +230,26 @@ export class SubstackService {
     };
   }
 }
+
+/** Which preference key an article falls under: its news outlet, "medium" or "substack". */
+export function sourceKey(c: Pick<ArticleCandidate, 'provider' | 'publicationName'>, outletIdByName: ReadonlyMap<string, string>): string {
+  if (c.provider === 'medium') return 'medium';
+  if (c.provider === 'news') return outletIdByName.get(c.publicationName) ?? 'news';
+  return 'substack';
+}
+
+export function applySourcePreferences(
+  candidates: ArticleCandidate[],
+  reading: Pick<Settings['reading'], 'sources' | 'onlyPreferred' | 'englishOnly'>,
+  outletIdByName: ReadonlyMap<string, string> = OUTLET_IDS,
+): ArticleCandidate[] {
+  const pref = (c: ArticleCandidate) => reading.sources[sourceKey(c, outletIdByName)];
+  let out = candidates.filter((c) => pref(c) !== 'hide');
+  if (reading.englishOnly) out = out.filter((c) => looksEnglish(`${c.title}. ${c.excerpt}`));
+  const preferred = out.filter((c) => pref(c) === 'prefer');
+  if (reading.onlyPreferred && preferred.length > 0) out = preferred;
+  // a preferred source counts as a top-tier publication when ranking
+  return out.map((c) => (pref(c) === 'prefer' ? { ...c, publicationTier: 3 as const } : c));
+}
+
+const OUTLET_IDS: ReadonlyMap<string, string> = new Map(OUTLETS.map((o) => [o.name, o.id]));

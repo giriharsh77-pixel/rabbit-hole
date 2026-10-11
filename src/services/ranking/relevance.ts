@@ -317,9 +317,8 @@ export function explainRelevance(ctx: ContentContext, match: MatchInfo): string 
   }
 
   switch (ctx.platform) {
-    case 'youtube':
-      return `This article ${verb} ${about}, which ${tie} the ${ctx.kind === 'short' ? 'Short' : 'video'} you're watching — “${shortTitle(ctx.title)}”.`;
     case 'netflix':
+    case 'title':
       return match.entities.some((e) => phraseKey(e) === phraseKey(ctx.title))
         ? `This piece is about ${ctx.title}${match.topics.length ? `, including ${listToSentence(match.topics.slice(0, 2))}` : ''}.`
         : `This piece ${verb} ${about} — themes that ${match.titleHit ? 'run through' : 'echo in'} ${ctx.title}.`;
