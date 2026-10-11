@@ -1,117 +1,127 @@
 [
   {
-    "file": "01-reading-youtube.png",
-    "title": "Related Reading — watching a YouTube video",
-    "path": "popup.html?demo=youtube&data=docs"
+    "file": "01-discuss.png",
+    "title": "Discuss — Reddit threads about the episode",
+    "path": "popup.html?demo=office&data=docs"
   },
   {
-    "file": "02-article-why-relevant.png",
-    "title": "Article card with “Why this is relevant”",
-    "path": "popup.html?demo=youtube&data=docs"
+    "file": "02-discuss-newest.png",
+    "title": "Discuss — sorted newest first",
+    "path": "popup.html?demo=office&data=docs"
   },
   {
-    "file": "03-trending-watching.png",
-    "title": "Trending Reddit — “Because you’re watching” + topic filters",
-    "path": "popup.html?demo=youtube&data=docs"
+    "file": "03-read-news.png",
+    "title": "Read — news, Substack and Medium about the title",
+    "path": "popup.html?demo=office&data=docs&news=1"
   },
   {
-    "file": "04-trending-cards.png",
-    "title": "Trending Reddit — thread cards with stats and growth",
+    "file": "04-read-card.png",
+    "title": "Read — article card with “Why this is relevant”",
+    "path": "popup.html?demo=office&data=docs&news=1"
+  },
+  {
+    "file": "05-read-news-offer.png",
+    "title": "Read — the one-time offer to add news sites",
+    "path": "popup.html?demo=office&data=docs"
+  },
+  {
+    "file": "06-about.png",
+    "title": "About — facts and review links (Wikidata)",
+    "path": "popup.html?demo=office&data=docs"
+  },
+  {
+    "file": "07-about-cast.png",
+    "title": "About — cast with X and Instagram",
+    "path": "popup.html?demo=office&data=docs"
+  },
+  {
+    "file": "08-watch-next.png",
+    "title": "Watch next — same cast and creators (Wikidata)",
+    "path": "popup.html?demo=office&data=docs"
+  },
+  {
+    "file": "09-title-search.png",
+    "title": "Title search — movies and series from Wikidata",
     "path": "popup.html?demo=idle&data=docs"
   },
   {
-    "file": "05-trending-rising.png",
-    "title": "Trending Reddit — Rising Fast section",
+    "file": "10-picked-title.png",
+    "title": "A picked title — every tab follows it",
     "path": "popup.html?demo=idle&data=docs"
   },
   {
-    "file": "06-netflix-detected.png",
-    "title": "Related Reading — watching a Netflix episode",
-    "path": "popup.html?demo=netflix&data=docs"
+    "file": "11-about-backend.png",
+    "title": "About with the backend — ratings and Netflix India (sample data)",
+    "path": "popup.html?demo=office&data=docs&backend=demo"
   },
   {
-    "file": "07-netflix-undetected.png",
-    "title": "Netflix title not detected — manual fallback",
+    "file": "12-next-backend.png",
+    "title": "Watch next with the backend — similar titles, On Netflix India (sample data)",
+    "path": "popup.html?demo=office&data=docs&backend=demo"
+  },
+  {
+    "file": "13-movie-read.png",
+    "title": "A Netflix movie — Read",
+    "path": "popup.html?demo=movie&data=docs&news=1"
+  },
+  {
+    "file": "14-netflix-undetected.png",
+    "title": "Netflix title not detected — search fallback",
     "path": "popup.html?demo=undetected&data=docs"
   },
   {
-    "file": "08-idle-use-this-page.png",
-    "title": "Other website — nothing read; “Use this page” offered",
+    "file": "15-idle.png",
+    "title": "Any other website — nothing is read",
     "path": "popup.html?demo=idle&data=docs"
   },
   {
-    "file": "09-search-loading.png",
-    "title": "Searching — skeleton loading state",
-    "path": "popup.html?demo=idle&slow=4000&data=docs"
+    "file": "16-detection-off.png",
+    "title": "Netflix detection switched off (privacy control)",
+    "path": "popup.html?demo=netflix&data=docs"
   },
   {
-    "file": "10-search-results.png",
-    "title": "Manual search — “Exploring” results",
-    "path": "popup.html?demo=idle&data=docs"
-  },
-  {
-    "file": "11-search-reddit-results.png",
-    "title": "Manual search — Reddit results",
-    "path": "popup.html?demo=idle&data=docs"
-  },
-  {
-    "file": "12-bridge-reddit-thread.png",
-    "title": "On a Reddit thread — “Find deeper reading →”",
-    "path": "popup.html?demo=reddit&data=docs"
-  },
-  {
-    "file": "13-bridge-substack-article.png",
-    "title": "On a Substack article — “See what Reddit thinks →”",
-    "path": "popup.html?demo=substack&data=docs"
-  },
-  {
-    "file": "14-detection-off.png",
-    "title": "Detection switched off (privacy control)",
-    "path": "popup.html?demo=youtube&data=docs"
-  },
-  {
-    "file": "15-error-reddit.png",
+    "file": "17-error-reddit.png",
     "title": "Error state — Reddit unavailable",
-    "path": "popup.html?demo=idle&fail=reddit&data=docs"
+    "path": "popup.html?demo=office&fail=reddit&data=docs"
   },
   {
-    "file": "16-light-theme.png",
+    "file": "18-light-theme.png",
     "title": "Light theme",
-    "path": "popup.html?demo=youtube&data=docs"
+    "path": "popup.html?demo=office&data=docs"
   },
   {
-    "file": "21-bridge-thread-result.png",
-    "title": "Reddit thread → related Substack reading",
-    "path": "popup.html?demo=reddit&data=docs"
+    "file": "19-bridge-thread.png",
+    "title": "Reddit thread → “Find deeper reading”",
+    "path": "popup.html?demo=office&data=docs"
   },
   {
-    "file": "22-bridge-article-result.png",
-    "title": "Substack article → what Reddit thinks",
-    "path": "popup.html?demo=substack&data=docs"
-  },
-  {
-    "file": "23-use-this-page-result.png",
-    "title": "“Use this page” → related reading",
+    "file": "20-free-search.png",
+    "title": "Free-text search — the last row of the dropdown",
     "path": "popup.html?demo=idle&data=docs"
   },
   {
-    "file": "17-settings-overview.png",
-    "title": "Settings — Reddit & Related Reading",
-    "path": "options.html"
+    "file": "21-settings-read.png",
+    "title": "Settings — Read (sources, news sites, English only)",
+    "path": "options.html#reading"
   },
   {
-    "file": "18-settings-privacy.png",
+    "file": "21b-settings-sources.png",
+    "title": "Settings — Your sources (prefer / normal / hide)",
+    "path": "options.html#reading"
+  },
+  {
+    "file": "22-settings-privacy.png",
     "title": "Settings — Privacy",
     "path": "options.html#privacy"
   },
   {
-    "file": "19-settings-integrations.png",
-    "title": "Settings — API & Integrations",
-    "path": "options.html#integrations"
+    "file": "23-settings-reddit.png",
+    "title": "Settings — Reddit (incl. Discuss sort)",
+    "path": "options.html#reddit"
   },
   {
-    "file": "20-dashboard.png",
-    "title": "Full dashboard (two columns)",
-    "path": "popup.html?demo=youtube&mode=tab&data=docs"
+    "file": "24-dashboard.png",
+    "title": "Full dashboard (three columns)",
+    "path": "popup.html?demo=office&mode=tab&data=docs&news=1"
   }
 ]

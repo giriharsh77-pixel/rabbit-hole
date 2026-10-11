@@ -22,9 +22,22 @@ import type { RedditPost } from '../types/reddit';
 import { attachRpcPort, type RpcClientPort, type RpcServerPort } from '../utils/rpc';
 import { docsRedditPosts } from './docsSample';
 import { createHandler } from '../../server/src/handler';
+import { OUTLETS } from '../services/news/outlets';
 import redditHotAtom from './fixtures/reddit-hot.atom.xml?raw';
 
 const feedFixtures = import.meta.glob('./fixtures/feeds/*.xml', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+/** Real per-title RSS from news sites, captured 2026-10-10 (used with ?news=1). */
+const newsFixtures = import.meta.glob('./fixtures/news/*.xml', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const NEWS_TOPICS: Record<string, string> = {
+  'https://variety.com/t/the-office/feed/': 'variety-office',
+  'https://deadline.com/tag/the-office/feed/': 'deadline-office',
+  'https://decider.com/tag/the-office/feed/': 'decider-office',
+  'https://www.rollingstone.com/t/the-office/feed/': 'rs-office',
+  'https://www.indiewire.com/t/the-office/feed/': 'indiewire-office',
+  'https://www.hollywoodreporter.com/t/the-office/feed/': 'thr-office',
+  'https://variety.com/t/glass-onion/feed/': 'variety-glass',
+};
+const NEWS_HOSTS = new Set(OUTLETS.flatMap((o) => [...o.feeds, ...Object.values(o.topic ?? {})].map((u) => new URL(u.replace('{slug}', 'x')).hostname)));
 
 /** localStorage-backed store so Settings survive reloads while previewing. */
 class LocalStorageStore implements KeyValueStore {
@@ -145,6 +158,14 @@ function routeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Respo
   const params = new URLSearchParams(location.search);
 
   if (url.origin === DEMO_BACKEND) return demoBackend(new Request(url, init));
+  // news outlets (?news=1): real captured per-title feeds; every other feed is empty
+  if (NEWS_HOSTS.has(url.hostname)) {
+    const key = NEWS_TOPICS[url.href];
+    const xml = key ? newsFixtures[`./fixtures/news/${key}.xml`] : undefined;
+    return Promise.resolve(
+      new Response(xml ?? '<?xml version="1.0"?><rss version="2.0"><channel><title>empty</title></channel></rss>', { status: xml || !url.pathname.includes('/t/') ? 200 : 404, headers: { 'content-type': 'application/rss+xml' } }),
+    );
+  }
 
   // Wikidata is public, keyless and CORS-enabled: the preview uses the real thing.
   if (url.hostname === 'www.wikidata.org' || url.hostname === 'query.wikidata.org') return fetch(url, init);
@@ -256,7 +277,8 @@ export async function createPreviewConnect(): Promise<() => RpcClientPort> {
     local,
     session: new MemoryStore(),
     fetchImpl: previewFetch as typeof fetch,
-    hasOrigin: async () => false,
+    // ?news=1: behave as if the user had allowed the news sites
+    hasOrigin: async () => new URLSearchParams(location.search).get('news') === '1',
     ...(new URLSearchParams(location.search).get('backend') === 'demo' ? { backendUrl: DEMO_BACKEND } : {}),
   });
   const { handlers } = createHandlers({ services, tabs: demoTabs(demo) });

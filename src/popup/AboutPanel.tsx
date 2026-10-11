@@ -21,6 +21,8 @@ interface Props {
   /** From the backend (TMDB / OMDb); null = not available without one. */
   insights: TitleInsights | null | undefined;
   insightsLoading: boolean;
+  /** The tab hasn't been read yet. */
+  pageLoading?: boolean;
 }
 
 interface Link {
@@ -59,7 +61,7 @@ export function ratingChips(r: TitleRatings | undefined): { label: string; value
   return out;
 }
 
-export function AboutPanel({ idPrefix, active, subject, info, loading, error, onRetry, onSearch, insights, insightsLoading }: Props) {
+export function AboutPanel({ idPrefix, active, subject, info, loading, error, onRetry, onSearch, insights, insightsLoading, pageLoading }: Props) {
   const [allCast, setAllCast] = useState(false);
   const panelProps = {
     className: 'panel',
@@ -73,6 +75,15 @@ export function AboutPanel({ idPrefix, active, subject, info, loading, error, on
       <h2>About</h2>
     </div>
   );
+
+  if (!subject && pageLoading) {
+    return (
+      <div {...panelProps}>
+        {heading}
+        <ListSkeleton count={3} label="Reading the current tab" />
+      </div>
+    );
+  }
 
   if (!subject) {
     return (

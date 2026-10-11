@@ -35,6 +35,14 @@ const SEEDS: Seed[] = [
   { sub: 'science', title: 'Study links regular sleep schedules to better memory consolidation', hoursAgo: 8.4, domain: 'example.org' },
   { sub: 'gadgets', title: 'Hands-on: a lightweight e-ink laptop that lasts a full week', hoursAgo: 10.1, domain: 'example.org' },
   { sub: 'artificial', title: 'Why “agentic” workflows need better observability, not just better models', hoursAgo: 3.4, self: 'A short essay on logging, replay and human review for long-running agents.' },
+  // ── about The Office (U.S.), for the Discuss screenshots — invented, like everything here ──
+  { sub: 'DunderMifflin', title: 'Basketball (S1E5) is the first episode where the show really clicks', hoursAgo: 24 * 410, self: 'Michael picking teams, Stanley, the warehouse guys — season 1 finds its voice right here. Rewatch thoughts inside.', flair: 'Discussion' },
+  { sub: 'DunderMifflin', title: 'Rewatching season 1: “Basketball” holds up better than I remembered', hoursAgo: 30, self: 'Short season, but this episode has the template for everything that comes later.' },
+  { sub: 'DunderMifflin', title: 'Small detail in Basketball: Stanley’s face when Michael asks if he plays', hoursAgo: 24 * 2, self: 'Watch the background in the warehouse scene — it never gets old.' },
+  { sub: 'television', title: '“The Office” at 21: which early episodes still hold up?', hoursAgo: 24 * 12, self: 'Season 1 gets dismissed a lot. Which episodes would you show a first-time viewer?', flair: 'Discussion' },
+  { sub: 'netflix', title: 'Just started The Office on Netflix — is season 1 worth pushing through?', hoursAgo: 5, self: 'Everyone says it gets better in season 2. Should I skip ahead or watch it all?' },
+  { sub: 'sitcoms', title: 'Why the mockumentary format made The Office work', hoursAgo: 24 * 60, domain: 'example.org' },
+  { sub: 'antiwork', title: 'My manager runs the office like a basketball tryout', hoursAgo: 3, self: 'Every week there is a new ranking of who is “on the team”. Is this normal?' },
 ];
 
 export function docsRedditPosts(now: number = Date.now()): RedditPost[] {

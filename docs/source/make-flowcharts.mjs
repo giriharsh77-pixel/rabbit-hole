@@ -40,36 +40,37 @@ writeFileSync(
   `%% Rabbit Hole — UI flow. Paste into mermaid.live, or use FigJam's "Mermaid to FigJam" / the Figma MCP generate_diagram.
 flowchart LR
   start([User clicks the toolbar icon]) --> page{What is on the page?}
-  page -->|YouTube video / Short or Netflix title found| S1[S1 Related Reading - watching]
-  page -->|Netflix, player label hidden| S2[S2 Netflix not detected + manual search]
+  page -->|Netflix episode or movie identified| S1[S1 Watching - Discuss]
+  page -->|Netflix, player label hidden| S2[S2 Couldn't identify what's playing]
   page -->|Detection off in Settings| S3[S3 Detection switched off]
-  page -->|Reddit thread| S4[S4 Reddit thread - Find deeper reading]
-  page -->|Substack article| S5[S5 Substack article - See what Reddit thinks]
-  page -->|Any other website| S6[S6 Idle - Use this page]
+  page -->|Any other website| S4[S4 Nothing is read]
+  S2 & S3 & S4 -->|Click the search box| S5[S5 Title search - Wikidata]
+  S5 -->|Pick a title| PICK[Exploring - every tab follows]
+  S5 -->|Last row: search the words| FREE[Free-text - Discuss and Read only]
 
-  S1 -->|Tab: Trending Reddit| T[Trending Reddit]
-  S1 -->|Read on Substack| X1([Substack article in a new tab])
-  S1 -->|See what Reddit thinks| RR[What Reddit thinks]
-  S2 -->|Type title + Find related writing| L[Searching - skeleton loading]
-  S3 -->|Turn on detection| S1
-  S3 -->|Or search a topic| L
-  S6 -->|Type a topic| L
-  S6 -->|Use this page| PG[Reading - this page]
-  S4 -->|Find deeper reading| BR[Reading - from the thread]
-  S5 -->|See what Reddit thinks| RR
-  L -->|Results arrive| R[Search results]
-  R -->|Trending Reddit tab| RQ[Reddit results for the query]
-  R -->|Read on Substack| X1
-  T -->|Open Reddit| X2([Reddit thread in a new tab])
-  T -->|Find deeper reading| BR
-  T -.->|All Reddit providers fail| ERR[Error state - Try again]
-  ERR -->|Try again| T
+  S1 -->|Most relevant / Newest| DN[Discuss - newest first]
+  S1 -->|Tab| READ[Read - Substack, Medium, news]
+  S1 -->|Tab| ABOUT[About - facts, review links, cast + X / Instagram]
+  S1 -->|Tab| NEXT[Watch next - same cast and creators]
+  NEXT -->|with a TMDB key| SIM[Similar titles + On Netflix India]
+  DN -->|Find deeper reading| BR[Read - from the thread]
+  READ -->|See what Reddit thinks| RT[Discuss - what Reddit thinks]
+  READ -.->|Add news sites, once| NEWS[Chrome asks for the 22 news sites]
+  NEXT -->|Explore| PICK
+  PICK -->|x on the subject bar| S1
 
-  gear([Header gear or footer link]) --> SET[Settings]
+  S1 -->|Open Reddit| X1([Reddit thread in a new tab])
+  READ -->|Read on ...| X2([Article in a new tab])
+  ABOUT -->|IMDb, Letterboxd, RT, Wikipedia, X, Instagram| X3([Opens in a new tab])
+  NEXT -->|Find on Netflix| X4([Netflix search in a new tab])
+  S1 -.->|All Reddit providers fail| ERR[Error state - Try again]
+
+  gear([Header gear or footer link]) --> SET[Settings - Read: news sites, English only]
+  SET --> SRC[Your sources - prefer / normal / hide]
   SET --> PRIV[Privacy]
-  SET --> INT[API and Integrations]
+  SET --> RED[Reddit - Sort Discuss by]
   SET --> THEME[Appearance - Dark / Light / System]
-  expand([Header expand icon]) --> DASH[Full dashboard - two columns]
+  expand([Header expand icon]) --> DASH[Full dashboard - three columns]
 `,
 );
 writeFileSync(
@@ -78,41 +79,39 @@ writeFileSync(
 flowchart TD
   A([START: user clicks the toolbar icon]) --> B[Popup renders skeletons and opens an RPC port]
   B --> C[Background reads settings and resolves the active tab]
-  C --> D{Detection on and page supported?}
-  D -- No --> I[Idle: manual search / Use this page on click] --> CTX
+  C --> D{Detection on and a Netflix watch or title page?}
+  D -- No --> I[Nothing is read: notice points to the title search] --> TS
   D -- Yes --> E[Content script reads the page once]
-  E --> F{Metadata identified?}
-  F -- No --> U[Could not identify + manual search box] --> CTX
-  F -- Yes --> G[Topic, entity and keyword extraction + concept expansion]
-  G --> H[Build ContentContext and 3-5 queries] --> CTX[/ContentContext or manual query/]
+  E --> F{Title identified?}
+  F -- No --> U[Could not identify what is playing] --> TS
+  F -- Yes --> G[Topics, entities and queries from title, episode, genres, cast]
+  G --> W[Resolve the exact title on Wikidata: name, kind, catalogue tag, year, cast]
+  TS[Title search: Wikidata movies and series, pick one] --> SUBJ
+  W --> SUBJ[/Subject: one exact movie or show/]
 
-  CTX --> L1[Generate focused queries]
-  L1 --> L2{Search provider configured?}
-  L2 -- Yes --> L3[Query search API with site:substack.com]
-  L2 -- No --> L4[Read curated Substack RSS feeds]
-  L3 --> L5[Merge, validate, de-duplicate]
-  L4 --> L5
-  L5 --> L6[Relevance 0-100: semantic .45, keyword .20, entity .15, recency .10, source .10]
-  L6 --> L7{AI layer enabled?}
-  L7 -- Yes --> L8[LLM judges relevance and writes why-relevant]
-  L7 -- No --> L9[Template explanation from matched topics]
-  L8 --> L10[Min relevance, diversity cap, limit N]
-  L9 --> L10 --> L11[/Render article cards/]
+  SUBJ --> A1[Discuss: own subreddit, TV/film subs, all of Reddit]
+  A1 --> A2{Most relevant or newest?}
+  A2 --> A3[Provider chain: OAuth, public JSON, Atom feed]
+  A3 --> A4[Keep only threads about the show]
+  A4 --> A5[/Thread cards/]
 
-  CTX --> R1{Fresh cache under 5 min?}
-  R1 -- Yes --> R2[Serve cached threads, re-rank]
-  R1 -- No --> R3[Provider chain: OAuth, public JSON, Atom feed]
-  R3 --> R4{Any provider succeeded?}
-  R4 -- No --> R5[Stale cache flagged or friendly error] --> R9
-  R4 -- Yes --> R6[Merge, drop NSFW, measure growth delta]
-  R2 --> R7
-  R6 --> R7[Trending score = recency x velocity x comments x popularity x growth]
-  R7 --> R8[Hot / Rising / Discussed / Across] --> R9[/Render thread cards/]
+  SUBJ --> B1[Read: Substack, Medium, news feeds, NYT / Guardian]
+  B1 --> B2[Your sources: hide, prefer, only preferred, English only]
+  B2 --> B3[Relevance 0-100 and why-relevant] --> B4[/Article cards/]
 
-  L11 --> N{What next?}
-  R9 --> N
-  N -->|Open article or thread| E1([END: new tab])
-  N -->|Find deeper reading / See what Reddit thinks / new search| CTX
+  SUBJ --> C1[About: Wikidata facts, cast + X / Instagram, review links]
+  C1 --> C2{Backend with TMDB / OMDb keys?}
+  C2 -- Yes --> C3[Ratings, viewer reviews, On Netflix India] --> C4[/About/]
+  C2 -- No --> C4
+
+  SUBJ --> D1[Watch next: same cast, same creator]
+  D1 --> D2{Backend with a TMDB key?}
+  D2 -- Yes --> D3[TMDB similar titles + Netflix India] --> D4[Filters: type, decade, sort, Netflix India]
+  D2 -- No --> D4 --> D5[/Picks with the real link/]
+
+  A5 & B4 & C4 & D5 --> N{What next?}
+  N -->|Open a link| E1([END: new tab])
+  N -->|Explore, pick another title, bridges, sort| SUBJ
   N -->|Close popup| E2([END: requests cancelled])
 `,
 );

@@ -15,31 +15,30 @@ function card(d, id, x, y, w, h, title, body, { fill = T.surface, stroke = T.ink
 export function architectureDiagram() {
   const d = new Diagram(ARCH_SIZE.w, ARCH_SIZE.h);
   d.text(40, 34, 'Rabbit Hole — system architecture', { size: 30, weight: 700 });
-  d.text(40, 76, 'Manifest V3 · all network access lives in the background worker · pages and content scripts never talk to the internet', { size: 15, fill: T.ink2 });
+  d.text(40, 76, 'Manifest V3 · Netflix is the only page ever read · all network access lives in the background worker · API keys only on the optional backend', { size: 15, fill: T.ink2 });
 
   // ── column 1: browser tabs ────────────────────────────────────────────────
-  d.frame(40, 120, 380, 1000, 'Browser tabs', { fill: '#faf9f6' });
-  const pages = [
-    ['YouTube', 'watch pages and Shorts', 'content/youtube.ts'],
-    ['Netflix', 'watch and title pages', 'content/netflix.ts'],
-    ['Reddit', 'thread pages', 'content/reddit.ts'],
-    ['Substack', '*.substack.com articles', 'content/generic.ts (static)'],
-    ['Any other website', 'read only after “Use this page”', 'content/generic.ts (on demand)'],
-  ];
-  pages.forEach(([name, sub, script], i) => {
-    const y = 170 + i * 188;
-    d.registerNode(`page${i}`, 70, y, 320, 160);
-    d.rect(70, y, 320, 160, { rx: 12, fill: T.surface, stroke: T.border, sw: 1.5 });
-    d.text(90, y + 16, name, { size: 17, weight: 700 });
-    d.text(90, y + 44, sub, { size: 12.5, fill: T.ink2 });
-    d.rect(90, y + 76, 280, 62, { rx: 9, fill: T.accentSoft, stroke: T.accent, sw: 1.2 });
-    d.text(104, y + 86, script, { size: 12.5, weight: 600, fill: T.accent });
-    d.text(104, y + 108, i === 4 ? 'injected via activeTab + scripting' : 'idle: answers one message, no observers', { size: 11, fill: T.ink2 });
-  });
+  d.frame(40, 120, 380, 1080, 'Browser tabs', { fill: '#faf9f6' });
+  d.registerNode('page0', 70, 170, 320, 210);
+  d.rect(70, 170, 320, 210, { rx: 12, fill: T.surface, stroke: T.border, sw: 1.5 });
+  d.text(90, 186, 'Netflix', { size: 17, weight: 700 });
+  d.text(90, 214, 'watch pages (episode / movie) and title pages', { size: 12.5, fill: T.ink2, maxWidth: 280 });
+  d.rect(90, 262, 280, 96, { rx: 9, fill: T.accentSoft, stroke: T.accent, sw: 1.2 });
+  d.text(104, 272, 'content/netflix.ts', { size: 12.5, weight: 600, fill: T.accent });
+  d.text(104, 294, 'idle until asked; reads the player label, JSON-LD and Media Session once — never the video or DRM', { size: 11, fill: T.ink2, maxWidth: 255 });
+
+  d.rect(70, 410, 320, 170, { rx: 12, fill: '#f6f5f2', stroke: T.border, sw: 1.5, dash: '6 5' });
+  d.text(90, 426, 'Every other website', { size: 17, weight: 700, fill: T.ink2 });
+  d.text(90, 456, 'YouTube, Reddit, Substack, your bank… — never read. No content script runs there and the extension cannot even see those tabs’ URLs (verified in real Chrome).', { size: 12.5, fill: T.ink3, maxWidth: 280 });
+
+  d.rect(70, 610, 320, 250, { rx: 12, fill: T.surface, stroke: T.border, sw: 1.5 });
+  d.text(90, 626, 'Off Netflix', { size: 17, weight: 700 });
+  d.text(90, 656, 'The title search in the popup (“Search a movie or show…”) makes every tab work for any title — nothing from the page is needed.', { size: 12.5, fill: T.ink2, maxWidth: 280 });
+  d.text(90, 760, 'Results open in new tabs: Reddit threads, articles, IMDb / Letterboxd / Rotten Tomatoes, X / Instagram, Netflix search.', { size: 12, fill: T.ink3, maxWidth: 280 });
 
   // ── column 2 top: extension pages ─────────────────────────────────────────
   d.frame(500, 120, 760, 190, 'Extension pages (React 19 · TypeScript · plain CSS)', { fill: T.coolSoft, stroke: T.cool });
-  [['Popup', '480 × 600 · tabs · search · cards'], ['Dashboard', 'same app in a tab · two columns'], ['Settings', 'privacy · keys · data · theme']].forEach(([t, b], i) => {
+  [['Popup', '480 × 600 · title search · Discuss · Read · About · Watch next'], ['Dashboard', 'same app in a tab · three columns when wide'], ['Settings', 'privacy · your sources · Discuss sort · keys · data']].forEach(([t, b], i) => {
     const x = 520 + i * 245;
     d.rect(x, 168, 225, 112, { rx: 12, fill: T.surface, stroke: T.cool, sw: 1.5 });
     d.text(x + 16, 182, t, { size: 16, weight: 700 });
@@ -47,37 +46,38 @@ export function architectureDiagram() {
   });
 
   // ── column 2: background service worker ──────────────────────────────────
-  d.frame(500, 370, 760, 600, 'Background service worker (Manifest V3, ES module)', { fill: '#fbfaf8' });
-  d.registerNode('rpc', 520, 410, 720, 78);
-  d.rect(520, 410, 720, 78, { rx: 12, fill: T.dark, stroke: T.dark });
-  d.text(542, 424, 'RPC server — typed messages over a chrome.runtime port', { size: 15, weight: 700, fill: '#fff' });
-  d.text(542, 450, 'cancellable · aborts work when the page closes · accepts connections from the extension’s own pages only', { size: 12.5, fill: '#cfcfd6' });
+  d.frame(500, 340, 760, 650, 'Background service worker (Manifest V3, ES module)', { fill: '#fbfaf8' });
+  d.registerNode('rpc', 520, 380, 720, 70);
+  d.rect(520, 380, 720, 70, { rx: 12, fill: T.dark, stroke: T.dark });
+  d.text(542, 392, 'RPC server — typed messages over a chrome.runtime port', { size: 15, weight: 700, fill: '#fff' });
+  d.text(542, 418, 'cancellable · aborts work when the page closes · accepts the extension’s own pages only', { size: 12.5, fill: '#cfcfd6' });
 
-  const L = 520, R = 890, W = 350, H = 100;
-  card(d, 'ctxm', L, 508, W, H, 'ContextManager', 'active tab → content script → ContentContext; per-tab RAM cache, dropped on navigation', { accent: T.accent });
-  card(d, 'pipe', L, 618, W, H, 'Context pipeline', 'platform → metadata → topics → entities → concept expansion → search queries', { accent: T.accent });
-  card(d, 'cache', L, 728, W, H, 'CacheService', 'TTL 5 / 10 / 30 min · stale-if-error · in-flight de-duplication · ref-counted cancel', { accent: T.good });
-  card(d, 'sets', L, 838, W, H, 'Settings & Secrets', 'validated preferences; API keys are write-only (masked status only)', { accent: T.good });
+  const L = 520, R = 890, W = 350, H = 92, Y = (i) => 468 + i * 102;
+  card(d, 'ctxm', L, Y(0), W, H, 'ContextManager', 'Netflix tab → content script → ContentContext; per-tab RAM cache, dropped on navigation', { accent: T.accent });
+  card(d, 'pipe', L, Y(1), W, H, 'Context pipeline', 'title → topics → entities → concepts → focused search queries', { accent: T.accent });
+  card(d, 'cache', L, Y(2), W, H, 'CacheService', 'TTLs 5 min – 24 h · stale-if-error · in-flight de-duplication · ref-counted cancel', { accent: T.good });
+  card(d, 'sets', L, Y(3), W, H, 'Settings & Secrets', 'validated preferences (sources, sort…); keys write-only; news permission sync', { accent: T.good });
+  card(d, 'ai', L, Y(4), W, H, 'AiService (optional, opt-in)', 'topics, queries, relevance judging; structured JSON — via the backend or your key', { accent: T.cool });
 
-  card(d, 'reddit', R, 508, W, H, 'RedditService', 'providers: OAuth → public JSON → Atom feed · circuit breaker · snapshots Δ · trending score', { accent: T.cool });
-  card(d, 'sub', R, 618, W, H, 'SubstackService', 'search API / backend / RSS feeds → merge & validate → relevance score → diversity', { accent: T.cool });
-  card(d, 'ai', R, 728, W, H, 'AiService (optional, opt-in)', 'topics, queries, relevance judging; structured JSON; refusal fallbacks', { accent: T.cool });
-  card(d, 'bc', R, 838, W, H, 'Backend client', 'uses the optional proxy so keys never live in the extension', { accent: T.cool });
-  d.text(520, 944, '+ tab tracker · ● toolbar badge · refresh alarm (only while the extension is in use)', { size: 11.5, fill: T.ink3 });
+  card(d, 'reddit', R, Y(0), W, H, 'RedditService — Discuss', 'own subreddit → TV/film subs → all Reddit · “about the show” filter · relevant / newest', { accent: T.cool });
+  card(d, 'title', R, Y(1), W, H, 'TitleService (Wikidata)', 'title search · exact-title resolve · cast in billing order · ids · Watch next links', { accent: T.accent });
+  card(d, 'sub', R, Y(2), W, H, 'Read discovery + NewsProvider', 'Substack · Medium · 22 news feeds · NYT / Guardian → your sources → relevance', { accent: T.cool });
+  card(d, 'bc', R, Y(3), W, H, 'Backend client', 'ratings, reviews, similar titles, Netflix India, press archives — re-validated', { accent: T.cool });
+  card(d, 'badge', R, Y(4), W, H, 'Tab tracker', '● toolbar badge on Netflix watch pages; per-tab context dropped when a tab navigates', { accent: T.good });
 
   // ── column 2 bottom: storage ──────────────────────────────────────────────
   d.frame(500, 1010, 760, 190, 'Storage (local to this browser)', { fill: '#faf9f6' });
   d.node('local', 'store', 530, 1056, 330, 124, 'chrome.storage.local', { fill: T.surface, size: 14, weight: 700, sub: 'settings · API keys you add (never synced)' });
-  d.node('session', 'store', 900, 1056, 330, 124, 'chrome.storage.session', { fill: T.surface, size: 14, weight: 700, sub: 'RAM-only caches & snapshots (wiped on exit)' });
+  d.node('session', 'store', 900, 1056, 330, 124, 'chrome.storage.session', { fill: T.surface, size: 14, weight: 700, sub: 'RAM-only caches (wiped on exit)' });
 
   // ── column 3: external services ───────────────────────────────────────────
-  d.frame(1380, 120, 380, 1080, 'External services (HTTPS + host permissions)', { fill: T.warnSoft, stroke: T.warn });
+  d.frame(1380, 120, 380, 1080, 'External services (HTTPS)', { fill: T.warnSoft, stroke: T.warn });
   const ext = [
     ['Reddit', 'OAuth API (client id) · public JSON · official Atom feeds', 'ext0'],
-    ['Substack', 'publication RSS feeds (newest 12 items) · article pages open in a new tab', 'ext1'],
-    ['Brave Search API', 'site:substack.com queries — key in Settings or on the backend', 'ext2'],
-    ['Anthropic API (optional)', 'claude-opus-5-5 by default; topics, judging, explanations', 'ext3'],
-    ['Backend proxy (optional)', 'Cloudflare Worker / Node. Holds the Brave + Anthropic keys, validates, rate-limits', 'ext4'],
+    ['Wikidata', 'wbsearchentities / wbgetentities API + SPARQL query service · keyless, CC0', 'ext1'],
+    ['Substack · Medium', 'publication RSS (curated, newest 12) · Medium tag feeds', 'ext2'],
+    ['News outlets (opt-in)', '22 sites’ RSS — Indian Express, HT, The Hindu, NYT, Guardian, Variety… · optional permission', 'ext3'],
+    ['Backend proxy (optional)', 'Cloudflare Worker / Node holding the keys: TMDB · OMDb · NYT · Guardian · Brave · Anthropic', 'ext4'],
   ];
   ext.forEach(([t, b, id], i) => {
     const y = 170 + i * 200;
@@ -88,31 +88,31 @@ export function architectureDiagram() {
   });
 
   // ── arrows ────────────────────────────────────────────────────────────────
-  // content scripts <-> ContextManager
-  d.polyline([[420, 536], [520, 536]], { stroke: T.accent });
-  d.polyline([[520, 580], [420, 580]], { stroke: T.good });
-  d.label(462, 508, 'tabs.sendMessage\n“rh/extract”', { size: 10.5, fill: T.accent, maxWidth: 90, bg: '#faf9f6' });
-  d.label(462, 612, 'RawPage-\nMetadata', { size: 10.5, fill: T.good, maxWidth: 80, bg: '#faf9f6' });
+  d.polyline([[390, 300], [455, 300], [455, Y(0) + 30], [520, Y(0) + 30]], { stroke: T.accent });
+  d.polyline([[520, Y(0) + 64], [440, Y(0) + 64], [440, 330], [390, 330]], { stroke: T.good });
+  d.label(455, 254, 'rh/extract', { size: 10.5, fill: T.accent, maxWidth: 90, bg: '#faf9f6' });
+  d.label(440, 390, 'RawPage-\nMetadata', { size: 10.5, fill: T.good, maxWidth: 80, bg: '#faf9f6' });
 
   // pages <-> rpc
-  d.polyline([[1010, 310], [1010, 410]], { stroke: T.cool });
-  d.polyline([[1040, 410], [1040, 310]], { stroke: T.cool });
-  d.label(1180, 360, 'typed RPC (port)', { size: 11, fill: T.cool, maxWidth: 140, bg: '#fff' });
-  d.polyline([[880, 488], [880, 508]], { stroke: T.line, arrow: false });
+  d.polyline([[1010, 310], [1010, 380]], { stroke: T.cool });
+  d.polyline([[1040, 380], [1040, 310]], { stroke: T.cool });
+  d.label(1130, 325, 'typed RPC (port)', { size: 11, fill: T.cool, maxWidth: 140, bg: '#fff' });
 
-  // services -> externals
-  d.edge('reddit', 'right', 'ext0', 'left', { via: [[1300, 558], [1300, 255]], stroke: T.cool });
-  d.edge('sub', 'right', 'ext1', 'left', { via: [[1320, 650], [1320, 455]], stroke: T.cool, offsetFrom: -12 });
-  d.edge('sub', 'right', 'ext2', 'left', { via: [[1340, 690], [1340, 655]], stroke: T.cool, offsetFrom: 14 });
-  d.edge('ai', 'right', 'ext3', 'left', { via: [[1300, 778], [1300, 855]], stroke: T.cool });
-  d.edge('bc', 'right', 'ext4', 'left', { via: [[1320, 888], [1320, 1055]], stroke: T.cool });
-  d.label(1300, 405, 'fetch (HTTPS)', { size: 10.5, fill: T.cool, bg: '#fff', maxWidth: 80 });
+  // services -> externals (one lane each, no crossings)
+  d.edge('reddit', 'right', 'ext0', 'left', { via: [[1290, Y(0) + 46], [1290, 255]], stroke: T.cool });
+  d.edge('title', 'right', 'ext1', 'left', { via: [[1305, Y(1) + 46], [1305, 455]], stroke: T.accent });
+  d.edge('sub', 'right', 'ext2', 'left', { via: [[1320, Y(2) + 32], [1320, 655]], stroke: T.cool, offsetFrom: -14 });
+  d.edge('sub', 'right', 'ext3', 'left', { via: [[1335, Y(2) + 60], [1335, 855]], stroke: T.cool, offsetFrom: 14 });
+  d.edge('bc', 'right', 'ext4', 'left', { via: [[1350, Y(3) + 46], [1350, 1040]], stroke: T.cool });
+  d.edge('ai', 'left', 'ext4', 'bottom', { via: [[470, Y(4) + 46], [470, 1235], [1570, 1235]], stroke: T.cool, dash: '5 4' });
+  d.label(1000, 1235, 'AI layer: through the backend, or the user’s own key', { size: 10.5, fill: T.cool, bg: '#fff', maxWidth: 320 });
+  d.label(1300, 345, 'fetch (HTTPS)', { size: 10.5, fill: T.cool, bg: '#fff', maxWidth: 80 });
 
   // storage
-  d.polyline([[690, 970], [690, 1056]], { stroke: T.good });
-  d.polyline([[1060, 970], [1060, 1056]], { stroke: T.good });
-  d.label(690, 1006, 'settings · keys', { size: 10.5, fill: T.good, bg: '#fbfaf8', maxWidth: 120 });
-  d.label(1060, 1006, 'caches · snapshots', { size: 10.5, fill: T.good, bg: '#fbfaf8', maxWidth: 130 });
+  d.polyline([[620, 990], [620, 1056]], { stroke: T.good });
+  d.polyline([[1100, 990], [1100, 1056]], { stroke: T.good });
+  d.label(620, 1000, 'settings · keys', { size: 10.5, fill: T.good, bg: '#fff', maxWidth: 120 });
+  d.label(1100, 1000, 'caches', { size: 10.5, fill: T.good, bg: '#fff', maxWidth: 130 });
 
   return d;
 }

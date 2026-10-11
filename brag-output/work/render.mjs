@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const FPS = 30, END = 23.0, W = 1920, H = 1080;
+const FPS = 30, END = 24.0, W = 1920, H = 1080;
 const [mode = 'stills', arg] = process.argv.slice(2);
 
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.png': 'image/png', '.wav': 'audio/wav' };

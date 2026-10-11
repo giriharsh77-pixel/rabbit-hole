@@ -10,13 +10,13 @@ import numpy as np
 from scipy import signal as sg
 
 SR = 48000
-DUR = 23.0
+DUR = 24.0
 N = int(SR * DUR)
 BEAT = 0.5
 rng = np.random.default_rng(7)
 
-# scene starts (must match composition.html)
-S2, S3, S4, S5, S6, S7 = 2.5, 5.5, 10.0, 13.5, 17.0, 19.5
+# scene starts (must match composition.html T = {...})
+S2, S3, S4, S5, S6, S7, S8 = 2.5, 5.0, 8.5, 12.0, 15.0, 18.0, 20.5
 
 
 def mtof(m):
@@ -106,9 +106,9 @@ CH = {  # pad voicing (no root; the bass carries it), bass root, arp tones
     'G': ([62, 67, 71, 74], 31, [74, 79, 83, 86]),
 }
 BARS = [('D', 0, 2), ('D', 2, 4), ('A', 4, 6), ('Bm', 6, 8), ('G', 8, 10), ('D', 10, 12), ('A', 12, 14),
-        ('Bm', 14, 16), ('G', 16, 18), ('A', 18, S7), ('D', S7, DUR)]
-GROOVE = (2.0, S6)            # drums + bass
-KICKS = [k * BEAT for k in range(int(GROOVE[0] / BEAT), int(GROOVE[1] / BEAT))] + [S7]
+        ('Bm', 14, 16), ('G', 16, 18), ('A', 18, S8), ('D', S8, DUR)]
+GROOVE = (2.0, S7)            # drums + bass; the title-search scene is the breakdown
+KICKS = [k * BEAT for k in range(int(GROOVE[0] / BEAT), int(GROOVE[1] / BEAT))] + [S8]
 
 music, sfx, send = Bus(), Bus(), Bus()
 
@@ -156,7 +156,7 @@ for name, a, b in BARS:
         f = mtof(m)
         x = (np.sin(2 * np.pi * f * tt(n)) * 0.7 + sg.sawtooth(2 * np.pi * f * tt(n), 0.5) * 0.3) * expdec(n, 0.07)
         vel = 0.75 + 0.25 * ((s % 4) == 0)
-        if S6 <= t0 < S7:
+        if S7 <= t0 < S8:
             vel *= 0.6
         arp.add(t0, x * vel, pan=-0.45 if s % 2 else 0.45)
 arpx = lp(arp.x, 7500)
@@ -177,7 +177,7 @@ for name, a, b in BARS:
         x = np.sin(2 * np.pi * f * tt(n)) + 0.35 * lp(saw(f * 2, n), 900)
         music.add(t0, x * env(n, 0.004, 0.08, 0.6, 0.08), gain=0.21)
 n = int(3.4 * SR)
-music.add(S7, np.sin(2 * np.pi * mtof(38) * tt(n)) * env(n, 0.01, 0.4, 0.5, 2.6), gain=0.26)
+music.add(S8, np.sin(2 * np.pi * mtof(38) * tt(n)) * env(n, 0.01, 0.4, 0.5, 2.6), gain=0.26)
 
 # drums
 def kick(gain=1.0):
@@ -215,10 +215,10 @@ for k in range(int(GROOVE[0] / BEAT), int(GROOVE[1] / BEAT)):
     music.add(t0 + BEAT / 2, hat(open_=(k % 4 == 3)), gain=0.11, pan=0.25)
     for q in (1, 3):  # quiet 16th shaker, slightly swung
         music.add(t0 + q * BEAT / 4 + 0.012, hat(), gain=0.04, pan=-0.3)
-# little fills before the tab click and the bridge
-for t0 in (S4 - 0.375, S4 - 0.25, S4 - 0.125, S5 - 0.25, S5 - 0.125):
+# little fills before each tab click
+for t0 in (S4 - 0.375, S4 - 0.25, S4 - 0.125, S5 - 0.25, S5 - 0.125, S6 - 0.375, S6 - 0.25, S6 - 0.125):
     music.add(t0, clap(), gain=0.09, pan=-0.1)
-music.add(S7, kick(), gain=0.62)
+music.add(S8, kick(), gain=0.62)
 
 # ── SFX (pitched into D major, tucked under the music) ───────────────────────
 def boom(f0=73.4, length=1.4):
@@ -278,38 +278,49 @@ sfx.add(S2 - 0.47, whoosh(0.5, 0.0, 0.0), gain=0.22)
 sfx.add(S2, boom(55.0, 1.0), gain=0.35)
 imp = lp(rng.standard_normal(int(0.9 * SR)), 2500) * expdec(int(0.9 * SR), 0.12)
 send.add(S2, imp, gain=0.10)
-# reveal: chips
-for i, m in enumerate((74, 78, 81)):
-    sfx.add(S2 + 0.8 + i * 0.14, blip(m), gain=0.10, pan=-0.2 + 0.2 * i)
-    send.add(S2 + 0.8 + i * 0.14, blip(m), gain=0.05)
-# relevance sparkle
-for i, m in enumerate((81, 86, 90)):
-    sfx.add(S3 + 1.25 + i * 0.05, bell(m, 1.0), gain=0.07, pan=0.3)
-    send.add(S3 + 1.25 + i * 0.05, bell(m, 1.0), gain=0.07)
-# tab click + content swap
+# reveal: subject bar + chips
+for i, m in enumerate((74, 78, 81, 86)):
+    sfx.add(S2 + 0.85 + i * 0.13, blip(m), gain=0.09, pan=-0.3 + 0.2 * i)
+    send.add(S2 + 0.85 + i * 0.13, blip(m), gain=0.05)
+# discuss: the show's own subreddit lights up, then "Newest"
+sfx.add(S3 + 0.7, bell(81, 0.9), gain=0.06, pan=0.2)
+send.add(S3 + 0.7, bell(81, 0.9), gain=0.06)
+sfx.add(S3 + 2.3, click(), gain=0.2, pan=0.15)
+sfx.add(S3 + 2.34, whoosh(0.28, 0.3, -0.3), gain=0.06)
+# read: tab click, relevance sparkle
 sfx.add(S4 - 0.03, click(), gain=0.22, pan=0.1)
 sfx.add(S4 + 0.02, whoosh(0.32, 0.4, -0.4), gain=0.08)
-# section chips tick up the pentatonic
-for i, m in enumerate((86, 88, 90, 93)):
-    sfx.add(S4 + 1.75 + i * 0.32, blip(m, 0.18), gain=0.09, pan=-0.3 + 0.2 * i)
-    send.add(S4 + 1.75 + i * 0.32, blip(m, 0.18), gain=0.05)
-sfx.add(S4 + 2.95, bell(85, 0.8), gain=0.05, pan=0.2)
-# bridge
-sfx.add(S5 - 0.22, whoosh(0.42, -0.7, 0.7), gain=0.16)
-sfx.add(S5 + 1.02, click(), gain=0.22, pan=0.15)
-sfx.add(S5 + 1.06, whoosh(0.34, 0.3, -0.3), gain=0.10)
-# privacy: breakdown, bell on the footer, riser into the outro
-sfx.add(S6 + 0.45, bell(74, 1.6), gain=0.07)
-send.add(S6 + 0.45, bell(74, 1.6), gain=0.08)
-sfx.add(S7 - 1.0, noise_sweep(0.98, 300, 7000, 'rise'), gain=0.10)
+for i, m in enumerate((81, 86, 90)):
+    sfx.add(S4 + 1.45 + i * 0.05, bell(m, 1.0), gain=0.07, pan=0.3)
+    send.add(S4 + 1.45 + i * 0.05, bell(m, 1.0), gain=0.07)
+# about: tab click, social buttons tick up the pentatonic
+sfx.add(S5 - 0.03, click(), gain=0.22, pan=0.1)
+sfx.add(S5 + 0.02, whoosh(0.32, 0.4, -0.4), gain=0.08)
+for i, m in enumerate((78, 81, 83, 86, 88, 90)):
+    sfx.add(S5 + 1.3 + i * 0.11, blip(m, 0.18), gain=0.075, pan=-0.3 + 0.12 * i)
+    send.add(S5 + 1.3 + i * 0.11, blip(m, 0.18), gain=0.04)
+# watch next: tab click, two soft bells on the real links
+sfx.add(S6 - 0.03, click(), gain=0.22, pan=0.1)
+sfx.add(S6 + 0.02, whoosh(0.32, 0.4, -0.4), gain=0.08)
+for i, m in enumerate((86, 90)):
+    sfx.add(S6 + 1.4 + i * 0.45, bell(m, 0.9), gain=0.055, pan=-0.2 + 0.4 * i)
+    send.add(S6 + 1.4 + i * 0.45, bell(m, 0.9), gain=0.05)
+# search: breakdown — whoosh in, soft typing, the dropdown chime
+sfx.add(S7 - 0.22, whoosh(0.42, -0.7, 0.7), gain=0.14)
+for i in range(9):
+    tk = bp(rng.standard_normal(int(0.03 * SR)), 2500, 7000) * expdec(int(0.03 * SR), 0.004)
+    sfx.add(S7 + 0.36 + i * 0.072 + 0.01 * ((i * 7) % 3), tk, gain=0.07, pan=0.15)
+sfx.add(S7 + 1.05, blip(86, 0.3), gain=0.08)
+send.add(S7 + 1.05, bell(86, 1.4), gain=0.07)
+sfx.add(S8 - 1.0, noise_sweep(0.98, 300, 7000, 'rise'), gain=0.10)
 # outro hit
-sfx.add(S7, boom(73.4, 2.6), gain=0.32)
+sfx.add(S8, boom(73.4, 2.6), gain=0.32)
 cr = hp(rng.standard_normal(int(2.6 * SR)), 4500) * expdec(int(2.6 * SR), 0.6)
-send.add(S7, cr, gain=0.05)
-sfx.add(S7, cr, gain=0.03)
+send.add(S8, cr, gain=0.05)
+sfx.add(S8, cr, gain=0.03)
 for i, m in enumerate((86, 93)):
-    sfx.add(S7 + 0.02 + i * 0.07, bell(m, 2.2), gain=0.08, pan=-0.2 + 0.4 * i)
-    send.add(S7 + 0.02 + i * 0.07, bell(m, 2.2), gain=0.08)
+    sfx.add(S8 + 0.02 + i * 0.07, bell(m, 2.2), gain=0.08, pan=-0.2 + 0.4 * i)
+    send.add(S8 + 0.02 + i * 0.07, bell(m, 2.2), gain=0.08)
 sfx.x *= np.clip(1 - 0.0 * duck, 0, 1)[:, None]
 
 # ── mix & master ──────────────────────────────────────────────────────────────

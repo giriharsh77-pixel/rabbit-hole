@@ -100,6 +100,7 @@ export class RedditService {
   ): Promise<{ value: T; provider: RedditProvider; degradedFrom: NonNullable<RedditFetchMeta['degradedFrom']> }> {
     const degradedFrom: NonNullable<RedditFetchMeta['degradedFrom']> = [];
     let firstError: AppError | undefined;
+    let rateLimited: AppError | undefined;
     const now = this.now();
 
     for (const provider of providers) {
@@ -107,6 +108,7 @@ export class RedditService {
       if (open && open.until > now) {
         degradedFrom.push({ provider: provider.id, code: open.error.code });
         firstError ??= open.error;
+        if (open.error.code === 'RATE_LIMITED') rateLimited ??= open.error;
         continue;
       }
       try {
@@ -121,9 +123,12 @@ export class RedditService {
         if (appErr.code !== 'TIMEOUT') this.trip(provider.id, appErr);
         degradedFrom.push({ provider: provider.id, code: appErr.code });
         firstError ??= appErr;
+        if (appErr.code === 'RATE_LIMITED') rateLimited ??= appErr;
       }
     }
-    throw firstError ?? new AppError('UNAVAILABLE', 'No Reddit provider is available', { provider: 'reddit' });
+    // A temporary rate limit is the more useful thing to tell the user ("wait a minute")
+    // than an earlier provider's permanent block, which the fallback already worked around.
+    throw rateLimited ?? firstError ?? new AppError('UNAVAILABLE', 'No Reddit provider is available', { provider: 'reddit' });
   }
 
   // ─── search ───────────────────────────────────────────────────────────────
@@ -220,9 +225,11 @@ export class RedditService {
         const providers = await this.providers(settings);
         const { value, provider, degradedFrom } = await this.runChain(providers, async (p) => {
           // one failing scope (e.g. a private subreddit) shouldn't sink the others
-          const settled = await Promise.allSettled(plan.map(({ label: _label, ...req }) => p.search({ ...req, limit: 15 }, signal)));
+          // Two at a time, best scope first, and stop as soon as Reddit pushes back:
+          // a burst of four is exactly what trips its rate limit.
+          const settled = await settleLimited(plan.map(({ label: _label, ...req }) => () => p.search({ ...req, limit: 15 }, signal)), 2);
           const lists = settled.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
-          if (lists.length === 0) throw (settled[0] as PromiseRejectedResult).reason;
+          if (lists.length === 0) throw (settled.find((r): r is PromiseRejectedResult => r.status === 'rejected'))?.reason;
           return lists;
         });
         let posts = mergePosts(value).filter((p) => !p.stickied);
@@ -250,6 +257,30 @@ export class RedditService {
       searched: [...new Set(plan.map((q) => q.query.replace(/^subreddit:\S+$/, 'top threads').replace(/["“”]/g, '')))],
     };
   }
+}
+
+/**
+ * Runs `jobs` at most `limit` at a time, in order. After a rate limit, block or
+ * cancellation no further jobs start — the results so far are kept.
+ */
+export async function settleLimited<T>(jobs: (() => Promise<T>)[], limit: number): Promise<PromiseSettledResult<T>[]> {
+  const out: PromiseSettledResult<T>[] = [];
+  let next = 0;
+  let stop = false;
+  const worker = async () => {
+    while (!stop && next < jobs.length) {
+      const i = next++;
+      try {
+        out[i] = { status: 'fulfilled', value: await jobs[i]!() };
+      } catch (reason) {
+        out[i] = { status: 'rejected', reason };
+        const code = toAppError(reason).code;
+        if (code === 'RATE_LIMITED' || code === 'BLOCKED' || code === 'UNAUTHORIZED' || code === 'ABORTED') stop = true;
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, jobs.length) }, worker));
+  return out.filter(Boolean);
 }
 
 /**

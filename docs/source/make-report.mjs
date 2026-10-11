@@ -35,17 +35,22 @@ const perFile = vt.testResults.map((r) => ({ file: r.name.split('/tests/')[1], n
 const manifest = JSON.parse(readFileSync(join(root, 'dist', 'manifest.json'), 'utf8'));
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const seeds = JSON.parse(readFileSync(join(root, 'src/services/substack/seeds.json'), 'utf8')).publications.length;
-const origins = manifest.optional_host_permissions.filter((o) => !/brave|anthropic/.test(o)).length;
+const outletList = JSON.parse(readFileSync(join(root, 'src/services/news/outlets.json'), 'utf8')).outlets;
+const outlets = outletList.length;
+const outletHosts = new Set(outletList.flatMap((o) => [...o.feeds, ...Object.values(o.topic ?? {})].map((u) => `${new URL(u.replace('{slug}', 'x')).origin}/*`)));
+const optional = manifest.optional_host_permissions.filter((o) => !/brave|anthropic/.test(o));
+const newsOrigins = optional.filter((o) => outletHosts.has(o)).length;
+const customOrigins = optional.length - newsOrigins;
 const dirSize = (d) => readdirSync(d).reduce((a, n) => a + (statSync(join(d, n)).isDirectory() ? dirSize(join(d, n)) : statSync(join(d, n)).size), 0);
 const bundle = { total: `${Math.round(dirSize(join(root, 'dist')) / 1024)} KB` };
-let e2e = 28;
+let e2e = 31;
 try {
   e2e = JSON.parse(readFileSync(join(tmpdir(), 'rabbit-hole-e2e', 'report.json'), 'utf8')).filter((r) => r.pass).length;
 } catch {
   /* keep the documented count */
 }
 const dateLong = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-const facts = { tests: vt.numTotalTests, files: vt.testResults.length, e2e, perFile, manifest, pkg, seeds, origins, bundle, dateLong };
+const facts = { tests: vt.numTotalTests, files: vt.testResults.length, e2e, perFile, manifest, pkg, seeds, outlets, newsOrigins, customOrigins, bundle, dateLong };
 
 // ── diagrams ─────────────────────────────────────────────────────────────────
 const readSvg = (name) => readFileSync(join(root, 'docs', 'flowcharts', `${name}.svg`), 'utf8');
@@ -53,7 +58,7 @@ const crop = (svg, x, y, w, h) =>
   svg.replace(/<svg([^>]*?) width="\d+" height="\d+" viewBox="[^"]*"/, `<svg$1 width="100%" viewBox="${x} ${y} ${w} ${h}" preserveAspectRatio="xMidYMid meet"`);
 const project = readSvg('project-flowchart');
 const arch = readSvg('system-architecture');
-const UI_W = 2780;
+const UI_W = 2780; // docs/flowcharts/figma-ui-flow.svg is 2780 × 3020
 /** Crop a region of the UI-flow SVG using an <img> offset (keeps the embedded images shared & vector text crisp). */
 const uiCrop = (x, y, w, h, widthMm, cls = '') => {
   const s = widthMm / w; // mm per svg px
@@ -201,11 +206,11 @@ function subHtml(sec) {
 
 function build(pageMap = {}) {
   const diagrams = {
-    '{{FLOW_FULL}}': crop(project, 0, 110, 2260, 2650),
-    '{{FLOW_P1}}': crop(project, 760, 105, 1440, 1107),
-    '{{FLOW_P2}}': crop(project, 10, 1272, 950, 1190),
-    '{{FLOW_P3}}': crop(project, 1060, 1272, 1190, 1200),
-    '{{FLOW_P3B}}': crop(project, 200, 2430, 2060, 330),
+    '{{FLOW_FULL}}': crop(project, 0, 110, 2260, 2400),
+    '{{FLOW_P1}}': crop(project, 700, 115, 1520, 1120),
+    '{{FLOW_P2}}': crop(project, 20, 1285, 1110, 820),
+    '{{FLOW_P3}}': crop(project, 1135, 1285, 1125, 820),
+    '{{FLOW_P3B}}': crop(project, 100, 2140, 2160, 360),
   };
   const body = [];
   for (const sec of main) {
@@ -213,22 +218,21 @@ function build(pageMap = {}) {
     for (const [k, v] of Object.entries(diagrams)) html = html.replace(k, v);
     body.push(html);
     if (sec.id === 'system') {
-      body.push(`<section class="wide"><h1 class="wide-title">4.6 System architecture diagram</h1><div class="diagram">${arch}</div></section>`);
+      body.push(`<section class="wide"><h1 class="wide-title">4.7 System architecture diagram</h1><div class="diagram">${arch}</div></section>`);
     }
     if (sec.id === 'flow3') {
-      // Figma-ready UI flow: three crops of docs/flowcharts/figma-ui-flow.svg (the file itself is one canvas).
-      const W = 232;
-      body.push(`<section class="wide"><h3>5.5 UI flow (Figma-ready) — A · entry &amp; detection, B · discovery <span class="note">· rows S1–S3 · file: <code>docs/flowcharts/figma-ui-flow.svg</code></span></h3>${uiCrop(20, 255, 1795, 1340, W)}</section>`);
-      body.push(`<section class="wide"><h3>5.5 UI flow — rows S4–S6: bridges between Reddit and Substack, and “Use this page” <span class="note">· always user-initiated</span></h3>${uiCrop(20, 1600, 1795, 1365, W)}</section>`);
-      body.push(`<section class="sub" style="break-before:page"><h3>5.5 UI flow — C · external results, D · settings &amp; dashboard</h3>${uiCrop(1827, 255, 933, 1545, 132)}<p class="note" style="margin-top:3mm"><b>Using it in Figma:</b> drag <code>figma-ui-flow.svg</code> onto a Figma or FigJam canvas (or File → Import). Frames, labels and arrows arrive as separate layers and the screenshots as image fills. <code>ui-flow.mmd</code> is a Mermaid version for native FigJam diagrams.</p></section>`);
+      // Figma-ready UI flow: crops of docs/flowcharts/figma-ui-flow.svg (the file itself is one canvas).
+      body.push(`<section class="wide"><h3>5.5 UI flow (Figma-ready) — A · entry &amp; title, B · the four tabs <span class="note">· S1–S4, Discuss · Read · About · file: <code>docs/flowcharts/figma-ui-flow.svg</code></span></h3>${uiCrop(20, 255, 1795, 1450, 212)}</section>`);
+      body.push(`<section class="wide"><h3>5.5 UI flow — S5 title search, Watch next, a picked title, free-text search <span class="note">· every tab follows the subject</span></h3>${uiCrop(20, 1730, 1795, 1270, 232)}</section>`);
+      body.push(`<section class="wide"><h3>5.5 UI flow — C · external links &amp; errors, D · settings &amp; dashboard</h3><div style="display:flex;gap:6mm;justify-content:center">${uiCrop(1827, 255, 933, 1450, 98)}${uiCrop(1827, 1705, 933, 1300, 98)}</div><p class="note" style="margin-top:2mm"><b>Using it in Figma:</b> drag <code>figma-ui-flow.svg</code> onto a Figma or FigJam canvas (or File → Import). Frames, labels and arrows arrive as separate layers and the screenshots as image fills. <code>ui-flow.mmd</code> is a Mermaid version for native FigJam diagrams.</p></section>`);
     }
   }
 
   const tocRows = CHAPTERS.map(([id, title, n]) => `<li><b>${n ? `CH ${n}` : id === 'appendix' ? 'APP' : ''}</b><span class="t">${title}</span><span class="p">${pageMap[id] ?? ''}</span></li>`).join('');
   const phones = [
-    ['01-reading-youtube.png', 'left:12mm;bottom:8mm;transform:rotate(-7deg)'],
-    ['03-trending-watching.png', 'left:66mm;bottom:0;transform:rotate(0deg);z-index:2'],
-    ['02-article-why-relevant.png', 'left:120mm;bottom:8mm;transform:rotate(7deg)'],
+    ['01-discuss.png', 'left:12mm;bottom:8mm;transform:rotate(-7deg)'],
+    ['07-about-cast.png', 'left:66mm;bottom:0;transform:rotate(0deg);z-index:2'],
+    ['03-read-news.png', 'left:120mm;bottom:8mm;transform:rotate(7deg)'],
   ]
     .map(([f, st]) => `<img src="../screens/${f}" style="${st}"/>`)
     .join('');
@@ -238,14 +242,14 @@ function build(pageMap = {}) {
   <div class="brand">${logo}</div>
   <div class="kicker">Project report</div>
   <h1>Rabbit Hole</h1>
-  <p class="tag">See what the internet is talking about — and go deeper.</p>
-  <div class="chips"><span>Chrome · Manifest V3</span><span>TypeScript · React 19</span><span>Reddit × Substack</span><span>Privacy-first</span></div>
+  <p class="tag">Go deeper on what you watch — Discuss · Read · About · Watch next, for any Netflix movie or show.</p>
+  <div class="chips"><span>Chrome · Manifest V3</span><span>TypeScript · React 19</span><span>Netflix × Reddit × Wikidata</span><span>News &amp; Substack</span><span>Privacy-first</span></div>
 </div>
 <div class="phones">${phones}</div>
 <div class="foot"><span><b>Harsh Giri</b> &nbsp;·&nbsp; Version ${pkg.version}</span><span>${dateLong}</span></div></section>
 
 <section><h1 class="toc-title">Contents</h1><ul class="toc">${tocRows}</ul>
-<p class="toc-sub"><b>Companion deliverables</b> (in <code>docs/</code>): <code>Rabbit-Hole-Heuristic-Evaluation-Form.pdf</code> — fillable usability &amp; heuristic evaluation pack · <code>flowcharts/</code> — project flowchart, system architecture, Figma-ready UI flow (SVG/PNG/Mermaid) · <code>screens/</code> — every UI state as PNG.</p></section>
+<p class="toc-sub"><b>Companion deliverables</b> (in <code>docs/</code>): <code>Rabbit-Hole-Heuristic-Evaluation-Form.pdf</code> — fillable usability &amp; heuristic evaluation pack · <code>Rabbit-Hole-Heuristic-Evaluation-Results.pdf</code> — a two-page expert heuristic review of the round-1 build · <code>flowcharts/</code> — project flowchart, system architecture, Figma-ready UI flow (SVG/PNG/Mermaid) · <code>screens/</code> — every UI state as PNG.</p></section>
 ${body.join('\n')}
 </body></html>`;
 }

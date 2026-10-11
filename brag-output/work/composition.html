@@ -39,7 +39,7 @@
   <div id="frames"></div>
 
   <div id="hook" class="center" style="top: 380px;">
-    <div class="line" data-words="Every video"></div>
+    <div class="line" data-words="Every show"></div>
     <div class="line" data-words="has a [rabbit hole.]"></div>
   </div>
 
@@ -47,18 +47,18 @@
     <div id="brandLogo"></div>
     <div class="name" data-words="Rabbit Hole"></div>
   </div>
-  <div id="cap2" class="cap" style="top: 480px;"><div class="line" data-words="Knows what [you’re watching.]"></div></div>
-  <div id="cap3" class="cap" style="top: 330px;"><div class="kicker" data-words="Related reading"></div><div class="line" data-words="Finds the writing worth reading — and tells you [why.]"></div></div>
-  <div id="cap4" class="cap" style="top: 350px;"><div class="kicker" data-words="Trending Reddit"></div><div class="line" data-words="See what Reddit is talking about — [right now.]"></div></div>
-  <div id="cap5a" class="cap" style="top: 330px;"><div class="kicker" data-words="One click"></div><div class="line" data-words="Any thread → [deeper reading.]"></div></div>
-  <div id="cap5b" class="cap" style="top: 560px;"><div class="line" data-words="Any article → [the discussion.]"></div></div>
-  <div id="cap6" class="cap" style="top: 380px;"><div class="kicker" data-words="Private by design"></div><div class="line" data-words="Reads nothing until [you open it.]"></div></div>
+  <div id="cap2" class="cap" style="top: 480px;"><div class="line" data-words="Knows exactly what [you’re watching.]"></div></div>
+  <div id="cap3" class="cap" style="top: 360px;"><div class="kicker" data-words="Discuss"></div><div class="line" data-words="Reddit on this episode. [Not office politics.]"></div></div>
+  <div id="cap4" class="cap" style="top: 360px;"><div class="kicker" data-words="Read"></div><div class="line" data-words="Essays, reviews and news — [from sources you pick.]"></div></div>
+  <div id="cap5" class="cap" style="top: 380px;"><div class="kicker" data-words="About"></div><div class="line" data-words="Who’s in it — [on X and Instagram.]"></div></div>
+  <div id="cap6" class="cap" style="top: 360px;"><div class="kicker" data-words="Watch next"></div><div class="line" data-words="Same cast. Same creators. [What to watch next.]"></div></div>
+  <div id="cap7" class="cap" style="top: 400px;"><div class="kicker" data-words="Not on Netflix?"></div><div class="line" data-words="Search [any movie or show.]"></div></div>
 
-  <div id="outro" class="center" style="top: 300px;">
+  <div id="outro" class="center" style="top: 290px;">
     <div id="outroLogo" style="display:flex;justify-content:center;margin-bottom:34px"></div>
     <div class="name" data-words="Rabbit Hole"></div>
-    <div class="tag" data-words="See what the internet is talking about. [Go deeper.]"></div>
-    <div class="url" data-words="Chrome extension  ·  github.com/giriharsh77-pixel/rabbit-hole"></div>
+    <div class="tag" data-words="Go deeper on [what you watch.]"></div>
+    <div class="url" data-words="Chrome extension for Netflix  ·  private by design  ·  github.com/giriharsh77-pixel/rabbit-hole"></div>
   </div>
 </div>
 
@@ -110,7 +110,7 @@ function words(el, t, start, end, { stagger = 0.065, dur = 0.4, rise = 38, outDu
 function show(el, on) { el.style.visibility = on ? 'visible' : 'hidden'; }
 
 // ───────────────────────── popup frames ─────────────────────────
-const STATES = ['reading', 'trending', 'thread', 'thread-result'];
+const STATES = ['discuss', 'newest', 'read', 'about', 'next', 'search'];
 const F = {};       // name → { frame, doc, q(sel) }
 const CURSOR_SVG = '<svg width="22" height="30" viewBox="0 0 22 30"><path d="M2 2 L2 24 L8 18.5 L12 28 L16 26.3 L12 17 L20 17 Z" fill="#fff" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 
@@ -219,40 +219,61 @@ function rings(t, { phase, alpha, hole = 0, cx = 960, cy = 560, aspect = 1.55 })
 
 // ───────────────────────── timeline ─────────────────────────
 // Scene starts sit on 120 BPM beats (0.5 s grid); everything else is relative to them.
-const T = { s2: 2.5, s3: 5.5, s4: 10.0, s5: 13.5, s6: 17.0, s7: 19.5, end: 23.0 };
+const T = { s2: 2.5, s3: 5.0, s4: 8.5, s5: 12.0, s6: 15.0, s7: 18.0, s8: 20.5, end: 24.0 };
 const BASE = { s: 1.6, px: 240, py: 300, qx: 1300, qy: 540 };
-const Z3 = { s: 2.18, px: 240, py: 352, qx: 1320, qy: 560 };
-const Z6 = { s: 2.2, px: 240, py: 560, qx: 1360, qy: 690 };
 let geo = {};
+const TAB = { discuss: 0, newest: 0, read: 1, about: 2, next: 3, search: 0 };
 
 function measure() {
-  const R = F.reading, Tr = F.trending, Th = F.thread;
-  const card1 = R.q('#rh-panel-reading li.card');
-  const panelR = R.q('#rh-panel-reading');
-  geo.readScroll = Math.max(0, card1.offsetTop - panelR.offsetTop - 6);
-  geo.growth = [...Tr.doc.querySelectorAll('#rh-panel-reddit li.card *')].find((e) => /Growing rapidly/.test(e.textContent) && e.children.length <= 1 && e.getBoundingClientRect().height < 30);
-  const panelT = Tr.q('#rh-panel-reddit');
-  const firstCard = Tr.q('#rh-panel-reddit ul.list:not(.tight) > li.card');
-  geo.trendScroll = Math.max(0, (firstCard.offsetTop + firstCard.offsetHeight) - panelT.offsetTop - panelT.clientHeight + 14);
-  geo.tabReddit = rectOf(R, R.q('#rh-tab-reddit'));
-  geo.bridgeBtn = rectOf(Th, Th.q('#rh-panel-reading .bridge .btn'));
+  const D = F.discuss, N = F.newest, R = F.read, A = F.about, X = F.next;
+  const card = D.q('#rh-panel-discuss li.card[aria-label]');
+  geo.zDiscuss = { s: 2.0, px: 240, py: card.getBoundingClientRect().top + 40, qx: 1330, qy: 560 };
+  geo.newestBtn = rectOf(D, D.qa('#rh-panel-discuss .sort-control .seg')[1]);
+  geo.tab = (fr, id) => rectOf(fr, fr.q(`#rh-tab-${id}`));
+  const rp = R.q('#rh-panel-read');
+  const rcard = R.q('#rh-panel-read li.card');
+  geo.readScroll = Math.max(0, rcard.offsetTop - rp.offsetTop - 8);
+  geo.zRead = { s: 2.05, px: 240, py: 330, qx: 1330, qy: 560 };
+  const ap = A.q('#rh-panel-about');
+  const castList = A.q('#rh-panel-about .cast-list');
+  geo.aboutScroll = Math.max(0, castList.getBoundingClientRect().top - ap.getBoundingClientRect().top - 42);
+  geo.zAbout = { s: 1.95, px: 240, py: 340, qx: 1330, qy: 560 };
+  const xcard = X.q('#rh-panel-next li.next-card');
+  geo.zNext = { s: 2.0, px: 240, py: xcard.getBoundingClientRect().top + 60, qx: 1330, qy: 560 };
+  geo.zSearch = { s: 1.9, px: 240, py: 140, qx: 1320, qy: 470 };
+  void N;
+}
+
+const mix = (a, b, k) => ({ s: lerp(a.s, b.s, k), px: lerp(a.px, b.px, k), py: lerp(a.py, b.py, k), qx: lerp(a.qx, b.qx, k), qy: lerp(a.qy, b.qy, k) });
+/** Slide the tab indicator from tab index a to b. */
+function indicator(fr, a, b, k) {
+  const ind = fr.q('.tab-indicator');
+  if (ind) ind.style.transform = `translateX(${(lerp(a, b, k) * 100).toFixed(1)}%)`;
+}
+/** Panel content in: fade + rise, staggered children. */
+function panelIn(fr, sel, t, at) {
+  const P = fr.q(sel);
+  const k = easeOut(prog(t, at, at + 0.26));
+  P.style.opacity = k.toFixed(3);
+  P.style.transform = `translateY(${((1 - k) * 14).toFixed(1)}px)`;
+  return P;
 }
 
 function renderAt(t) {
-  const R = F.reading, Tr = F.trending, Th = F.thread, TR = F['thread-result'];
-  const { s2, s3, s4, s5, s6, s7 } = T;
+  const D = F.discuss, N = F.newest, R = F.read, A = F.about, X = F.next, S = F.search;
+  const { s2, s3, s4, s5, s6, s7, s8 } = T;
 
   // ── background
   const glowEl = document.getElementById('glow');
-  glowEl.style.opacity = (0.35 + 0.65 * smooth(s2 - 0.2, s2 + 0.7, t) * (1 - 0.5 * smooth(s7 - 0.3, s7 + 0.4, t))).toFixed(3);
+  glowEl.style.opacity = (0.35 + 0.65 * smooth(s2 - 0.2, s2 + 0.7, t) * (1 - 0.5 * smooth(s8 - 0.3, s8 + 0.4, t))).toFixed(3);
   glowEl.style.transform = `translate(${(Math.sin(t * 0.4) * 30).toFixed(1)}px, ${(Math.cos(t * 0.33) * 20).toFixed(1)}px)`;
 
   // ── rings: hook tunnel + dive, then the outro
   if (t < s2 + 0.05) {
     const dive = prog(t, s2 - 0.45, s2);
     rings(t, { phase: t * 0.85 + 7 * dive * dive, alpha: 1, hole: 3000 * easeIn(dive) });
-  } else if (t >= s7 - 0.2) {
-    rings(t, { phase: t * 0.3, alpha: 0.55 * smooth(s7 - 0.15, s7 + 0.5, t), hole: 0, cy: 470 });
+  } else if (t >= s8 - 0.2) {
+    rings(t, { phase: t * 0.3, alpha: 0.55 * smooth(s8 - 0.15, s8 + 0.5, t), hole: 0, cy: 460 });
   } else ctx.clearRect(0, 0, 1920, 1080);
 
   // ── hook text
@@ -279,13 +300,13 @@ function renderAt(t) {
     words(brand.querySelector('.name'), t, s2 + 0.16, null, { stagger: 0.07 });
   }
   const cap2 = document.getElementById('cap2'); show(cap2, t >= s2 && t < s3 + 0.2);
-  words(cap2.querySelector('.line'), t, s2 + 0.45, s3 - 0.3, { stagger: 0.055 });
+  words(cap2.querySelector('.line'), t, s2 + 0.4, s3 - 0.3, { stagger: 0.055 });
   const caps = [
-    ['cap3', s3 + 0.15, s4 - 0.4],
+    ['cap3', s3 + 0.1, s4 - 0.32],
     ['cap4', s4 + 0.12, s5 - 0.32],
-    ['cap5a', s5 + 0.12, s6 - 0.32],
-    ['cap5b', s5 + 1.35, s6 - 0.28],
-    ['cap6', s6 - 0.05, s7 - 0.25],
+    ['cap5', s5 + 0.12, s6 - 0.32],
+    ['cap6', s6 + 0.12, s7 - 0.3],
+    ['cap7', s7 + 0.1, s8 - 0.28],
   ];
   for (const [id, a, b] of caps) {
     const el = document.getElementById(id);
@@ -299,106 +320,137 @@ function renderAt(t) {
 
   // ── outro
   const outro = document.getElementById('outro');
-  show(outro, t >= s7 - 0.05);
-  if (t >= s7 - 0.05) {
+  show(outro, t >= s8 - 0.05);
+  if (t >= s8 - 0.05) {
     const lg = document.getElementById('outroLogo').firstElementChild;
-    const k = prog(t, s7 + 0.04, s7 + 0.6);
+    const k = prog(t, s8 + 0.04, s8 + 0.6);
     lg.style.transform = `scale(${lerp(0.5, 1, backOut(k)).toFixed(3)})`;
     lg.style.opacity = easeOut(clamp(k * 1.8)).toFixed(3);
-    words(outro.querySelector('.name'), t, s7 + 0.08, null, { stagger: 0.08, dur: 0.45, rise: 44 });
-    words(outro.querySelector('.tag'), t, s7 + 0.15, null, { stagger: 0.045, dur: 0.38 });
-    words(outro.querySelector('.url'), t, s7 + 0.6, null, { stagger: 0.02, dur: 0.4, rise: 14 });
+    words(outro.querySelector('.name'), t, s8 + 0.08, null, { stagger: 0.08, dur: 0.45, rise: 44 });
+    words(outro.querySelector('.tag'), t, s8 + 0.15, null, { stagger: 0.05, dur: 0.38 });
+    words(outro.querySelector('.url'), t, s8 + 0.6, null, { stagger: 0.02, dur: 0.4, rise: 14 });
   }
 
   // ── popup camera (shared by every state frame)
-  const mix = (a, b, k) => ({ s: lerp(a.s, b.s, k), px: lerp(a.px, b.px, k), py: lerp(a.py, b.py, k), qx: lerp(a.qx, b.qx, k), qy: lerp(a.qy, b.qy, k) });
   let cam = { ...BASE };
-  cam = mix(cam, Z3, easeInOut(prog(t, s3 + 0.25, s3 + 1.25)));
-  cam = mix(cam, BASE, easeInOut(prog(t, s4 - 0.65, s4 - 0.15)));
-  cam = mix(cam, Z6, easeInOut(prog(t, s6 + 0.05, s6 + 0.75)));
+  cam = mix(cam, geo.zDiscuss, easeInOut(prog(t, s3 + 0.15, s3 + 1.05)));
+  cam = mix(cam, BASE, easeInOut(prog(t, s3 + 2.05, s3 + 2.65)));
+  cam = mix(cam, geo.zRead, easeInOut(prog(t, s4 + 0.7, s4 + 1.5)));
+  cam = mix(cam, BASE, easeInOut(prog(t, s5 - 0.75, s5 - 0.2)));
+  cam = mix(cam, geo.zAbout, easeInOut(prog(t, s5 + 0.5, s5 + 1.3)));
+  cam = mix(cam, BASE, easeInOut(prog(t, s6 - 0.7, s6 - 0.2)));
+  cam = mix(cam, geo.zNext, easeInOut(prog(t, s6 + 0.5, s6 + 1.3)));
+  cam = mix(cam, BASE, easeInOut(prog(t, s7 - 0.55, s7 - 0.05)));
+  cam = mix(cam, geo.zSearch, easeInOut(prog(t, s7 + 0.2, s7 + 0.9)));
   const enter = easeOut(prog(t, s2, s2 + 0.65));
-  const exit = easeIn(prog(t, s7 - 0.9, s7 - 0.52));
+  const exit = easeIn(prog(t, s8 - 0.9, s8 - 0.52));
   const popupAlpha = enter * (1 - exit);
   const camS = cam.s * lerp(0.9, 1, enter) * lerp(1, 0.94, exit);
   const camQy = cam.qy + (1 - enter) * 70 + exit * 40;
 
-  // which state is visible (swaps are staggered: old content out, then new in)
-  const vis = { reading: 0, trending: 0, thread: 0, 'thread-result': 0 };
-  if (t < s4 + 0.12) vis.reading = 1;
-  else if (t < s5 - 0.12) vis.trending = 1;
-  else if (t < s5 + 1.12) vis.thread = 1;
-  else vis['thread-result'] = 1;
+  // which state is visible (header, subject bar and tabs are identical, so swaps are seamless;
+  // the panel content does the transition: old out, then new in)
+  const cNew = s3 + 2.3, cRead = s4 - 0.03, cAbout = s5 - 0.03, cNext = s6 - 0.03;
+  let cur = 'discuss';
+  if (t >= cNew + 0.05) cur = 'newest';
+  if (t >= cRead + 0.05) cur = 'read';
+  if (t >= cAbout + 0.05) cur = 'about';
+  if (t >= cNext + 0.05) cur = 'next';
+  if (t >= s7 - 0.1) cur = 'search';
   for (const name of STATES) {
     const fr = F[name];
-    if (!vis[name] || popupAlpha <= 0.001) { fr.frame.style.visibility = 'hidden'; continue; }
+    if (name !== cur || popupAlpha <= 0.001) { fr.frame.style.visibility = 'hidden'; continue; }
     let qx = cam.qx, op = popupAlpha;
-    if (name === 'thread') { const k = easeOut(prog(t, s5 - 0.1, s5 + 0.3)); qx += (1 - k) * 160; op *= k; }
-    if (name === 'trending') { const k = easeIn(prog(t, s5 - 0.3, s5 - 0.12)); qx -= k * 90; op *= 1 - k; }
+    if (name === 'search') { const k = easeOut(prog(t, s7 - 0.1, s7 + 0.3)); qx += (1 - k) * 160; op *= k; }
+    if (name === 'next') { const k = easeIn(prog(t, s7 - 0.3, s7 - 0.1)); qx -= k * 90; op *= 1 - k; }
     place(fr, camS, cam.px, cam.py, qx, camQy, op);
   }
 
-  // ── reading (scenes 2–3)
+  // ── discuss (scenes 2–3)
   {
-    const P = R.q('#rh-panel-reading');
-    const ctxBar = R.q('#rh-panel-reading .context-bar');
-    rise(ctxBar, t, s2 + 0.35);
-    rise(R.q('#rh-panel-reading .status-line'), t, s2 + 0.65, { y: 10 });
-    R.qa('#rh-panel-reading > .tag-row .chip').forEach((c, i) => pop(c, t, s2 + 0.8 + i * 0.14));
-    rise(R.q('#rh-panel-reading .banner'), t, s2 + 1.2, { y: 12 });
-    R.qa('#rh-panel-reading li.card').slice(0, 3).forEach((c, i) => rise(c, t, s2 + 1.35 + i * 0.12, { y: 26 }));
-    glow(ctxBar, pulse(t, s2 + 1.25, s2 + 2.7) * 0.9, 14);
-    P.scrollTop = geo.readScroll * easeInOut(prog(t, s3 + 0.5, s3 + 1.5));
-    const rel = R.q('#rh-panel-reading li.card .relevance');
-    rel.style.transform = `scale(${(1 + 0.22 * pulse(t, s3 + 1.25, s3 + 1.7)).toFixed(3)})`;
+    rise(D.q('.subject-bar'), t, s2 + 0.35);
+    glow(D.q('.subject-bar'), pulse(t, s2 + 1.0, s2 + 2.3) * 0.9, 12);
+    rise(D.q('#rh-panel-discuss .sort-control'), t, s2 + 0.6, { y: 10 });
+    rise(D.q('#rh-panel-discuss .status-line'), t, s2 + 0.7, { y: 10 });
+    D.qa('#rh-panel-discuss .tag-row .chip').forEach((c, i) => pop(c, t, s2 + 0.85 + i * 0.13));
+    D.qa('#rh-panel-discuss li.card').slice(0, 3).forEach((c, i) => rise(c, t, s2 + 1.2 + i * 0.12, { y: 24 }));
+    glow(D.q('#rh-panel-discuss .chip-sub'), pulse(t, s3 + 0.7, s3 + 1.9), 999);
+    const b = geo.newestBtn;
+    cursor(D, t, [[s3 + 1.55, 320, 470], [s3 + 2.22, b.cx - 6, b.cy - 4]], cNew);
+    if (t >= cNew - 0.1) D.q('#rh-panel-discuss').style.opacity = (1 - prog(t, cNew, cNew + 0.06)).toFixed(3);
+    else D.q('#rh-panel-discuss').style.opacity = 1;
+  }
+  // newest
+  {
+    const P = N.q('#rh-panel-discuss');
+    N.qa('#rh-panel-discuss li.card').slice(0, 3).forEach((c, i) => rise(c, t, cNew + 0.06 + i * 0.1, { y: 18 }));
+    rise(N.q('#rh-panel-discuss .status-line'), t, cNew + 0.05, { y: 8 });
+    glow(N.q('#rh-panel-discuss .sort-control .seg[aria-checked="true"]'), pulse(t, cNew + 0.05, cNew + 0.9), 9);
+    const tr = rectOf(N, N.q('#rh-tab-read'));
+    cursor(N, t, [[cNew + 0.35, 330, 230], [cRead - 0.05, tr.cx - 10, tr.cy - 4]], cRead);
+    P.style.opacity = t >= cRead ? (1 - prog(t, cRead, cRead + 0.06)).toFixed(3) : 1;
+  }
+  // read (scene 4)
+  {
+    panelIn(R, '#rh-panel-read', t, cRead + 0.06);
+    indicator(R, 0, 1, easeInOut(prog(t, cRead, cRead + 0.28)));
+    R.qa('#rh-panel-read > .tag-row .chip').forEach((c, i) => pop(c, t, cRead + 0.25 + i * 0.1));
+    R.qa('#rh-panel-read li.card').slice(0, 2).forEach((c, i) => rise(c, t, cRead + 0.3 + i * 0.12, { y: 22 }));
+    R.q('#rh-panel-read').scrollTop = geo.readScroll * easeInOut(prog(t, s4 + 0.6, s4 + 1.4));
+    const rel = R.q('#rh-panel-read li.card .relevance');
+    rel.style.transform = `scale(${(1 + 0.22 * pulse(t, s4 + 1.45, s4 + 1.9)).toFixed(3)})`;
     rel.style.transformOrigin = 'right center';
-    if (t >= s3 + 1.25 && t <= s3 + 1.85) {
-      const r = rectOf(R, rel); const k = prog(t, s3 + 1.25, s3 + 1.85);
+    if (t >= s4 + 1.45 && t <= s4 + 2.05) {
+      const r = rectOf(R, rel); const k = prog(t, s4 + 1.45, s4 + 2.05);
       Object.assign(R.burst.style, { left: `${r.x - 6 - 10 * k}px`, top: `${r.y - 6 - 10 * k}px`, width: `${r.w + 12 + 20 * k}px`, height: `${r.h + 12 + 20 * k}px`, opacity: (1 - k).toFixed(3) });
     } else R.burst.style.opacity = 0;
-    glow(R.q('#rh-panel-reading li.card .why'), smooth(s3 + 1.85, s3 + 2.3, t) * (1 - smooth(s4 - 0.8, s4 - 0.4, t)), 12);
-    P.style.opacity = (1 - prog(t, s4, s4 + 0.12)).toFixed(3);
-    cursor(R, t, [[s4 - 0.55, 300, 330], [s4 - 0.08, geo.tabReddit.cx - 30, geo.tabReddit.cy - 4]], s4 - 0.03);
+    glow(R.q('#rh-panel-read li.card .sub-link'), pulse(t, s4 + 1.9, s4 + 2.8) * 0.9, 6);
+    glow(R.q('#rh-panel-read li.card .why'), smooth(s4 + 2.1, s4 + 2.5, t) * (1 - smooth(s5 - 0.8, s5 - 0.45, t)), 12);
+    const ta = rectOf(R, R.q('#rh-tab-about'));
+    cursor(R, t, [[s5 - 0.6, 300, 330], [s5 - 0.08, ta.cx - 10, ta.cy - 4]], cAbout);
+    if (t >= cAbout) R.q('#rh-panel-read').style.opacity = (1 - prog(t, cAbout, cAbout + 0.06)).toFixed(3);
   }
-
-  // ── trending (scene 4)
+  // about (scene 5)
   {
-    const P = Tr.q('#rh-panel-reddit');
-    const inK = easeOut(prog(t, s4 + 0.1, s4 + 0.34));
-    P.style.opacity = inK.toFixed(3);
-    P.style.transform = `translateY(${((1 - inK) * 14).toFixed(1)}px)`;
-    const ind = Tr.q('.tab-indicator');
-    if (ind) ind.style.transform = `translateX(${(224 * (1 - easeInOut(prog(t, s4, s4 + 0.28)))).toFixed(1)}px)`;
-    Tr.qa('#rh-panel-reddit section li').forEach((li, i) => rise(li, t, s4 + 0.18 + i * 0.1, { y: 14 }));
-    rise(Tr.q('#rh-panel-reddit .chip-row'), t, s4 + 0.36, { y: 10 });
-    rise(Tr.q('#rh-panel-reddit .segmented'), t, s4 + 0.44, { y: 10 });
-    rise(Tr.q('#rh-panel-reddit ul.list:not(.tight)'), t, s4 + 0.52, { y: 18 });
-    glow(Tr.q('#rh-panel-reddit section'), pulse(t, s4 + 0.5, s4 + 1.5) * 0.85, 12);
-    P.scrollTop = geo.trendScroll * easeInOut(prog(t, s4 + 1.25, s4 + 1.85));
-    Tr.qa('#rh-panel-reddit .seg').forEach((sg, i) => {
-      const a = s4 + 1.75 + i * 0.32;
-      const k = pulse(t, a, a + 0.42);
-      sg.style.transform = `scale(${(1 + 0.1 * k).toFixed(3)})`;
-      glow(sg, k, 8);
+    panelIn(A, '#rh-panel-about', t, cAbout + 0.06);
+    indicator(A, 1, 2, easeInOut(prog(t, cAbout, cAbout + 0.28)));
+    rise(A.q('#rh-panel-about .about-head'), t, cAbout + 0.1, { y: 16 });
+    A.q('#rh-panel-about').scrollTop = geo.aboutScroll * easeInOut(prog(t, s5 + 0.45, s5 + 1.25));
+    A.qa('#rh-panel-about .cast-row').slice(0, 6).forEach((row, i) => {
+      row.querySelectorAll('.social').forEach((sb, j) => {
+        const at = s5 + 1.3 + i * 0.11 + j * 0.05;
+        pop(sb, t, at, 0.36);
+        glow(sb, pulse(t, at + 0.1, at + 0.8) * 0.8, 9);
+      });
     });
-    if (geo.growth) glow(geo.growth, smooth(s4 + 2.95, s4 + 3.2, t) * (1 - smooth(s5 - 0.5, s5 - 0.3, t)), 999);
-    cursor(Tr, t, null);
+    const tn = rectOf(A, A.q('#rh-tab-next'));
+    cursor(A, t, [[s6 - 0.6, 260, 300], [s6 - 0.08, tn.cx - 14, tn.cy - 4]], cNext);
+    if (t >= cNext) A.q('#rh-panel-about').style.opacity = (1 - prog(t, cNext, cNext + 0.06)).toFixed(3);
   }
-
-  // ── thread → result (scene 5) and privacy (scene 6)
+  // watch next (scene 6)
   {
-    glow(Th.q('#rh-panel-reading .bridge'), pulse(t, s5 + 0.25, s5 + 1.0) * 0.9, 12);
-    const btn = geo.bridgeBtn;
-    cursor(Th, t, [[s5 + 0.35, 250, 420], [s5 + 0.95, btn.cx - 10, btn.cy - 2]], s5 + 1.02);
-    rise(TR.q('#rh-panel-reading .context-bar'), t, s5 + 1.16, { y: 16 });
-    rise(TR.q('#rh-panel-reading .status-line'), t, s5 + 1.36, { y: 10 });
-    TR.qa('#rh-panel-reading > .tag-row .chip').forEach((c, i) => pop(c, t, s5 + 1.46 + i * 0.12));
-    rise(TR.q('#rh-panel-reading .banner'), t, s5 + 1.62, { y: 12 });
-    TR.qa('#rh-panel-reading li.card').slice(0, 3).forEach((c, i) => rise(c, t, s5 + 1.72 + i * 0.12, { y: 22 }));
-    const foot = TR.q('footer');
-    const fk = smooth(s6 + 0.45, s6 + 0.85, t) * (1 - smooth(s7 - 1.15, s7 - 0.85, t));
-    foot.style.boxShadow = fk > 0.001 ? `inset 0 0 0 ${(2 * fk).toFixed(2)}px rgba(255,106,44,${(0.95 * fk).toFixed(3)}), inset 0 0 26px rgba(255,90,36,${(0.35 * fk).toFixed(3)})` : '';
-    foot.style.background = fk > 0.001 ? `rgba(255,90,36,${(0.10 * fk).toFixed(3)})` : '';
-    cursor(TR, t, null);
+    panelIn(X, '#rh-panel-next', t, cNext + 0.06);
+    indicator(X, 2, 3, easeInOut(prog(t, cNext, cNext + 0.28)));
+    rise(X.q('#rh-panel-next .filter-bar'), t, cNext + 0.12, { y: 10 });
+    X.qa('#rh-panel-next li.next-card').slice(0, 3).forEach((c, i) => rise(c, t, cNext + 0.25 + i * 0.12, { y: 22 }));
+    X.qa('#rh-panel-next li.next-card .next-why').slice(0, 2).forEach((w, i) => glow(w, pulse(t, s6 + 1.4 + i * 0.45, s6 + 2.4 + i * 0.45) * 0.85, 6));
+    cursor(X, t, null);
+  }
+  // search (scene 7)
+  {
+    const input = S.q('.search input');
+    const full = 'sacred ga';
+    const typed = Math.round(full.length * prog(t, s7 + 0.35, s7 + 1.0));
+    input.value = full.slice(0, typed);
+    const list = S.q('.title-list');
+    const k = easeOut(prog(t, s7 + 1.05, s7 + 1.3));
+    list.style.visibility = k > 0 ? 'visible' : 'hidden';
+    list.style.opacity = k.toFixed(3);
+    list.style.transform = `translateY(${((1 - k) * -8).toFixed(1)}px)`;
+    const opt = S.q('.title-option:not(.search-all)');
+    glow(opt, pulse(t, s7 + 1.35, s7 + 2.3) * 0.9, 9);
+    glow(S.q('.search input'), smooth(s7 + 0.2, s7 + 0.4, t) * 0.6, 12);
+    cursor(S, t, null);
   }
 }
 

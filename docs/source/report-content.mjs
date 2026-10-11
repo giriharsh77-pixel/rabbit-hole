@@ -19,7 +19,7 @@ export const fig = (file, caption, { cls = '', w } = {}) =>
 const callout = (title, body, tone = '') => `<aside class="callout ${tone}"><b>${title}</b><p>${body}</p></aside>`;
 
 export const sections = (f) => {
-  const { tests, files, e2e, loc, bundle, perFile, manifest, pkg, seeds, origins, dateLong } = f;
+  const { tests, files, e2e, bundle, seeds, outlets, customOrigins } = f;
   const swatch = (hex, name, use) => `<div class="sw"><i style="background:${hex}"></i><b>${name}</b><span>${hex}</span><em>${use}</em></div>`;
 
   return [
@@ -28,26 +28,27 @@ export const sections = (f) => {
       id: 'summary',
       title: 'Executive summary',
       html: `
-<p class="lead">Rabbit Hole is a Chrome extension (Manifest V3) that turns <em>what you are watching</em> into <em>what to read next</em>. It pairs two views of the internet — what is moving on <b>Reddit</b> right now, and thoughtful long-form writing on <b>Substack</b> related to a YouTube video or Netflix title — and bridges them: any thread can lead to deeper reading, and any article can lead to the discussion around it.</p>
+<p class="lead">Rabbit Hole is a Chrome extension (Manifest V3) for people who watch <b>Netflix</b>. It works out exactly which movie or show is playing — or lets you search for any title — and gives four views of it: what <b>Reddit</b> is saying (<b>Discuss</b>), thoughtful writing and press coverage (<b>Read</b>), the cast and where to find reviews (<b>About</b>), and what to watch next (<b>Watch next</b>).</p>
 
 <div class="stats">
   <div><b>${tests}</b><span>automated tests<br/>in ${files} files, all passing</span></div>
   <div><b>${e2e}/${e2e}</b><span>real-Chrome end-to-end<br/>checks (Chrome 155)</span></div>
-  <div><b>${seeds}</b><span>health-checked Substack<br/>publications (keyless mode)</span></div>
-  <div><b>${bundle.total}</b><span>production build;<br/>content scripts 6–9 KB each</span></div>
+  <div><b>12/12</b><span>real Netflix titles resolved<br/>to the right Wikidata item</span></div>
+  <div><b>${outlets}</b><span>news outlets via public RSS<br/>(+ ${seeds} Substack publications)</span></div>
 </div>
 
 <h3>What was built</h3>
 <ul>
-  <li><b>Trending Reddit</b> — threads ranked by <em>momentum</em> (upvote and comment velocity, recency, cross-community spread and measured growth), not total votes; four sections, ten topic filters, instant cache-first rendering.</li>
-  <li><b>Related Reading</b> — a context pipeline detects the video or title, derives topics and entities, generates focused queries and ranks Substack posts with a transparent 0–100 relevance score, always with a plain-language <i>“Why this is relevant”</i>.</li>
-  <li><b>Privacy as a feature</b> — nothing is read until the extension is opened, only on four sites, with per-platform switches, a “What Rabbit Hole used” disclosure, RAM-only caches and a minimal permission set.</li>
-  <li><b>Resilience</b> — Reddit blocks anonymous traffic and Substack has no public search API, so each has a provider chain with graceful degradation and honest messaging instead of fabricated data.</li>
+  <li><b>One exact title.</b> “The Office (U.S.)” on Netflix is matched to the American sitcom on Wikidata — not the British original — using the catalogue tag, kind, year and cast. Off Netflix, a title search (“Search a movie or show…”) does the same for anything.</li>
+  <li><b>Discuss</b> — Reddit threads about that title: the show’s own subreddit first, then TV/film communities, then all of Reddit, keeping only threads that are clearly about the show. Sort by <i>Most relevant</i> or <i>Newest</i>.</li>
+  <li><b>Read</b> — Substack, Medium and (opt-in) ${outlets} news outlets such as The Indian Express, Hindustan Times, The New York Times, The Guardian and Variety, ranked with a transparent 0–100 relevance score and a plain-language <i>“Why this is relevant”</i>. Users choose which sources they prefer or never want to see.</li>
+  <li><b>About</b> and <b>Watch next</b> — cast in billing order with their X and Instagram, links to IMDb, Letterboxd and Rotten Tomatoes, and titles that share the cast or creator. With the optional backend: ratings, viewer reviews, similar titles and whether a title is <b>on Netflix India</b>.</li>
+  <li><b>Privacy as a feature</b> — only Netflix is ever read, only when the extension is opened; API keys live only on the backend; caches are RAM-only; nothing is tracked.</li>
 </ul>
 
 <h3>How it was verified</h3>
-<p>Unit and integration tests cover ranking, extraction, caching and failure handling; a release gate proves development keys cannot reach a production bundle; and an end-to-end suite loads the <em>built</em> extension in a real Chrome and drives the real popup against the real service worker. A usability-evaluation pack (heuristic evaluation, cognitive walkthrough, think-aloud test, SUS, accessibility audit, error-state matrix and A/B plan) accompanies this report as a fillable form.</p>
-${callout('Scope note', 'Live Reddit data could not be verified from the build machine (Reddit answered 403 to JSON and 429 to feeds); that path is verified against a captured real feed and mocked responses. Netflix detection is verified against fixtures that mirror its markup, and the optional AI layer against a stubbed API transport. See §9.1.', 'warn')}`,
+<p>Unit and integration tests cover title resolution, the Discuss filter, ranking, news parsing, caching, the backend and failure handling; a release gate proves development keys cannot reach a production bundle; and an end-to-end suite loads the <em>built</em> extension in a real Chrome and drives the real popup against the real service worker — including live Wikidata, Substack and Medium. The design went through two rounds of feedback (§1.6); a usability-evaluation pack accompanies this report.</p>
+${callout('Scope note', 'Reddit blocks the build machine’s network, so Discuss is verified with Reddit’s live RSS from Node, captured feeds and mocked responses. The backend’s TMDB, OMDb, NYT and Guardian integrations are tested against their documented response formats — no keys were available for a live call. Netflix detection is verified against fixtures that mirror its markup. See §9.1.', 'warn')}`,
     },
 
     // ───────────────────────────────────────────────────────────────────────
@@ -56,55 +57,74 @@ ${callout('Scope note', 'Live Reddit data could not be verified from the build m
       title: 'Problem, goals and users',
       html: `
 <h3>1.1 Problem statement</h3>
-<p>Curiosity strikes while watching: a video mentions a technology, a series raises an idea. Following it means leaving the page, guessing a search query, and sorting through results that are optimised for clicks. Meanwhile, social discussion (Reddit) and considered writing (Substack) live in separate places, and Reddit’s front pages reward <em>total votes</em> rather than what is <em>gaining momentum</em>. There is no lightweight bridge between “what everyone is discussing now” and “what thoughtful people have written about this”.</p>
+<p>Curiosity strikes while watching: a character, an actor, a scene, a question. Following it means leaving Netflix, guessing a search query and sorting through results built for clicks. The conversation (Reddit), considered writing (essays and reviews), the press, and the facts (cast, ratings, what else to watch) all live in different places — and generic searches mix them up with things that merely share the name (“The Office” brings up office politics).</p>
 
 <h3>1.2 Goals and non-goals</h3>
 ${table(
   ['#', 'Goal', 'Measure of success'],
   [
-    ['G1', 'Surface what is trending on Reddit by momentum, with growth indicators', 'Fresh fast-growing threads outrank older high-total threads (tested)'],
-    ['G2', 'Understand what the user is watching on YouTube / Netflix without breaking terms or playback', 'Extraction on watch pages, Shorts, episodes; graceful “can’t identify” fallback'],
-    ['G3', 'Recommend relevant Substack writing and explain every pick', 'Relevance 0–100 with labels; grounded “Why this is relevant”'],
-    ['G4', 'Bridge Reddit ⇄ Substack', '“Find deeper reading →” and “See what Reddit thinks →” on every card'],
-    ['G5', 'Privacy first: no history, no tracking, minimal permissions, user control', 'Permission audit, per-platform switches, RAM-only caches, release gate'],
-    ['G6', 'Keep working when data sources are blocked, limited or offline', 'Provider chain + circuit breaker; stale-if-error; friendly error states'],
-    ['G7', 'Fast, accessible, polished', 'Instant skeleton paint; keyboard operable; WCAG-minded contrast; reduced motion'],
+    ['G1', 'Know exactly which movie or show is playing on Netflix, or let the user pick one', '12/12 real Netflix titles resolve correctly; “don’t guess” when unsure (tested)'],
+    ['G2', 'Show Reddit discussion about <em>that</em> title only', 'Off-topic threads (office politics, “officer”) dropped on live data; own subreddit first'],
+    ['G3', 'Recommend relevant reading from many sources and explain every pick', 'Relevance 0–100 with labels; “Why this is relevant”; Substack · Medium · news'],
+    ['G4', 'Give the cast, reviews and what to watch next', 'Cast in billing order with socials; IMDb / Letterboxd / RT links; same-cast picks'],
+    ['G5', 'Let users choose their sources', 'Prefer / Normal / Hide per source; only-my-sources; English only'],
+    ['G6', 'Privacy first: read only Netflix, no history, keys off the client', 'Permission audit; real-Chrome check that other sites are unreadable; release gate'],
+    ['G7', 'Keep working when sources are blocked, limited or offline', 'Provider chains, circuit breaker, stale-if-error, fallbacks for Wikidata’s query service'],
   ],
 )}
-<p class="note"><b>Non-goals:</b> scraping Reddit or Substack HTML; bypassing Netflix DRM or authentication; collecting browsing history; replacing a search engine; mobile browsers.</p>
+<p class="note"><b>Non-goals:</b> scraping websites; bypassing Netflix DRM or authentication; reading any site except Netflix; collecting browsing history; guessing facts that no source provided.</p>
 
 <h3>1.3 Target users (illustrative personas)</h3>
 <div class="personas">
-  <div><b>The curious viewer</b><i>Aanya, 20 · CS undergraduate</i><p>Watches technical YouTube and series. Wants the “why” behind what she sees, in readable essays, without a research detour.</p><span>Needs: instant relevance, explanations, low effort</span></div>
-  <div><b>The trend watcher</b><i>Rahul, 34 · product manager</i><p>Scans Reddit for what is gaining traction in his field. Distrusts raw vote counts; wants to know what is <em>rising</em>.</p><span>Needs: momentum signals, topic filters, speed</span></div>
-  <div><b>The privacy-conscious reader</b><i>Meera, 41 · journalist</i><p>Reluctant to install extensions that “read every page”. Will adopt only if she can see and control exactly what is read and sent.</p><span>Needs: transparency, control, minimal permissions</span></div>
+  <div><b>The curious viewer</b><i>Aanya, 20 · undergraduate</i><p>Watches series on Netflix and wants the conversation and the “why” behind them — fan theories, reviews, interviews — without a research detour.</p><span>Needs: instant, on-topic results, low effort</span></div>
+  <div><b>The film buff</b><i>Rahul, 34 · product manager</i><p>Checks Letterboxd and IMDb before committing, follows actors, and wants to know what else is on Netflix India from the same people.</p><span>Needs: ratings, cast, what to watch next</span></div>
+  <div><b>The privacy-conscious reader</b><i>Meera, 41 · journalist</i><p>Reluctant to install extensions that “read every page”. Will adopt only if she can see and control exactly what is read and sent — and pick her own news sources.</p><span>Needs: transparency, control, source choice</span></div>
 </div>
 
 <h3>1.4 The core journey</h3>
 <div class="journey">
-  <div><b>1</b>Watching something</div><i>→</i>
-  <div><b>2</b>Rabbit Hole understands the topic</div><i>→</i>
-  <div><b>3</b>Shows what Reddit is discussing</div><i>→</i>
-  <div><b>4</b>Finds thoughtful Substack writing</div><i>→</i>
-  <div><b>5</b>Go further down the rabbit hole</div>
+  <div><b>1</b>Watching on Netflix (or search a title)</div><i>→</i>
+  <div><b>2</b>Rabbit Hole knows exactly which title</div><i>→</i>
+  <div><b>3</b>What Reddit says about it</div><i>→</i>
+  <div><b>4</b>What’s been written about it</div><i>→</i>
+  <div><b>5</b>Who’s in it · what to watch next</div>
 </div>
 
 <h3>1.5 Requirements</h3>
 ${table(
   ['ID', 'Requirement', 'Status', 'Evidence'],
   [
-    ['FR1', 'Trending Reddit with four sections and topic filters', 'Done', 'redditRanking tests; e2e'],
-    ['FR2', 'Detect YouTube video / Short and Netflix title / episode', 'Done', 'extractor tests; e2e on fixture pages'],
-    ['FR3', 'Manual search and “What are you watching?” fallback', 'Done', 'contextManager tests; e2e'],
-    ['FR4', 'Substack discovery: search API + curated RSS fallback', 'Done', 'failureHandling, parsers tests'],
-    ['FR5', 'Relevance 0–100 with labels and explanations', 'Done', 'relevance tests (18)'],
-    ['FR6', 'Reddit ⇄ Substack bridges', 'Done', 'UI flow screens 12, 13, 21, 22'],
-    ['FR7', 'Settings: Reddit, Related Reading, Privacy, Appearance, Integrations, Data', 'Done', 'e2e (toggle persists)'],
-    ['FR8', 'Optional AI layer (topics, queries, judging)', 'Done (opt-in)', 'anthropicProvider tests (stubbed)'],
-    ['NFR1', 'Cache aggressively; de-duplicate; cancel stale requests', 'Done', 'cache tests (17)'],
+    ['FR1', 'Detect a Netflix episode or movie; resolve it to one exact title', 'Done', 'netflixExtractor, titleService tests; e2e'],
+    ['FR2', 'Title search for any movie or show (Wikidata)', 'Done', 'titleService tests; e2e (type → pick)'],
+    ['FR3', 'Discuss: Reddit threads about the title; relevant / newest sort', 'Done', 'discuss tests; live RSS check'],
+    ['FR4', 'Read: Substack, Medium, news outlets, press archives; relevance + explanation', 'Done', 'relevance, medium, news, insights tests'],
+    ['FR5', 'Your sources: prefer / hide / only preferred / English only', 'Done', 'news tests'],
+    ['FR6', 'About: cast with X / Instagram; IMDb, Letterboxd, RT, Wikipedia links', 'Done', 'titleService tests; e2e (live Wikidata)'],
+    ['FR7', 'Watch next: same cast / creator; filters; similar + Netflix India with backend', 'Done', 'e2e (live Wikidata); insights tests'],
+    ['FR8', 'Backend: TMDB, OMDb, NYT, Guardian with keys server-side', 'Done — not run live', 'insights tests (documented formats)'],
+    ['NFR1', 'Cache aggressively; de-duplicate; cancel stale requests', 'Done', 'cache tests'],
     ['NFR2', 'Strict CSP; validated, sanitised external data', 'Done', 'manifest + release gate + e2e'],
-    ['NFR3', 'Minimal permissions', 'Done', 'manifest tests; e2e'],
+    ['NFR3', 'Minimal permissions; news sites only when allowed', 'Done', 'manifest tests; e2e'],
     ['NFR4', 'Keyboard and screen-reader support', 'Done — audit pending', 'Usability form, Method F'],
+  ],
+  'compact',
+)}
+
+<h3>1.6 Iterations from feedback</h3>
+<p>The product changed substantially across two rounds of reviewer feedback. Each point was discussed before implementation; the decisions are summarised below.</p>
+${table(
+  ['Round', 'Feedback', 'Response'],
+  [
+    ['1', '“Trending now” is not needed', 'Removed everywhere: no generic trending feed; everything shown is about something the user is watching or asked for'],
+    ['1', 'No Reddit results for “The Office” S1E5', 'Discuss searches all time, by show and episode name'],
+    ['1', 'Related reading too narrow (Substack only)', 'Medium tag feeds added (keyless)'],
+    ['2', 'Focus on movies and series on Netflix only', 'YouTube, Reddit and generic page reading removed; only Netflix is read'],
+    ['2', '“The Office” returned office-politics subreddits', 'Show’s own subreddit first; TV/film communities; an “is it about the show?” filter (§4.4)'],
+    ['2', 'Cast social links; reviews from IMDb / Letterboxd', 'About tab: cast with X / Instagram; review links; ratings and reviews via the backend'],
+    ['2', 'Similar titles, same cast or genre; IMDb-style filters', 'Watch next: same cast / creator (Wikidata), TMDB similar titles, type · decade · sort filters'],
+    ['2', 'More news publications; let users pick sources', `${outlets} outlets (India, US, UK) via RSS; Your sources: prefer / hide / only preferred`],
+    ['2', 'Netflix availability for India', 'On Netflix India from TMDB watch providers (JustWatch), via the backend'],
+    ['2b', 'Discuss needs a relevancy / recency filter', 'Most relevant ⇄ Newest switch, remembered; Newest asks Reddit for its newest matches'],
   ],
   'compact',
 )}`,
@@ -115,51 +135,63 @@ ${table(
       id: 'tour',
       title: 'Product tour',
       html: `
-<p>Every screen below is a capture of the built interface (480 × 600 px, Chrome’s maximum popup height). Reddit threads are <b>illustrative sample data</b>; Substack articles come from real public RSS feeds.</p>
+<p>Every screen below is a capture of the built interface (480 × 600 px, Chrome’s maximum popup height). Reddit threads are <b>illustrative sample data</b>; news articles are real (captured from the outlets’ feeds on 10 October 2026); Substack articles come from real public RSS; title facts are live Wikidata. Screens marked <i>backend</i> use placeholder ratings and availability.</p>
 
-<h3>2.1 Related Reading — the core experience</h3>
+<h3>2.1 Discuss — Reddit, about this title only</h3>
 <div class="row2">
-${fig('01-reading-youtube.png', '<b>Context bar</b> says what was detected (“Watching — YouTube · Fireship”). Topics searched are shown; a banner is honest that only a curated list is searched without a search key.')}
-${fig('02-article-why-relevant.png', '<b>Article card:</b> relevance label, publication · author · date, excerpt, matched topics and a grounded <i>Why this is relevant</i>. Two actions: read, or see what Reddit thinks.')}
+${fig('01-discuss.png', '<b>Watching The Office S1E5.</b> The subject bar shows exactly what was identified. Discuss searched the show’s own subreddit (r/DunderMifflin chip), the episode and the show; an off-topic r/antiwork thread in the sample was dropped.')}
+${fig('02-discuss-newest.png', '<b>Most relevant ⇄ Newest.</b> “Newest” asks Reddit for its newest matches — not a re-shuffle — and keeps the same “about the show” filter. The choice is remembered.')}
 </div>
 
-<h3>2.2 Trending Reddit — momentum, not just votes</h3>
+<h3>2.2 Read — writing and press coverage</h3>
+<div class="row3">
+${fig('03-read-news.png', '<b>Read</b> with news sites on: Variety, Deadline, Decider… alongside Substack and Medium. Topics searched are shown.')}
+${fig('04-read-card.png', '<b>Card:</b> relevance label, outlet · author · date, excerpt and a grounded <i>Why this is relevant</i>.')}
+${fig('05-read-news-offer.png', '<b>News is opt-in:</b> a one-time offer; Chrome asks for those sites only then.')}
+</div>
+
+<h3>2.3 About and Watch next</h3>
+<div class="row3">
+${fig('06-about.png', '<b>About:</b> facts and review links (IMDb, Letterboxd for films, Rotten Tomatoes, Wikipedia) built from Wikidata ids.')}
+${fig('07-about-cast.png', '<b>Cast</b> in billing order with characters and their X / Instagram accounts.')}
+${fig('08-watch-next.png', '<b>Watch next:</b> titles with the same cast or creator, each with the real link; filters for type, decade and sort.')}
+</div>
+
+<h3>2.4 Title search — any movie or show</h3>
+<div class="row3">
+${fig('09-title-search.png', '<b>Search a movie or show:</b> Wikidata movies and series with year and kind; ↑ ↓ Enter. The last row searches the words themselves.')}
+${fig('10-picked-title.png', '<b>A picked title</b> (“Exploring Sacred Games”): every tab follows it; × returns to what’s playing.')}
+${fig('20-free-search.png', '<b>Free-text search</b> (“mockumentary”) drives Discuss and Read only.')}
+</div>
+
+<h3>2.5 With the backend (placeholder data)</h3>
 <div class="row2">
-${fig('03-trending-watching.png', '<b>Because you’re watching</b> shows threads related to the video as compact rows. Topic chips filter by community group; four sections rank by trending score.')}
-${fig('04-trending-cards.png', '<b>Thread cards:</b> subreddit, preview, ↑ upvotes, comments and a <i>growth label</i> (e.g. “Growing rapidly”) derived from measured velocity.')}
+${fig('11-about-backend.png', '<b>About + backend:</b> IMDb, Rotten Tomatoes, Metacritic and TMDB ratings, viewer reviews and an <i>On Netflix India</i> badge. <b>The numbers in this capture are placeholders</b> from the preview’s sample backend.')}
+${fig('12-next-backend.png', '<b>Watch next + backend:</b> TMDB similar titles, each checked for Netflix India, with an <i>On Netflix India</i> filter. <b>Availability here is placeholder data.</b>')}
 </div>
 
-<h3>2.3 Netflix and the honest fallback</h3>
-<div class="row2">
-${fig('06-netflix-detected.png', '<b>Episode detected</b> from the player label (Black Mirror · Season 7, Episode 2); themes expand to genre concepts.')}
-${fig('07-netflix-undetected.png', '<b>When Netflix hides its labels</b> the extension says so and offers a manual box — it never guesses.')}
-</div>
-
-<h3>2.4 Search, loading and bridges</h3>
+<h3>2.6 Other entry states, errors and appearance</h3>
 <div class="row3">
-${fig('09-search-loading.png', '<b>Loading:</b> skeletons and “Finding related writing…” — never a blank screen.')}
-${fig('10-search-results.png', '<b>Results:</b> “Exploring — AI agents”; N relevant posts.')}
-${fig('11-search-reddit-results.png', '<b>Same query on Reddit</b> with “Back to trending”.')}
+${fig('14-netflix-undetected.png', '<b>Netflix hides its labels:</b> says why and how to fix it — or search. Never guesses.')}
+${fig('15-idle.png', '<b>Any other site:</b> nothing is read; the extension cannot even see the URL.')}
+${fig('16-detection-off.png', '<b>Detection off:</b> the privacy choice is respected; turn it on or search.')}
 </div>
 <div class="row3">
-${fig('12-bridge-reddit-thread.png', '<b>On a Reddit thread:</b> “Find deeper reading →”.')}
-${fig('21-bridge-thread-result.png', '<b>Result:</b> thread headline becomes the search (“Reading”).')}
-${fig('13-bridge-substack-article.png', '<b>On a Substack article:</b> “See what Reddit thinks →”.')}
+${fig('17-error-reddit.png', '<b>Error state:</b> plain cause, one clear action; stale data is shown (flagged) when available.')}
+${fig('19-bridge-thread.png', '<b>Bridge:</b> “Find deeper reading →” on a thread turns its headline into a Read search.')}
+${fig('18-light-theme.png', '<b>Light theme:</b> dark by default; Light and System available.')}
 </div>
 
-<h3>2.5 Privacy, errors and appearance</h3>
-<div class="row3">
-${fig('14-detection-off.png', '<b>Detection off:</b> the page is not read; offers to turn on or search.')}
-${fig('15-error-reddit.png', '<b>Error state:</b> plain cause, one clear action.')}
-${fig('16-light-theme.png', '<b>Light theme:</b> dark by default; Light/System available.')}
-</div>
-
-<h3>2.6 Settings and full dashboard</h3>
+<h3>2.7 Settings and the full dashboard</h3>
 <div class="row2 settings">
-${fig('18-settings-privacy.png', '<b>Settings → Privacy</b> spells out what is read, stored and sent, with switches per platform and an opt-in for AI.')}
-${fig('19-settings-integrations.png', '<b>API &amp; Integrations</b>: keys are write-only; permissions requested only when a key is added.')}
+${fig('21-settings-read.png', '<b>Settings → Read:</b> news sites (asks Chrome for those sites), English only, Medium, relevance threshold.')}
+${fig('21b-settings-sources.png', '<b>Your sources:</b> Prefer · Normal · Hide for Substack, Medium and every outlet, grouped India / US / UK; <i>Only my preferred sources</i>.')}
 </div>
-<figure class="shot wide-shot"><img src="../screens/20-dashboard.png" alt="Dashboard"/><figcaption><b>Full dashboard</b> (⤢): the same app in a tab, two columns when wide — Reddit left, Related Reading right. It exists because Chrome caps popups at 600 px tall.</figcaption></figure>`,
+<div class="row2 settings">
+${fig('22-settings-privacy.png', '<b>Privacy</b> spells out what is read, stored and sent; one Netflix detection switch; AI is opt-in.')}
+${fig('23-settings-reddit.png', '<b>Reddit:</b> Sort Discuss by (relevant / newest), preferred subreddits, browser-session option.')}
+</div>
+<figure class="shot wide-shot"><img src="../screens/24-dashboard.png" alt="Dashboard"/><figcaption><b>Full dashboard</b> (⤢): the same app in a tab — three columns when wide: Discuss | Read | About + Watch next. It exists because Chrome caps popups at 600 px tall.</figcaption></figure>`,
     },
 
     // ───────────────────────────────────────────────────────────────────────
@@ -169,11 +201,11 @@ ${fig('19-settings-integrations.png', '<b>API &amp; Integrations</b>: keys are w
       html: `
 <h3>3.1 Design principles</h3>
 <ol class="principles">
-  <li><b>Understand, then act.</b> The first thing shown is <em>what Rabbit Hole understood</em> (the context bar), so users can trust or correct it.</li>
+  <li><b>Say what was understood.</b> The subject bar (“Watching — The Office (2005) · Netflix · Season 1, Episode 5”) is always visible above the tabs, so every tab is visibly about the same thing — and users can correct it with the search.</li>
+  <li><b>One subject, four questions.</b> Discuss · Read · About · Watch next answer “what are people saying, what’s been written, who’s in it, what next” about the same title.</li>
   <li><b>Never blank, never silent.</b> Skeleton loaders, a live status line and an explanation for every empty or failed state.</li>
-  <li><b>Honest by default.</b> Missing data stays missing; limited coverage and feed-mode are announced; relevance is shown as a label, not a fake percentage.</li>
-  <li><b>User in control.</b> Dismiss (×), Esc to clear, “Back to trending”, per-platform detection switches, delete-everything.</li>
-  <li><b>Minimal chrome, premium feel.</b> Charcoal surfaces, one electric-orange accent, generous spacing, subtle motion (Arc / Linear / Readwise sensibility).</li>
+  <li><b>Honest by default.</b> Missing data stays missing; when a title can’t be pinned down the tab says so rather than guessing; every Watch next pick states its real connection; relevance is a label, not a fake percentage.</li>
+  <li><b>User in control.</b> Most relevant ⇄ Newest, Prefer / Hide sources, × back to Netflix, Esc to close, per-feature permissions, delete-everything.</li>
 </ol>
 
 <h3>3.2 Visual language</h3>
@@ -185,19 +217,19 @@ ${fig('19-settings-integrations.png', '<b>API &amp; Integrations</b>: keys are w
   ${swatch('#a8a8b3', 'Text 2', 'secondary')}
   ${swatch('#ff5a24', 'Accent', 'text / icons')}
   ${swatch('#d63a0b', 'Accent solid', 'fills · 4.7:1 on white text')}
-  ${swatch('#3fdc97', 'Good', 'watching · success')}
-  ${swatch('#ffb633', 'Warn', 'rising')}
-  ${swatch('#7aa2ff', 'Cool', 'info · cooling')}
+  ${swatch('#3fdc97', 'Good', 'watching · On Netflix India')}
+  ${swatch('#ffb633', 'Warn', 'warnings')}
+  ${swatch('#7aa2ff', 'Cool', 'exploring · series')}
 </div>
 ${table(
   ['Aspect', 'Decision'],
   [
-    ['Typography', 'System UI sans stack (SF / Segoe / Roboto) — no remote fonts (privacy, CSP, speed); 13.5 px base; tabular numerals for counts; weights 560–700 for hierarchy'],
-    ['Layout', '480 × 600 popup: fixed header + search + tabs, scrolling panel, pinned privacy footer. Dashboard: max-width 1240 px, two columns ≥ 980 px'],
+    ['Typography', 'System UI sans stack — no remote fonts (privacy, CSP, speed); 13.5 px base; tabular numerals for counts and ratings'],
+    ['Layout', '480 × 600 popup: header, title search, subject bar, four tabs, scrolling panel, pinned privacy footer. Dashboard: three columns ≥ 980 px'],
+    ['Components', 'Combobox (title search), subject bar, segmented controls (sort, type), rating chips, link tiles, cast rows with social buttons, kind pills (Movie / Series)'],
     ['Shape &amp; depth', '10–18 px radii, 1 px hairline borders, no heavy shadows; hover raises border contrast'],
-    ['Motion', '150–280 ms transitions; staggered-free “rise” on cards; pulsing live dot; all disabled under <code>prefers-reduced-motion</code>'],
-    ['Theming', 'CSS custom properties; dark default; Light and System; theme hint applied before first paint (no flash)'],
-    ['Iconography', 'Inline SVG line icons; emoji only for category labels (🔥 📈 💬 🌎) where they carry meaning'],
+    ['Motion', '150–280 ms transitions; cards “rise” in; pulsing live dot; all disabled under <code>prefers-reduced-motion</code>'],
+    ['Theming', 'CSS custom properties; dark default; Light and System; theme applied before first paint (no flash)'],
   ],
   'compact',
 )}
@@ -206,12 +238,12 @@ ${table(
 ${table(
   ['Area', 'Implementation'],
   [
-    ['Keyboard', 'Every control is a real button/link; “/” focuses search; ←/→/Home/End move between tabs (roving tabindex); Enter submits; Esc clears'],
-    ['Screen readers', 'Tablist/tabpanel roles; <code>aria-live</code> status line (“Found N relevant posts”); labelled icon buttons; stats have text alternatives (“63400 upvotes”)'],
+    ['Keyboard', '“/” focuses search; ↑ ↓ Enter pick a title, Esc closes (twice: clears); ←/→/Home/End move between tabs (roving tabindex); every control is a real button or link'],
+    ['Screen readers', 'WAI-ARIA 1.2 combobox with <code>aria-activedescendant</code> and a live result count; tablist/tabpanel roles; radio groups for sort and filters; labelled social links (“Steve Carell on X (@SteveCarell)”)'],
     ['Focus', 'Visible 2 px accent focus ring on all interactive elements'],
-    ['Colour', 'Filled buttons use #d63a0b (4.7:1 with white); growth state is conveyed by text <em>and</em> a dot, never colour alone'],
+    ['Colour', 'Filled buttons use #d63a0b (4.7:1 with white); availability and kind are conveyed by text, never colour alone'],
     ['Motion', 'Animations disabled for reduced-motion users'],
-    ['Target size', 'Buttons 28–32 px tall; icon buttons 32 × 32 (WCAG 2.2 minimum 24 px)'],
+    ['Target size', 'Buttons 28–38 px tall; social buttons 30 × 30 (WCAG 2.2 minimum 24 px)'],
   ],
   'compact',
 )}
@@ -224,69 +256,83 @@ ${table(
       title: 'System design',
       html: `
 <h3>4.1 Architecture at a glance</h3>
-<p>The extension has three runtime contexts. <b>Content scripts</b> are tiny and passive: they do nothing until asked, then read the page once and reply. <b>Extension pages</b> (popup, dashboard, settings) are a React app that never touches the network. The <b>background service worker</b> owns everything else — all network access, caching, key handling, ranking — and talks to the pages over a typed, cancellable RPC port. The full diagram is on the next page.</p>
+<p>Three runtime contexts. A single <b>content script</b>, on Netflix only, does nothing until asked, then reads the player label and the title page’s metadata once. <b>Extension pages</b> (popup, dashboard, settings) are a React app that never touches the network. The <b>background service worker</b> owns everything else — Wikidata, Reddit, feeds, the backend, caching, ranking — and talks to the pages over a typed, cancellable RPC port. An optional <b>backend</b> holds every API key. The full diagram is in §4.7.</p>
 
-<h3>4.2 The context pipeline</h3>
+<h3>4.2 Identifying the exact title (Wikidata)</h3>
+${table(
+  ['Step', 'How'],
+  [
+    ['Search', '<code>wbsearchentities</code> (labels and aliases), then one SPARQL query keeps only items whose <i>instance of</i> is a film or series class and adds the year. If the query service is down, Wikidata’s own descriptions (“2022 film directed by …”) classify instead'],
+    ['Resolve a Netflix page', 'Score candidates by exact name (+3), kind — series vs movie (+3), Netflix’s catalogue tag (“(U.S.)” → “American …”, +2), year (+2) and Wikidata’s rank; for remaining ties, overlap with the cast Netflix lists (+2 each). Below a threshold: <b>no match</b> rather than a guess'],
+    ['Facts', '<code>wbgetentities</code>: cast in statement (billing) order with characters, director / creator, genres, own subreddit, IMDb / Letterboxd / Rotten Tomatoes / TMDB ids, Wikipedia; SPARQL adds current X / Instagram usernames'],
+    ['Links', 'Built only from ids that pass strict patterns (<code>tt\\d+</code>, slugs, username rules); Letterboxd via its <code>/imdb/&lt;id&gt;/</code> redirect when it has no slug'],
+    ['Verified live', '12 real Netflix titles — The Office (U.S.), Black Mirror, Glass Onion, Sacred Games, RRR, Money Heist, Stranger Things, Delhi Crime, Squid Game, 3 Body Problem, Wednesday, Heeramandi — all resolved correctly'],
+  ],
+  'compact',
+)}
+
+<h3>4.3 The context pipeline</h3>
 ${table(
   ['Stage', 'Module', 'What it does'],
   [
-    ['1 · Platform detector', '<code>context/platform.ts</code>', 'Pure URL logic: YouTube watch/Shorts/live, Netflix watch/title, Reddit thread, Substack article; look-alike hosts rejected'],
-    ['2 · Metadata extractor', '<code>context/extractors/*</code>', 'DOM → <code>RawPageMetadata</code> in the page: visible title/channel/description/keywords (YouTube), player label + JSON-LD (Netflix), thread markup (Reddit)'],
-    ['3 · Topic extraction', '<code>context/topics.ts</code>', 'Clean title → RAKE-style phrases (stop-words and filler verbs act as delimiters) → weighted by source (title 3, keywords ~1.9, description 1)'],
-    ['4 · Entities', '<code>context/topics.ts</code>', 'Brands/people/titles; Title-Case aware so “AI Agents” is a topic, not a name; known-entity list; cast from JSON-LD'],
-    ['5 · Concept expansion', '<code>context/ontology.ts</code>', 'On-device concept graph (“AI agents” → AI coding, developer tools, automation …); genre → themes; or the AI layer'],
-    ['6 · Query generation', '<code>context/queries.ts</code>', '3–5 focused, de-duplicated queries (entity-anchored, topic-anchored, concept-anchored); AI queries first when enabled'],
-    ['7 · Discovery', '<code>substackService.ts</code>', 'Search providers (backend / Brave key) in parallel; curated RSS feeds as keyless fallback and supplement'],
-    ['8 · Ranking', '<code>ranking/relevance.ts</code>', 'Transparent 0–100 score, content-gated labels, diversity re-rank'],
-    ['9 · Results', 'React UI', 'Cards with “Why this is relevant”'],
+    ['1 · Platform', '<code>context/platform.ts</code>', 'Pure URL logic: Netflix watch / title pages only; every other site is “unknown” and never read'],
+    ['2 · Metadata', '<code>context/extractors/netflix.ts</code>', 'Player label (“S1:E5 · Basketball”), Media Session, title-page JSON-LD: title, episode, genres, cast'],
+    ['3 · Topics &amp; entities', '<code>context/topics.ts</code>', 'Clean title (strips “(U.S.)”, keeps it as the catalogue tag) → phrases → entities → genre themes'],
+    ['4 · Exact title', '<code>titleService.ts</code>', 'Wikidata resolve (§4.2) — or the user’s pick from the title search'],
+    ['5 · Queries', '<code>context/queries.ts</code>', '3–5 focused queries for Read; Discuss builds its own plan (§4.4)'],
+    ['6 · Four tabs', 'services', 'Discuss · Read · About · Watch next, each cached and cancellable'],
   ],
   'compact',
 )}
 
-<h3>4.3 Ranking algorithms</h3>
-<div class="formula"><b>Reddit trending score</b>
-<code>trending = recency × engagementVelocity × commentVelocity × popularity × growth</code>
+<h3>4.4 Algorithms</h3>
+<div class="formula"><b>Discuss — is this thread about the show?</b> <span class="note">(<code>reddit/aboutTitle.ts</code>)</span>
+<code>plan: own subreddit (episode, or top / newest threads) → TV or film subreddits → all of Reddit  (≤ 4 searches, all time)</code>
 <ul>
-<li><b>recency</b> = 0.25 + 0.5<sup>(ageHours / 10)</sup> — fresh threads dominate, old ones fade</li>
-<li><b>engagementVelocity</b> = 1 + log<sub>10</sub>(1 + score / (age + 1)) &nbsp;·&nbsp; <b>commentVelocity</b> = 1 + log<sub>10</sub>(1 + comments / (age + 1))</li>
-<li><b>popularity</b> = 1 + 0.12·log<sub>10</sub>(1+score) + 0.12·min(cross-community, 5) + 0.08·(extra listings) + 0.15·(preferred subreddit)</li>
-<li><b>growth</b> = 1 + 0.33·log<sub>10</sub>(1 + measured upvotes/hour ÷ 10), measured against the previous refresh snapshot</li>
+<li><b>Keep</b> if in the show’s own subreddit; otherwise the title must appear as a phrase <i>and</i> the thread must be in a TV / film community, write the title as a name (“The Office”, not “the office”), mention a cast or character name, or talk like a viewer (“episode”, “season”, “rewatch”…)</li>
+<li><b>Work, career, office-furniture and Microsoft-Office subreddits</b> need a cast or character name to get in at all</li>
+<li><b>Rank</b> = (0.4 + match) × where (own subreddit 1.5, TV/film 1.2) × (1 + log<sub>10</sub>(1 + momentum) + 0.25·log<sub>10</sub>(1 + upvotes)); or <b>newest first</b> when the user chooses it</li>
+<li>On live data, of 22 all-of-Reddit results for “The Office” it kept the r/DunderMifflin, r/theoffice and r/television threads and dropped police-“officer” videos, return-to-office complaints and Oval Office news</li>
 </ul></div>
-<div class="formula"><b>Article relevance (0–100)</b>
+<div class="formula"><b>Read — article relevance (0–100)</b>
 <code>relevance = 100 × (0.45·semantic + 0.20·keyword + 0.15·entity + 0.10·recency + 0.10·sourceQuality)</code>
 <ul>
-<li><b>semantic</b>: concept-weighted cosine similarity over stemmed terms, saturated to 0–1; common stems (“ai”, “data”) down-weighted like a cheap IDF</li>
-<li><b>keyword / entity</b>: phrase and name matches, title matches weighted higher; entity weight is redistributed when the content has no named entities</li>
-<li><b>recency</b>: e<sup>−age/150 days</sup>; unknown dates get a neutral value — never a guessed date</li>
-<li><b>Labels</b>: Highly relevant ≥ 70 · Very relevant ≥ 52 · Related ≥ 36 · else Somewhat related — and the top two also require genuine content overlap, so freshness and source quality alone can never earn “Highly relevant”</li>
+<li><b>semantic</b>: concept-weighted cosine similarity over stemmed terms; common stems down-weighted like a cheap IDF · <b>recency</b>: e<sup>−age/150 days</sup>, unknown dates neutral — never guessed</li>
+<li><b>Labels</b>: Highly relevant ≥ 70 · Very relevant ≥ 52 · Related ≥ 36 — the top two also require genuine content overlap</li>
+<li><b>Your sources</b> apply first: <i>Hide</i> removes a source (a hidden outlet isn’t even fetched), <i>Prefer</i> ranks it as a top-tier publication, <i>Only preferred</i> shows nothing else, <i>English only</i> drops other languages and scripts</li>
+<li><b>News feeds</b>: per-title topic feeds are about the title by definition; recent-coverage feeds keep only articles that name it in quotes, as a capitalised name, or next to its cast</li>
 </ul></div>
+<div class="formula"><b>Watch next</b>
+<code>Wikidata: works sharing the 6 leading cast members, or the director / creator → order by people shared, then fame (Wikipedia editions)</code>
+<ul><li>With a TMDB key: TMDB’s recommendations and similar titles, each of the top 10 checked for Netflix India (subscription offers only), mapped back to Wikidata so <i>Explore</i> can open them</li></ul></div>
 
-<h3>4.4 Data sources and graceful degradation</h3>
+<h3>4.5 Data sources and graceful degradation</h3>
 ${table(
-  ['Source', 'Providers (tried in order)', 'When a provider fails'],
+  ['Source', 'Providers', 'When something fails'],
   [
-    ['Reddit', '① Official OAuth API (client id) · ② public JSON · ③ official Atom feeds', 'Circuit breaker skips a blocked/rate-limited provider for minutes; feeds carry no counts, so the UI says so and ranks by Reddit’s own order'],
-    ['Substack search', '① Optional backend proxy · ② Brave Search API key (<code>site:substack.com</code>)', 'Falls back to curated RSS; reports which providers failed'],
-    ['Substack feeds', `${seeds} curated publications (${origins} custom-domain origins via opt-in permission); newest 12 items, streamed`, 'Per-feed failures ignored; error only if all fail'],
-    ['AI (optional)', 'Backend or user’s Anthropic key; structured JSON, low effort, refusal fallbacks', 'Silently degrades to on-device heuristics'],
+    ['Reddit', '① Official OAuth API (client id) · ② public JSON · ③ official Atom feeds', 'Circuit breaker skips a blocked / rate-limited provider; one failing scope doesn’t sink the others; feeds carry no counts and the UI says so'],
+    ['Wikidata', 'MediaWiki API (search, facts) · SPARQL query service (types, socials, Watch next)', 'Query service down → descriptions classify search results; socials simply missing; About still works'],
+    ['Substack', 'Backend / Brave key (<code>site:substack.com</code>), else ' + `${seeds} curated publications’ RSS (${customOrigins} custom domains opt-in)`, 'Per-feed failures ignored; error only if all fail'],
+    ['Medium · news', `Medium tag feeds · ${outlets} outlets’ RSS (opt-in permission)`, 'An unknown topic page (404) means “no stories”, not an error'],
+    ['Backend (optional)', 'TMDB · OMDb · NYT · Guardian · Brave · Anthropic — keys server-side', 'Each feature only with its key; tabs say what a backend would add; nothing is guessed'],
   ],
   'compact',
 )}
 
-<h3>4.5 Caching and performance</h3>
+<h3>4.6 Caching and performance</h3>
 ${table(
   ['Data', 'TTL', 'Behaviour'],
   [
-    ['Reddit trending / search', '5 min', 'Cache-first paint; refresh in background; stale-if-error (up to 6 h, flagged)'],
-    ['Substack search', '10 min', 'Keyed by context + settings'],
-    ['Publication feeds', '30 min', 'Only the first 12 items are downloaded (feeds can be 2 MB+)'],
-    ['AI analysis', '60 min', 'Keyed by the exact (truncated) input'],
+    ['Reddit searches (Discuss)', '5 min', 'Keyed by plan and sort; stale-if-error (flagged)'],
+    ['Read results · feeds', '10 min · 30 min', 'Only the newest items of each feed are downloaded (streamed, cut off early)'],
+    ['Title search · title facts', '1 h · 24 h', 'Wikidata changes slowly'],
+    ['Watch next · insights', '24 h · 6 h', 'Watch next queries take 5–8 s cold, so they run only when the tab is opened'],
     ['Page context', 'Until the tab navigates', 'Per-tab, RAM only (<code>storage.session</code>)'],
     ['In-flight requests', '—', 'Identical concurrent calls share one fetch; cancellation is reference-counted'],
   ],
   'compact',
 )}
-<p>Other performance measures: debounced search (450 ms), cancel-stale-request on every new search, skeleton paint before data, no polling (the only timer is an optional background refresh, paused after two idle hours), lazy per-tab fetching, 6–9 KB content scripts.</p>`,
+<p>Other measures: 250 ms debounced typeahead; Enter pressed before results arrive picks the first one when they do; stale requests cancelled on every change; skeleton paint before data; no polling; a ${bundle.total} production build with a single small content script.</p>`,
     },
   ];
 };

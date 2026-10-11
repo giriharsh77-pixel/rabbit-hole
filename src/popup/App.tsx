@@ -117,7 +117,11 @@ export function App({ mode, sourceTabId }: AppProps) {
 
   const subject: ContentContext | null = picked ? (pickedTitle.data?.context ?? null) : netflixContext;
   const titleInfo = picked ? pickedTitle.data?.info : resolved.data;
-  const titleLoading = picked ? pickedTitle.status === 'loading' || pickedTitle.status === 'idle' : resolved.status === 'loading';
+  // 'idle' with a Netflix title means the lookup is about to start — treat it as loading, so Discuss
+  // doesn't flash a fallback search before the exact title is known
+  const titleLoading = picked
+    ? pickedTitle.status === 'loading' || pickedTitle.status === 'idle'
+    : !!netflixContext && (resolved.status === 'loading' || resolved.status === 'idle');
   const titleError = picked ? pickedTitle.error : resolved.error;
   const reloadTitle = picked ? pickedTitle.reload : resolved.reload;
   // ratings, reviews, similar titles, Netflix India — only with a backend (null otherwise)
@@ -263,6 +267,8 @@ export function App({ mode, sourceTabId }: AppProps) {
 
   // About / Watch next follow titles only, not a free-text topic search
   const titleSubject = query ? null : subject;
+  // Until the tab has been read, show skeletons — not the "open a Netflix title" empty states
+  const pageLoading = !picked && !query && (page.status === 'loading' || page.status === 'idle');
 
   return (
     <div className={`app mode-${mode}${split ? ' split' : ''}`}>
@@ -313,6 +319,7 @@ export function App({ mode, sourceTabId }: AppProps) {
           watching={subject}
           title={titleSubject ? (titleInfo ?? null) : null}
           titleLoading={!!titleSubject && titleLoading}
+          pageLoading={pageLoading}
           onFindReading={onFindReading}
           onSearch={focusSearch}
           onSortChange={(sort) => update({ reddit: { sort } })}
@@ -324,7 +331,7 @@ export function App({ mode, sourceTabId }: AppProps) {
           context={readContext}
           contextLoading={(source.kind === 'query' || source.kind === 'bridge') && analyzed.status === 'loading'}
           contextError={source.kind === 'query' || source.kind === 'bridge' ? analyzed.error : undefined}
-          subjectLoading={!!picked && pickedTitle.status === 'loading'}
+          subjectLoading={(!!picked && pickedTitle.status === 'loading') || pageLoading}
           discovery={discovery}
           onSearch={focusSearch}
           onSeeReddit={onSeeReddit}
@@ -345,6 +352,7 @@ export function App({ mode, sourceTabId }: AppProps) {
             error={titleError}
             onRetry={reloadTitle}
             onSearch={focusSearch}
+            pageLoading={pageLoading}
             insights={insights.data}
             insightsLoading={insights.status === 'loading'}
           />
@@ -354,6 +362,7 @@ export function App({ mode, sourceTabId }: AppProps) {
             subject={titleSubject}
             info={titleInfo}
             infoLoading={titleLoading}
+            pageLoading={pageLoading}
             insights={insights.data}
             insightsLoading={insights.status === 'loading'}
             onPick={(t) => {

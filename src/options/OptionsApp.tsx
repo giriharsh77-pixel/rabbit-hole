@@ -245,7 +245,7 @@ export function OptionsApp() {
               <b>Stores locally:</b> your settings (and any API keys you add). Caches live in memory only and are wiped when the browser closes. No browsing history, ever.
             </li>
             <li>
-              <b>Sends:</b> short topic queries (like “AI agents”) to Reddit, Medium and a search provider. Never the page, your history, your account or an identifier. No analytics, no tracking, no selling data.
+              <b>Sends:</b> the title (like “The Office”) to Wikidata, and the title plus short search terms to Reddit, Medium and — if you turn them on — news sites. Never the page, your history, your account or an identifier. No analytics, no tracking, no selling data.
             </li>
           </ul>
         </div>

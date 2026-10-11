@@ -16,6 +16,8 @@ interface Props {
   /** TMDB's similar titles + Netflix India, when a backend provides them (null otherwise). */
   insights: TitleInsights | null | undefined;
   insightsLoading: boolean;
+  /** The tab hasn't been read yet. */
+  pageLoading?: boolean;
   onPick: (title: TitleCandidate) => void;
   onSearch: (prefill?: string) => void;
 }
@@ -84,7 +86,7 @@ const fromRelated = (t: RelatedTitle): Pick => ({
 });
 
 /** Watch next: similar titles (TMDB, with a backend), same leading cast or creator (Wikidata) — filterable. */
-export function WatchNextPanel({ idPrefix, active, subject, info, infoLoading, insights, insightsLoading, onPick, onSearch }: Props) {
+export function WatchNextPanel({ idPrefix, active, subject, info, infoLoading, insights, insightsLoading, pageLoading, onPick, onSearch }: Props) {
   const related = useRelatedTitles(active && info ? info.qid : null);
   const [kind, setKind] = useState<Kind>('all');
   const [era, setEra] = useState<Era>('any');
@@ -125,6 +127,15 @@ export function WatchNextPanel({ idPrefix, active, subject, info, infoLoading, i
       totals: similar.length + wd.length,
     };
   }, [insights, related.data, kind, era, sort, netflixOnly]);
+
+  if (!subject && pageLoading) {
+    return (
+      <div {...panelProps}>
+        {heading}
+        <ListSkeleton count={3} label="Reading the current tab" />
+      </div>
+    );
+  }
 
   if (!subject) {
     return (

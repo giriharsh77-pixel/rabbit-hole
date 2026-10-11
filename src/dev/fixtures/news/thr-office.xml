@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>the office</title>
+	<atom:link href="https://www.hollywoodreporter.com/t/the-office/feed/" rel="self" type="application/rss+xml" />
+	<link>https://www.hollywoodreporter.com</link>
+	<description>Movie news, TV news, awards news, lifestyle news, business news and more from The Hollywood Reporter.</description>
+	<lastBuildDate>Tue, 25 Mar 2025 00:24:13 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=6.9.10</generator>
+
+<image>
+	<url>https://www.hollywoodreporter.com/wp-content/uploads/2026/05/thr-site-icon.png?w=32</url>
+	<title>the office</title>
+	<link>https://www.hollywoodreporter.com</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+<site xmlns="com-wordpress:feed-additions:1">187050433</site>	<item>
+		<title>Wake Up at Dunder Mifflin with This Sleep Wellness Tech Brand&#8217;s Show-Inspired Alarm</title>
+		<link>https://www.hollywoodreporter.com/lifestyle/shopping/the-office-hatch-alarm-clock-collab-1236171329/</link>
+		
+		<dc:creator><![CDATA[Danielle Directo-Meston]]></dc:creator>
+		<pubDate>Mon, 24 Mar 2025 16:54:22 +0000</pubDate>
+				<category><![CDATA[Lifestyle]]></category>
+		<category><![CDATA[Shopping]]></category>
+		<category><![CDATA[shopping]]></category>
+		<category><![CDATA[the office]]></category>
+		<guid isPermaLink="false">https://www.hollywoodreporter.com/?p=1236171329</guid>
+
+					<description><![CDATA[Hatch's newest audio offerings lets you rise and shine (or hit snooze) to the hit series' theme song.]]></description>
+		
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">1236171329</post-id>	</item>
+	</channel>
+</rss>

@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Diagram, THEME as T } from './svg.mjs';
 
-export const UI_FLOW_SIZE = { w: 2780, h: 3040 };
+export const UI_FLOW_SIZE = { w: 2780, h: 3020 };
 
 const cache = new Map();
 /** Resize with ImageMagick (kept small so the SVG stays a manageable size). */
@@ -73,8 +73,8 @@ export function uiFlow(screensDir) {
 
   // ── header ────────────────────────────────────────────────────────────────
   d.text(60, 40, 'Rabbit Hole — UI flow', { size: 34, weight: 800 });
-  d.text(60, 90, 'Popup 480 × 600 (Chrome’s maximum popup height) · dark theme default · every screen is a real capture of the built UI', { size: 15, fill: T.ink2 });
-  d.text(60, 118, 'Reddit threads in screenshots are illustrative sample data; Substack articles come from real public RSS feeds.', { size: 13, fill: T.ink3 });
+  d.text(60, 90, 'Popup 480 × 600 (Chrome’s maximum popup height) · dark theme default · every screen is a capture of the built UI', { size: 15, fill: T.ink2 });
+  d.text(60, 118, 'Reddit threads are illustrative sample data · news articles are real (captured 2026-10-10) · title facts are live Wikidata · “with the backend” screens use placeholder ratings / availability.', { size: 13, fill: T.ink3 });
 
   // legend
   d.rect(1900, 30, 820, 112, { rx: 14, fill: '#fff', stroke: T.border });
@@ -83,7 +83,7 @@ export function uiFlow(screensDir) {
   d.text(2016, 84, 'User action', { size: 13, valign: 'middle', fill: T.ink2 });
   d.polyline([[2130, 84], [2210, 84]], { stroke: T.accent, dash: '7 5' });
   d.text(2222, 84, 'Error / fallback', { size: 13, valign: 'middle', fill: T.ink2 });
-  connector(2392, 84, 'A');
+  connector(2392, 84, 'S');
   d.text(2414, 84, 'Jump to the same letter', { size: 13, valign: 'middle', fill: T.ink2 });
   d.rect(1924, 108, 46, 22, { rx: 4, fill: '#fff3a3', stroke: '#e9d860' });
   d.text(1982, 119, 'Design note', { size: 13, valign: 'middle', fill: T.ink2 });
@@ -93,113 +93,128 @@ export function uiFlow(screensDir) {
   // global controls
   d.rect(60, 160, 2660, 64, { rx: 14, fill: T.dark, stroke: T.dark });
   d.text(86, 192, 'ON EVERY SCREEN', { size: 11, weight: 700, fill: T.accentMid, valign: 'middle', letterSpacing: '0.14em' });
-  d.text(250, 192, 'Search  ( / focuses · Enter runs · Esc clears )    ·    Tabs: Trending Reddit ⇄ Related Reading  ( ← → )    ·    ⚙ Settings    ·    ⤢ Full dashboard    ·    “Private by design” footer → Privacy settings', { size: 14.5, fill: '#e8e8ee', valign: 'middle' });
+  d.text(250, 192, 'Search a movie or show  ( / focuses · ↑ ↓ Enter picks · Esc closes )   ·   Tabs: Discuss · Read · About · Watch next  ( ← → )   ·   ⚙ Settings   ·   ⤢ Full dashboard   ·   “Private by design” → Privacy', { size: 14.5, fill: '#e8e8ee', valign: 'middle' });
 
   // ── sections ──────────────────────────────────────────────────────────────
-  section(30, 250, 1000, 2760, 'A · ENTRY & DETECTION');
-  section(1050, 250, 760, 2760, 'B · DISCOVERY');
-  section(1830, 250, 400, 2760, 'C · EXTERNAL');
-  section(2250, 250, 500, 2760, 'D · SETTINGS & DASHBOARD');
+  const H = UI_FLOW_SIZE.h - 280;
+  section(30, 250, 1000, H, 'A · ENTRY & TITLE');
+  section(1050, 250, 760, H, 'B · THE FOUR TABS');
+  section(1830, 250, 400, H, 'C · EXTERNAL');
+  section(2250, 250, 500, H, 'D · SETTINGS & DASHBOARD');
 
   // ── A: entry ──────────────────────────────────────────────────────────────
   d.node('start', 'terminator', 70, 320, 230, 78, 'User clicks the Rabbit Hole toolbar icon', { fill: T.dark, stroke: T.dark, color: '#fff', size: 14 });
-  d.text(70, 410, '● badge appears on YouTube / Netflix watch pages', { size: 12, fill: T.ink3, maxWidth: 230 });
+  d.text(70, 410, '● badge appears on Netflix watch pages', { size: 12, fill: T.ink3, maxWidth: 230 });
   d.node('dec', 'decision', 70, 470, 230, 170, 'What is on the page?', { fill: T.warnSoft, stroke: T.warn, size: 14 });
   d.edge('start', 'bottom', 'dec', 'top');
 
-  const ROW = (i) => 340 + i * 440;
+  const ROW = (i) => 340 + i * 500;
   const LX = 540;
-  const s1 = screen('s1', LX, ROW(0), '01-reading-youtube.png', 'S1 · Related Reading (watching)', 'Context bar “Watching”, topics searched, article cards with relevance label.', { tag: 'ENTRY' });
-  const s2 = screen('s2', LX, ROW(1), '07-netflix-undetected.png', 'S2 · Netflix not detected', 'Honest fallback: explains why and offers a manual search box.', { tag: 'ENTRY' });
-  const s3 = screen('s3', LX, ROW(2), '14-detection-off.png', 'S3 · Detection switched off', 'Privacy control respected: nothing is read until the user turns it on.', { tag: 'ENTRY' });
-  const s4 = screen('s4', LX, ROW(3), '12-bridge-reddit-thread.png', 'S4 · On a Reddit thread', 'Bridge call-to-action: find deeper reading.', { tag: 'ENTRY' });
-  const s5 = screen('s5', LX, ROW(4), '13-bridge-substack-article.png', 'S5 · On a Substack article', 'Bridge call-to-action: see what Reddit thinks.', { tag: 'ENTRY' });
-  const s6 = screen('s6', LX, ROW(5), '08-idle-use-this-page.png', 'S6 · Any other website', 'Nothing is read. “Use this page” only on click; or search a topic.', { tag: 'ENTRY' });
+  const s1 = screen('s1', LX, ROW(0), '01-discuss.png', 'S1 · Watching — Discuss', 'Subject bar “Watching”; Discuss opens on Reddit threads about the episode, own subreddit first.', { tag: 'ENTRY' });
+  const s2 = screen('s2', LX, ROW(1), '14-netflix-undetected.png', 'S2 · Netflix label hidden', 'Says why, and how to fix it — or search. Never guesses.', { tag: 'ENTRY' });
+  const s3 = screen('s3', LX, ROW(2), '16-detection-off.png', 'S3 · Detection switched off', 'Privacy respected: nothing is read. Turn it on, or search.', { tag: 'ENTRY' });
+  const s4 = screen('s4', LX, ROW(3), '15-idle.png', 'S4 · Any other website', 'Nothing is read — the extension can’t even see the URL. Search any title.', { tag: 'ENTRY' });
+  const s5 = screen('s5', LX, ROW(4), '09-title-search.png', 'S5 · Title search', 'Movies and series from Wikidata with year and kind. Last row: search the words themselves.', { tag: 'ENTRY' });
 
-  // decision → screens: a vertical bus with labelled branches
   const busX = 360;
   d.polyline([[300, 555], [busX, 555]], { arrow: false });
-  d.polyline([[busX, ROW(0) + s1.h / 2], [busX, ROW(5) + s6.h / 2]], { arrow: false });
+  d.polyline([[busX, ROW(0) + s1.h / 2], [busX, ROW(3) + s4.h / 2]], { arrow: false });
   [
-    [s1, 'YouTube video / Short or Netflix title found'],
+    [s1, 'Netflix episode or movie identified'],
     [s2, 'Netflix, player label hidden'],
     [s3, 'Detection off in Settings → Privacy'],
-    [s4, 'Reddit thread'],
-    [s5, 'Substack article'],
-    [s6, 'Any other website'],
-  ].forEach(([s, text], i) => {
+    [s4, 'Any other website'],
+  ].forEach(([s, text]) => {
     const y = s.y + s.h / 2;
     d.polyline([[busX, y], [s.x - 4, y]]);
     d.label(450, y - 30, text, { size: 11, fill: T.ink2, bg: T.canvas, maxWidth: 116 });
   });
+  // every screen can start a title search
+  [s2, s3, s4].forEach((s) => connector(s.x + s.w + 24, s.y + 40, 'S'));
+  connector(s5.x - 28, s5.y + 40, 'S');
+  lab(450, s5.y + 40, 'Click the search box (or press /) on any screen', { size: 11, maxWidth: 110 });
+  sticky(110, ROW(4) + 180, 300, 'One exact title, everywhere: “The Office (U.S.)” is matched to the American sitcom on Wikidata (catalogue tag, kind, year, cast). Unsure? It shows nothing rather than guess.', -1.5);
 
-  // ── B: discovery ──────────────────────────────────────────────────────────
+  // ── B: the four tabs ──────────────────────────────────────────────────────
   const BX = 1100;
-  const m0 = screen('m0', BX, ROW(0), '03-trending-watching.png', 'Trending Reddit', '“Because you’re watching” rows, topic filters, four sections. Cache-first: paints instantly, then refreshes.');
-  const m1 = screen('m1', BX, ROW(1), '09-search-loading.png', 'Searching…', 'Skeletons + “Finding related writing…” — never a blank screen.');
-  const m2 = screen('m2', BX + 280, ROW(1), '10-search-results.png', 'Search results', 'Found N relevant posts. Topics searched are shown.');
-  const m2b = screen('m2b', BX + 280, ROW(2), '11-search-reddit-results.png', 'Reddit results (query)', 'Same query on the Trending tab; “Back to trending” returns.');
-  const m3 = screen('m3', BX, ROW(3), '21-bridge-thread-result.png', 'Reading — from the thread', 'The thread headline becomes the search; context bar says “Reading”.');
-  const m4 = screen('m4', BX, ROW(4), '22-bridge-article-result.png', 'What Reddit thinks', 'Discussions about the article’s topic.');
-  const m5 = screen('m5', BX, ROW(5), '23-use-this-page-result.png', 'Reading — this page', 'Context shows “Web”; user-initiated only.');
+  const BX2 = BX + 300;
+  const b0a = screen('b0a', BX, ROW(0), '02-discuss-newest.png', 'Discuss — Newest', 'Most relevant ⇄ Newest; still only threads about the show.');
+  const b0b = screen('b0b', BX2, ROW(0), '19-bridge-thread.png', 'Reading — from a thread', '“Find deeper reading →” turns the thread into a Read search.');
+  const b1a = screen('b1a', BX, ROW(1), '03-read-news.png', 'Read', 'Substack · Medium · news sites (opt-in) — your sources applied.');
+  const b1b = screen('b1b', BX2, ROW(1), '04-read-card.png', 'Article card', 'Relevance label, “Why this is relevant”, See what Reddit thinks.');
+  const b2a = screen('b2a', BX, ROW(2), '06-about.png', 'About', 'Facts and review links: IMDb, Letterboxd, Rotten Tomatoes, Wikipedia.');
+  const b2b = screen('b2b', BX2, ROW(2), '07-about-cast.png', 'About — cast', 'Billing order, characters, X and Instagram.');
+  const b3a = screen('b3a', BX, ROW(3), '08-watch-next.png', 'Watch next', 'Same cast & creators (Wikidata); filters: type, decade, sort.');
+  const b3b = screen('b3b', BX2, ROW(3), '12-next-backend.png', 'Watch next + backend', 'TMDB similar titles · On Netflix India (placeholder data here).');
+  const b4a = screen('b4a', BX, ROW(4), '10-picked-title.png', 'A picked title', '“Exploring Sacred Games” — every tab follows; × returns to Netflix.');
+  const b4b = screen('b4b', BX2, ROW(4), '20-free-search.png', 'Free-text search', '“Search Reddit and articles for …” — Discuss and Read only.');
 
-  // S1 → Trending
-  d.edge('s1', 'right', 'm0', 'left', { label: 'Tab: Trending Reddit', labelAt: [(s1.x + s1.w + m0.x) / 2, ROW(0) + s1.h / 2 - 24], labelOpts: { bg: T.canvas, maxWidth: 110, size: 11 } });
-  // S2 → search chain
-  d.edge('s2', 'right', 'm1', 'left', { label: 'Type title → Find related writing', labelAt: [(s2.x + s2.w + m1.x) / 2, ROW(1) + s2.h / 2 - 28], labelOpts: { bg: T.canvas, maxWidth: 112, size: 11 } });
-  d.edge('m1', 'right', 'm2', 'left', { label: 'Results arrive', labelAt: [(m1.x + m1.w + m2.x) / 2, ROW(1) + m1.h / 2 - 18], labelOpts: { bg: T.canvas, maxWidth: 50, size: 10.5 } });
-  d.edge('m2', 'bottom', 'm2b', 'top', { label: 'Trending Reddit tab', labelAt: [m2.x + m2.w / 2, ROW(1) + m2.h + 88], labelOpts: { bg: T.canvas, maxWidth: 110, size: 11 } });
-  // S3 → search or back to S1
-  d.edge('s3', 'right', 'm1', 'left', { via: [[s3.x + s3.w + 40, ROW(2) + s3.h / 2], [s3.x + s3.w + 40, ROW(1) + m1.h / 2]], label: 'Or search a topic', labelAt: [s3.x + s3.w + 40, ROW(2) + s3.h / 2 - 28], labelOpts: { bg: T.canvas, size: 11, maxWidth: 96 } });
-  connector(s3.x - 28, s3.y + 40, 'A');
-  connector(s1.x - 28, s1.y + 40, 'A');
-  lab(450, s3.y + 40, 'Turn on detection\n→ back to S1', { size: 11, maxWidth: 100 });
-  // S4, S5, S6
-  d.edge('s4', 'right', 'm3', 'left', { label: 'Find deeper reading →', labelAt: [(s4.x + s4.w + m3.x) / 2, ROW(3) + s4.h / 2 - 28], labelOpts: { bg: T.canvas, maxWidth: 112, size: 11 } });
-  d.edge('s5', 'right', 'm4', 'left', { label: 'See what Reddit thinks →', labelAt: [(s5.x + s5.w + m4.x) / 2, ROW(4) + s5.h / 2 - 28], labelOpts: { bg: T.canvas, maxWidth: 112, size: 11 } });
-  d.edge('s6', 'right', 'm5', 'left', { label: '“Use this page”', labelAt: [(s6.x + s6.w + m5.x) / 2, ROW(5) + s6.h / 2 - 24], labelOpts: { bg: T.canvas, maxWidth: 108, size: 11 } });
-  connector(s6.x + s6.w + 20, s6.y + 28, 'B');
-  connector(m1.x - 20, m1.y + 28, 'B');
-  lab(s6.x + s6.w + 70, s6.y + 28, 'or type a topic →', { size: 11, maxWidth: 100 });
-
-  // article ⇄ thread bridges from every card
-  sticky(BX + 280, ROW(3) + 20, 330, 'Bridges are available on every card: article → “See what Reddit thinks →”, thread → “Find deeper reading →”. The two products feel like one loop.', -1.5);
-  sticky(BX + 280, ROW(4) + 40, 330, 'Detection off? Two exits: turn it back on, or simply search. Rabbit Hole never reads a page without consent.', 1.2);
-  sticky(BX + 280, ROW(5) + 30, 330, 'Because “Use this page” needs the temporary activeTab grant, it is offered only from the popup — not from the full dashboard.', -1);
+  // S1 → tabs bus
+  const tabX = 1075;
+  d.polyline([[s1.x + s1.w + 4, ROW(0) + 120], [tabX, ROW(0) + 120], [tabX, ROW(3) + 150]], { arrow: false });
+  d.polyline([[s1.x + s1.w + 4, ROW(0) + 60], [b0a.x - 4, ROW(0) + 60]]);
+  d.label((s1.x + s1.w + b0a.x) / 2, ROW(0) + 38, 'Newest', { size: 11, bg: T.canvas, maxWidth: 80 });
+  [
+    [b1a, 'Read'],
+    [b2a, 'About'],
+    [b3a, 'Watch next'],
+  ].forEach(([b, t]) => {
+    d.polyline([[tabX, b.y + 150], [b.x - 4, b.y + 150]]);
+    d.label(tabX - 2, b.y + 120, t, { size: 11, bg: T.canvas, maxWidth: 80, fill: T.accent, weight: 700 });
+  });
+  d.label(820, ROW(0) + 120, 'Tabs', { size: 11, bg: T.canvas, maxWidth: 60 });
+  d.edge('b0a', 'right', 'b0b', 'left', { label: 'Find deeper reading →', labelAt: [(b0a.x + b0a.w + b0b.x) / 2, ROW(0) + b0a.h / 2 - 30], labelOpts: { bg: T.canvas, size: 10.5, maxWidth: 60 } });
+  d.edge('b1a', 'right', 'b1b', 'left', { label: 'scroll', labelAt: [(b1a.x + b1a.w + b1b.x) / 2, ROW(1) + b1a.h / 2 - 20], labelOpts: { bg: T.canvas, size: 10.5, maxWidth: 60 } });
+  d.edge('b2a', 'right', 'b2b', 'left', { label: 'scroll', labelAt: [(b2a.x + b2a.w + b2b.x) / 2, ROW(2) + b2a.h / 2 - 20], labelOpts: { bg: T.canvas, size: 10.5, maxWidth: 60 } });
+  d.edge('b3a', 'right', 'b3b', 'left', { label: 'with a TMDB key', labelAt: [(b3a.x + b3a.w + b3b.x) / 2, ROW(3) + b3a.h / 2 - 30], labelOpts: { bg: T.canvas, size: 10.5, maxWidth: 60 } });
+  // title search → picked / free text
+  d.edge('s5', 'right', 'b4a', 'left', { label: 'Enter / click a title', labelAt: [(s5.x + s5.w + b4a.x) / 2 - 20, ROW(4) + s5.h / 2 - 28], labelOpts: { bg: T.canvas, maxWidth: 100, size: 11 } });
+  const lowY = ROW(4) + s5.h + 100;
+  d.polyline([[s5.x + s5.w + 4, ROW(4) + s5.h - 40], [1060, ROW(4) + s5.h - 40], [1060, lowY], [b4b.x + b4b.w + 24, lowY], [b4b.x + b4b.w + 24, ROW(4) + 150], [b4b.x + b4b.w + 4, ROW(4) + 150]]);
+  d.label(1300, lowY, 'last row: search the words themselves', { size: 10.5, bg: T.canvas, maxWidth: 220 });
+  // Explore loops back
+  sticky(BX, ROW(5) + 30, 330, '“Explore” on any Watch next pick, or picking another title, makes it the subject of all four tabs. × on the subject bar goes back to what’s playing.', -1.2);
+  sticky(BX2 + 60, ROW(5) + 70, 300, 'Read offers news sites once (“Add news sites”); Chrome asks for those 22 sites only then.', 1.2);
 
   // ── C: external ───────────────────────────────────────────────────────────
-  d.node('e1', 'terminator', 1870, ROW(0) + 40, 320, 86, 'Substack article', { fill: '#fff', stroke: T.ink, size: 16, weight: 700, sub: 'opens in a new tab (Read on Substack →)' });
-  d.node('e2', 'terminator', 1870, ROW(0) + 190, 320, 86, 'Reddit thread', { fill: '#fff', stroke: T.ink, size: 16, weight: 700, sub: 'opens in a new tab (Open Reddit →)' });
-  connector(1893, ROW(0) + 40 - 20, 'E', T.cool);
-  connector(1893, ROW(0) + 190 - 20, 'E', T.cool);
-  d.text(1920, ROW(0) + 20, 'from every article card', { size: 11.5, fill: T.ink3, valign: 'middle' });
-  d.text(1920, ROW(0) + 170, 'from every Reddit card', { size: 11.5, fill: T.ink3, valign: 'middle' });
-  [m2, m3, m5].forEach((m, i) => {
-    connector(m.x + m.w + 22, m.y + 120 + i * 0, 'E', T.cool);
+  const ext = [
+    ['Reddit thread', 'Open Reddit → (new tab)'],
+    ['Article', 'Substack · Medium · news site'],
+    ['Review sites', 'IMDb · Letterboxd · Rotten Tomatoes · Wikipedia'],
+    ['Cast profiles', 'X · Instagram'],
+    ['Netflix search', '“Find on Netflix” for a pick'],
+  ];
+  ext.forEach(([t, sub], i) => {
+    const y = ROW(0) + 30 + i * 150;
+    d.node(`e${i}`, 'terminator', 1870, y, 320, 86, t, { fill: '#fff', stroke: T.ink, size: 16, weight: 700, sub });
+    connector(1893, y - 6, 'E', T.cool);
   });
-  d.edge('m0', 'right', 'e2', 'left', { offsetFrom: -30, via: [[BX + m0.w + 4, ROW(0) + m0.h / 2 - 30], [1790, ROW(0) + m0.h / 2 - 30], [1790, ROW(0) + 233], [1870, ROW(0) + 233]], label: 'Open Reddit →', labelAt: [1560, ROW(0) + m0.h / 2 - 30], labelOpts: { bg: T.canvas, size: 11, maxWidth: 90 } });
+  d.text(1870, ROW(0) - 10, 'Every card and link opens in a new tab', { size: 11.5, fill: T.ink3 });
+  [b0a, b1b, b2a, b2b, b3a].forEach((b) => connector(b.x + b.w + 22, b.y + 210, 'E', T.cool));
 
-  const err = screen('err', 1870, ROW(1), '15-error-reddit.png', 'Error state — Reddit unavailable', 'Plain-language cause, one clear action. Stale data is shown (flagged) when available.', { width: 280, px: 560 });
-  d.polyline([[BX + m0.w + 4, ROW(0) + m0.h / 2 + 110], [1840, ROW(0) + m0.h / 2 + 110], [1840, err.y + err.h / 2], [err.x - 4, err.y + err.h / 2]], { stroke: T.accent, dash: '7 5' });
-  d.label(1590, ROW(0) + m0.h / 2 + 110, 'All Reddit providers fail', { size: 11, fill: T.accent, bg: T.canvas, maxWidth: 118 });
-  sticky(1870, ROW(2) + 110, 330, 'Every failure has a message, a next step and a way out: Try again · manual search · Settings · Open Reddit.', 1);
+  const err = screen('err', 1870, ROW(4) - 220, '17-error-reddit.png', 'Error — Reddit unavailable', 'Plain cause, one action. Stale data is shown (flagged) when there is some.', { width: 280, px: 560 });
+  d.polyline([[b0b.x + b0b.w + 4, ROW(0) + 260], [1845, ROW(0) + 260], [1845, err.y + err.h / 2], [err.x - 4, err.y + err.h / 2]], { stroke: T.accent, dash: '7 5' });
+  d.label(1845, ROW(1) + 30, 'All Reddit providers fail', { size: 11, fill: T.accent, bg: T.canvas, maxWidth: 90 });
+  sticky(1870, err.y + err.h + 90, 330, 'Every failure has a message, a next step and a way out: Try again · search · Settings · Open Reddit.', 1);
 
   // ── D: settings & dashboard ───────────────────────────────────────────────
   d.node('gear', 'terminator', 2290, 320, 420, 56, '⚙ Header icon  or  footer “Private by design”', { fill: T.dark, stroke: T.dark, color: '#fff', size: 14 });
-  const st1 = screen('st1', 2290, 460, '17-settings-overview.png', 'Settings', 'Reddit · Related Reading; autosaves.', { width: 180, px: 360 });
-  const st2 = screen('st2', 2550, 460, '18-settings-privacy.png', 'Privacy', 'Read / stored / sent; detection switches.', { width: 180, px: 360 });
-  const st3 = screen('st3', 2290, 880, '19-settings-integrations.png', 'API & Integrations', 'Keys are write-only (masked).', { width: 180, px: 360 });
-  const st4 = screen('st4', 2550, 880, '16-light-theme.png', 'Appearance → Light', 'Dark default; Light / System.', { width: 180, px: 360 });
+  const st1 = screen('st1', 2290, 460, '21-settings-read.png', 'Settings → Read', 'News sites, English only, Medium.', { width: 180, px: 360 });
+  const st2 = screen('st2', 2550, 460, '21b-settings-sources.png', 'Your sources', 'Prefer · Normal · Hide per source.', { width: 180, px: 360 });
+  const st3 = screen('st3', 2290, 860, '22-settings-privacy.png', 'Privacy', 'Read / stored / sent; one Netflix switch.', { width: 180, px: 360 });
+  const st4 = screen('st4', 2550, 860, '23-settings-reddit.png', 'Reddit', 'Sort Discuss by: relevant / newest.', { width: 180, px: 360 });
   d.edge('gear', 'bottom', 'st1', 'top', { via: [[2380, 376], [2380, 460]] });
-  d.edge('st1', 'right', 'st2', 'left', { label: 'Privacy', labelOpts: { bg: T.canvas, size: 11, maxWidth: 60 } });
-  d.edge('st1', 'bottom', 'st3', 'top', { label: 'Integrations', labelAt: [2380, 800], labelOpts: { bg: T.canvas, size: 11, maxWidth: 80 } });
-  d.edge('st2', 'bottom', 'st4', 'top', { label: 'Theme', labelAt: [2640, 800], labelOpts: { bg: T.canvas, size: 11, maxWidth: 60 } });
+  d.edge('st1', 'right', 'st2', 'left', { label: 'scroll', labelOpts: { bg: T.canvas, size: 11, maxWidth: 60 } });
+  const light = screen('light', 2290, 1160, '18-light-theme.png', 'Appearance → Light', 'Dark default; Light / System.', { width: 180, px: 360 });
+  void st3;
+  void st4;
+  void light;
 
-  d.node('expand', 'terminator', 2290, 1340, 420, 56, '⤢ Header icon: open the full dashboard', { fill: T.dark, stroke: T.dark, color: '#fff', size: 14 });
-  const dash = screen('dash', 2290, 1450, '20-dashboard.png', 'Full dashboard (tab)', 'Two columns when wide: Reddit left, Related Reading right. Same app, same state.', { width: 420, px: 840 });
+  d.node('expand', 'terminator', 2290, 1620, 420, 56, '⤢ Header icon: open the full dashboard', { fill: T.dark, stroke: T.dark, color: '#fff', size: 14 });
+  const dash = screen('dash', 2290, 1730, '24-dashboard.png', 'Full dashboard (tab)', 'Three columns when wide: Discuss | Read | About + Watch next. Same app, same state.', { width: 420, px: 840 });
   d.edge('expand', 'bottom', 'dash', 'top');
-  sticky(2290, 1850, 400, 'The dashboard exists because Chrome caps popups at 600 px tall. It receives the source tab id so it can still read “what’s playing”.', 1);
-  sticky(2290, 2060, 400, 'Heuristic evaluation focus areas: status visibility (skeletons), error recovery (S2, Error), user control (× / Esc / Back to trending), and privacy clarity (S3, Privacy).', -1);
+  sticky(2290, 2120, 400, 'The dashboard exists because Chrome caps popups at 600 px tall. It receives the source tab id so it can still read what’s playing.', 1);
+  sticky(2290, 2330, 400, 'Evaluation focus: status visibility (skeletons, live status line), error recovery (S2, Error), user control (×, Esc, Newest), privacy clarity (S3, Privacy).', -1);
 
   return d;
 }

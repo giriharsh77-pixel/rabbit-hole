@@ -10,6 +10,7 @@ import type { RedditFetchMeta, ScoredRedditPost } from '../types/reddit';
 import type { RedditSort, Settings } from '../types/settings';
 import type { TitleInfo } from '../types/title';
 import { useRedditDiscuss, useRedditSearch } from './data';
+import { orderThreads } from './threadOrder';
 
 export interface RedditFocus {
   /** Shown as: Reddit discussions about “label” */
@@ -30,6 +31,8 @@ interface Props {
   /** The exact title (Wikidata): its subreddit, cast and characters sharpen the search. */
   title: TitleInfo | null;
   titleLoading: boolean;
+  /** The tab hasn't been read yet. */
+  pageLoading?: boolean;
   onFindReading: (post: ScoredRedditPost) => void;
   /** Put the cursor in the search box. */
   onSearch: (prefill?: string) => void;
@@ -81,22 +84,30 @@ export function discussParams(watching: ContentContext, title: TitleInfo): RpcPa
 export function RedditPanel(props: Props) {
   const { settings, active, now, focus, watching, title, titleLoading } = props;
   const order = settings.reddit.sort;
-  const focusResults = useRedditSearch(focus ? focus.queries : null, 12, order === 'new' ? { order } : {});
+  const done = (s: { status: string }) => s.status === 'success' || s.status === 'error';
+
+  // Every view fetches its most relevant threads (cached); "Newest" re-sorts them at once and,
+  // only after they're in, also asks Reddit for its newest matches — never two bursts at once.
+  const focusRel = useRedditSearch(focus ? focus.queries : null, 12);
+  const focusNew = useRedditSearch(focus && order === 'new' && done(focusRel) ? focus.queries : null, 12, { order: 'new' });
+  const focusResults = orderThreads(focusRel, order === 'new' ? focusNew : null, order, 12);
 
   const wanted = !!watching && active && !focus;
   // A known title gets the precise search (its subreddit, cast, characters)…
-  const discussQuery = useMemo(
-    () => (wanted && watching && title ? { ...discussParams(watching, title), ...(order === 'new' ? { order } : {}) } : null),
-    [wanted, watching, title, order],
-  );
-  const discuss = useRedditDiscuss(discussQuery);
+  const discussQuery = useMemo(() => (wanted && watching && title ? discussParams(watching, title) : null), [wanted, watching, title]);
+  const discussRel = useRedditDiscuss(discussQuery);
+  const discussNew = useRedditDiscuss(discussQuery && order === 'new' && done(discussRel) ? { ...discussQuery, order: 'new' } : null);
   // …otherwise strict phrase search, all time (once we know Wikidata has no match).
   const relatedQueries = useMemo(
     () => (wanted && watching && !title && !titleLoading ? generateRedditQueries(watching, 3) : null),
     [wanted, watching, title, titleLoading],
   );
-  const fallback = useRedditSearch(relatedQueries, 15, { time: 'all', strict: true, order });
-  const related = discussQuery ? discuss : fallback;
+  const fallbackRel = useRedditSearch(relatedQueries, 15, { time: 'all', strict: true });
+  const fallbackNew = useRedditSearch(relatedQueries && order === 'new' && done(fallbackRel) ? relatedQueries : null, 15, { time: 'all', strict: true, order: 'new' });
+  const related = discussQuery
+    ? { ...orderThreads(discussRel, order === 'new' ? discussNew : null, order), reload: order === 'new' ? discussNew.reload : discussRel.reload }
+    : { ...orderThreads(fallbackRel, order === 'new' ? fallbackNew : null, order), reload: order === 'new' ? fallbackNew.reload : fallbackRel.reload };
+  const discuss = discussRel;
   const chips = discussQuery ? (discuss.data?.searched ?? []) : (relatedQueries ?? []).map((q) => q.replace(/["“”]/g, ''));
   const scopes = discussQuery ? (discuss.data?.scopes ?? []) : ['all of Reddit'];
 
@@ -118,7 +129,7 @@ export function RedditPanel(props: Props) {
 
   // ── search results / "what Reddit thinks" ──────────────────────────────────
   if (focus) {
-    const results = focusResults.data?.posts ?? [];
+    const results = focusResults.posts;
     return (
       <div {...panelProps}>
         <div className="panel-title split-heading">
@@ -146,7 +157,8 @@ export function RedditPanel(props: Props) {
           )}
         </p>
         {focusResults.status === 'loading' && <ListSkeleton count={3} label="Searching Reddit" />}
-        {focusResults.status === 'error' && <ErrorState error={focusResults.error} subject="reddit" onRetry={focusResults.reload} />}
+        {focusResults.status === 'error' && <ErrorState error={focusResults.error} subject="reddit" onRetry={order === 'new' ? focusNew.reload : focusRel.reload} />}
+        {focusResults.newerFailed && <p className="meta note">Reddit didn’t return newer threads right now — these are the ones already found, newest first.</p>}
         {focusResults.status === 'success' && results.length === 0 && (
           <EmptyState title="No threads found">Reddit has little on this. Try a broader search.</EmptyState>
         )}
@@ -157,7 +169,7 @@ export function RedditPanel(props: Props) {
 
   // ── threads about what's playing ───────────────────────────────────────────
   if (watching) {
-    const results = related.data?.posts ?? [];
+    const results = related.posts;
     const subject = subjectLabel(watching);
     return (
       <div {...panelProps}>
@@ -174,6 +186,7 @@ export function RedditPanel(props: Props) {
               <span>
                 Found <strong className="num">{results.length}</strong> {results.length === 1 ? 'thread' : 'threads'} about <strong>{watching.title}</strong>
                 {order === 'new' ? ' · newest first' : ''}
+                {related.checkingNewer && <span className="spinner" style={{ marginLeft: 8 }} aria-label="Checking Reddit for newer threads" />}
               </span>
             )
           ) : related.status === 'error' ? null : (
@@ -199,7 +212,8 @@ export function RedditPanel(props: Props) {
             ))}
           </div>
         )}
-        {(related.status === 'loading' || related.status === 'idle' || titleLoading) && (
+        {related.newerFailed && <p className="meta note" style={{ margin: '-4px 0 10px' }}>Reddit didn’t return newer threads right now — these are the ones already found, newest first.</p>}
+        {(related.status === 'loading' || titleLoading) && (
           <ListSkeleton count={3} withAside={settings.reddit.showThumbnails} label="Finding related threads" />
         )}
         {related.status === 'error' && <ErrorState error={related.error} subject="reddit" onRetry={related.reload} />}
@@ -226,6 +240,15 @@ export function RedditPanel(props: Props) {
             </button>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // ── still reading the tab ──────────────────────────────────────────────────
+  if (props.pageLoading) {
+    return (
+      <div {...panelProps}>
+        <ListSkeleton count={3} withAside={settings.reddit.showThumbnails} label="Reading the current tab" />
       </div>
     );
   }
