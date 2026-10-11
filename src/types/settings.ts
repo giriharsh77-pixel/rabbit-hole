@@ -18,6 +18,8 @@ export interface Settings {
      * traffic, at the cost of tying requests to the user's Reddit account.
      */
     useBrowserSession: boolean;
+    /** How Discuss orders threads: best match first, or newest first. */
+    sort: RedditSort;
   };
 
   reading: {
@@ -73,5 +75,7 @@ export interface SecretStatus {
 export type SecretsStatus = Record<SecretName, SecretStatus>;
 
 export type SourcePreference = 'prefer' | 'hide';
+
+export type RedditSort = 'relevance' | 'new';
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };

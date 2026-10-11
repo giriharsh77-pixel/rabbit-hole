@@ -43,13 +43,13 @@ export interface RpcMap {
   'title/related': { params: { qid: string }; result: RelatedTitles };
 
   'reddit/search': {
-    params: { queries: string[]; limit?: number; subreddits?: string[]; time?: 'day' | 'week' | 'month' | 'year' | 'all'; strict?: boolean };
+    params: { queries: string[]; limit?: number; subreddits?: string[]; time?: 'day' | 'week' | 'month' | 'year' | 'all'; strict?: boolean; order?: 'relevance' | 'new' };
     result: RedditSearchResponse;
   };
 
   /** Threads about one movie / show (its subreddit, TV / film communities, all of Reddit). */
   'reddit/discuss': {
-    params: { title: string; kind: 'movie' | 'series'; ownSubreddit?: string; episodeName?: string; season?: number; names?: string[]; limit?: number };
+    params: { title: string; kind: 'movie' | 'series'; ownSubreddit?: string; episodeName?: string; season?: number; names?: string[]; limit?: number; order?: 'relevance' | 'new' };
     result: DiscussResponse;
   };
 

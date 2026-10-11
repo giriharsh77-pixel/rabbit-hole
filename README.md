@@ -68,7 +68,7 @@ Load it into Chrome:
 | `npm run build` | Typecheck (`tsc`), then a production build into `dist/` |
 | `npm run dev` | Development build in watch mode (embeds dev-only keys from `.env`) |
 | `npm run dev:ui` | UI-only preview at <http://127.0.0.1:5199/popup.html> with fixtures — see below |
-| `npm test` | Run the 261-test suite (Vitest) |
+| `npm test` | Run the 263-test suite (Vitest) |
 | `npm run verify` | typecheck → build → tests → release gate (below) |
 | `npm run test:e2e` | **Real-Chrome smoke test** (needs `CHROME_PATH`; see [Testing](#testing)) |
 | `npm run verify:release` | Proves dev keys can't reach a production bundle; scans the build for `eval`, inline/remote scripts, module syntax in content scripts |
@@ -298,7 +298,7 @@ otherwise it must contain the title as a phrase AND
     ("episode", "season", "rewatch", "finale", …)
 ```
 
-Ranking multiplies by where it was posted (own subreddit × 1.5, TV/film × 1.2) and rewards mentions of the episode. Tested on live data: of 22 all-of-Reddit results for "The Office", it kept the r/DunderMifflin, r/theoffice and r/television threads and dropped police-"officer" videos, return-to-office complaints and Oval Office news. Without a Wikidata match it falls back to strict phrase search.
+Ranking multiplies by where it was posted (own subreddit × 1.5, TV/film × 1.2) and rewards mentions of the episode. A **Most relevant / Newest** switch sits at the top of Discuss (also in Settings → Reddit, and remembered): *Newest* asks Reddit for its newest matches (`sort=new`) rather than re-ordering the relevant ones, applies the same "about the show" filter, and lists them newest first. Tested on live data: of 22 all-of-Reddit results for "The Office", it kept the r/DunderMifflin, r/theoffice and r/television threads and dropped police-"officer" videos, return-to-office complaints and Oval Office news. Without a Wikidata match it falls back to strict phrase search.
 
 ### Reddit thread ranking (`src/services/redditService.ts`, `src/services/ranking/reddit.ts`)
 
@@ -368,7 +368,7 @@ src/
   types/                   all shared contracts
   dev/                     UI preview shim + fixtures (not shipped)
 server/                    optional backend (Cloudflare Worker / Node) — see server/README.md
-tests/                     261 tests
+tests/                     263 tests
 docs/                      project report, usability evaluation form, flowcharts, screens (+ generators)
 ```
 
@@ -377,7 +377,7 @@ docs/                      project report, usability evaluation form, flowcharts
 ## Testing
 
 ```bash
-npm test            # 261 tests across 21 files
+npm test            # 263 tests across 21 files
 npm run verify      # typecheck → build → tests → release gate
 ```
 

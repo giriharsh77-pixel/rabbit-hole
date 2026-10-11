@@ -7,7 +7,7 @@ import { generateRedditQueries, parseEpisode } from '../services/context/queries
 import type { ContentContext } from '../types/context';
 import type { RpcParams } from '../types/messages';
 import type { RedditFetchMeta, ScoredRedditPost } from '../types/reddit';
-import type { Settings } from '../types/settings';
+import type { RedditSort, Settings } from '../types/settings';
 import type { TitleInfo } from '../types/title';
 import { useRedditDiscuss, useRedditSearch } from './data';
 
@@ -33,6 +33,26 @@ interface Props {
   onFindReading: (post: ScoredRedditPost) => void;
   /** Put the cursor in the search box. */
   onSearch: (prefill?: string) => void;
+  /** Most relevant / newest first (remembered in Settings). */
+  onSortChange: (sort: RedditSort) => void;
+}
+
+/** `Most relevant | Newest` */
+function SortControl({ value, onChange }: { value: RedditSort; onChange: (v: RedditSort) => void }) {
+  return (
+    <div className="segmented sort-control" role="radiogroup" aria-label="Sort threads">
+      {(
+        [
+          ['relevance', 'Most relevant'],
+          ['new', 'Newest'],
+        ] as const
+      ).map(([id, label]) => (
+        <button key={id} type="button" role="radio" aria-checked={value === id} className="seg" onClick={() => onChange(id)}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 const providerName = (meta: RedditFetchMeta) =>
@@ -60,18 +80,22 @@ export function discussParams(watching: ContentContext, title: TitleInfo): RpcPa
  */
 export function RedditPanel(props: Props) {
   const { settings, active, now, focus, watching, title, titleLoading } = props;
-  const focusResults = useRedditSearch(focus ? focus.queries : null, 12);
+  const order = settings.reddit.sort;
+  const focusResults = useRedditSearch(focus ? focus.queries : null, 12, order === 'new' ? { order } : {});
 
   const wanted = !!watching && active && !focus;
   // A known title gets the precise search (its subreddit, cast, characters)…
-  const discussQuery = useMemo(() => (wanted && watching && title ? discussParams(watching, title) : null), [wanted, watching, title]);
+  const discussQuery = useMemo(
+    () => (wanted && watching && title ? { ...discussParams(watching, title), ...(order === 'new' ? { order } : {}) } : null),
+    [wanted, watching, title, order],
+  );
   const discuss = useRedditDiscuss(discussQuery);
   // …otherwise strict phrase search, all time (once we know Wikidata has no match).
   const relatedQueries = useMemo(
     () => (wanted && watching && !title && !titleLoading ? generateRedditQueries(watching, 3) : null),
     [wanted, watching, title, titleLoading],
   );
-  const fallback = useRedditSearch(relatedQueries, 15, { time: 'all', strict: true });
+  const fallback = useRedditSearch(relatedQueries, 15, { time: 'all', strict: true, order });
   const related = discussQuery ? discuss : fallback;
   const chips = discussQuery ? (discuss.data?.searched ?? []) : (relatedQueries ?? []).map((q) => q.replace(/["“”]/g, ''));
   const scopes = discussQuery ? (discuss.data?.scopes ?? []) : ['all of Reddit'];
@@ -106,6 +130,7 @@ export function RedditPanel(props: Props) {
             <CloseIcon /> {watching ? `Back to ${watching.title}` : 'Clear'}
           </button>
         </div>
+        <SortControl value={order} onChange={props.onSortChange} />
         <p className="status-line" aria-live="polite">
           {focusResults.status === 'loading' ? (
             <>
@@ -142,11 +167,13 @@ export function RedditPanel(props: Props) {
         <div className="panel-title">
           <h2>Reddit on {subject}</h2>
         </div>
+        <SortControl value={order} onChange={props.onSortChange} />
         <p className="status-line" aria-live="polite">
           {related.status === 'success' ? (
             results.length > 0 && (
               <span>
                 Found <strong className="num">{results.length}</strong> {results.length === 1 ? 'thread' : 'threads'} about <strong>{watching.title}</strong>
+                {order === 'new' ? ' · newest first' : ''}
               </span>
             )
           ) : related.status === 'error' ? null : (
@@ -191,8 +218,8 @@ export function RedditPanel(props: Props) {
         {results.length > 0 && cards(results)}
         {related.status === 'success' && related.data && (
           <div className="panel-title" style={{ marginTop: 14 }}>
-            <span className="meta" aria-live="polite">
-              Searched {scopes.join(', ')} · all time · {providerName(related.data.meta)}
+            <span className="meta note" aria-live="polite">
+              Searched {scopes.join(', ')} · all time · {order === 'new' ? 'newest first' : 'most relevant first'} · {providerName(related.data.meta)}
             </span>
             <button type="button" className="btn small ghost" onClick={related.reload} aria-label="Search Reddit again">
               <RefreshIcon /> Refresh

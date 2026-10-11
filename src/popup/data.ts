@@ -90,13 +90,13 @@ export function useRelatedTitles(qid: string | null) {
 export function useRedditSearch(
   queries: string[] | null,
   limit: number,
-  opts: { time?: 'day' | 'week' | 'month' | 'year' | 'all'; strict?: boolean } = {},
+  opts: { time?: 'day' | 'week' | 'month' | 'year' | 'all'; strict?: boolean; order?: 'relevance' | 'new' } = {},
 ) {
-  const { time, strict } = opts;
-  const key = queries ? `${limit}:${time ?? ''}:${strict ? 's' : ''}:${queries.join('|')}` : 'off';
+  const { time, strict, order } = opts;
+  const key = queries ? `${limit}:${time ?? ''}:${strict ? 's' : ''}:${order ?? ''}:${queries.join('|')}` : 'off';
   return useAsync<RedditSearchResponse>(
     queries && queries.length
-      ? (signal) => call('reddit/search', { queries, limit, ...(time ? { time } : {}), ...(strict ? { strict } : {}) }, signal)
+      ? (signal) => call('reddit/search', { queries, limit, ...(time ? { time } : {}), ...(strict ? { strict } : {}), ...(order === 'new' ? { order } : {}) }, signal)
       : null,
     key,
   );

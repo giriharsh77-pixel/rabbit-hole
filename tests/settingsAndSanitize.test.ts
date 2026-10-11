@@ -17,7 +17,7 @@ describe('settings validation', () => {
     expect(s.appearance.theme).toBe('dark');
     expect(s.reddit.preferredSubreddits).toEqual(['rust', 'golang']);
     // settings from the removed trending feed are dropped, not carried along
-    expect(Object.keys(s.reddit).sort()).toEqual(['includeNsfw', 'preferredSubreddits', 'showThumbnails', 'useBrowserSession']);
+    expect(Object.keys(s.reddit).sort()).toEqual(['includeNsfw', 'preferredSubreddits', 'showThumbnails', 'sort', 'useBrowserSession']);
     expect(s.reading.recommendationCount).toBe(5);
     expect(s.reading.minRelevance).toBe(90);
     expect(s.reading.preferredTopics).toEqual(['AI']);

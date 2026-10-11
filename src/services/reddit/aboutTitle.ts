@@ -73,18 +73,20 @@ const quote = (s: string) => (/\s/.test(s.trim()) ? `"${s.trim()}"` : s.trim());
  *   2. TV (or film) subreddits — the title
  *   3. all of Reddit — title + episode, and the title
  */
-export function discussPlan(s: DiscussSubject): (Omit<SearchRequest, 'limit'> & { label: string })[] {
+export function discussPlan(s: DiscussSubject, order: 'relevance' | 'new' = 'relevance'): (Omit<SearchRequest, 'limit'> & { label: string })[] {
   const plan: (Omit<SearchRequest, 'limit'> & { label: string })[] = [];
+  // "Newest" asks Reddit for its newest matches, not a re-shuffle of the most relevant ones
+  const sort: SearchRequest['sort'] = order === 'new' ? 'new' : 'relevance';
   const title = quote(searchName(s.title));
   const own = s.ownSubreddit;
   if (own) {
-    if (s.episodeName) plan.push({ label: `r/${own}`, query: quote(s.episodeName), subreddits: [own], sort: 'relevance', time: 'all' });
-    else plan.push({ label: `r/${own}`, query: `subreddit:${own}`, subreddits: [], sort: 'top', time: 'all' });
+    if (s.episodeName) plan.push({ label: `r/${own}`, query: quote(s.episodeName), subreddits: [own], sort, time: 'all' });
+    else plan.push({ label: `r/${own}`, query: `subreddit:${own}`, subreddits: [], sort: order === 'new' ? 'new' : 'top', time: 'all' });
   }
-  plan.push({ label: s.kind === 'movie' ? 'film subreddits' : 'TV subreddits', query: title, subreddits: s.kind === 'movie' ? FILM_SCOPE : TV_SCOPE, sort: 'relevance', time: 'all' });
-  if (s.episodeName) plan.push({ label: 'all of Reddit', query: `${title} ${quote(s.episodeName)}`, subreddits: [], sort: 'relevance', time: 'all' });
-  else if (s.season !== undefined) plan.push({ label: 'all of Reddit', query: `${title} season ${s.season}`, subreddits: [], sort: 'relevance', time: 'all' });
-  plan.push({ label: 'all of Reddit', query: title, subreddits: [], sort: 'relevance', time: 'all' });
+  plan.push({ label: s.kind === 'movie' ? 'film subreddits' : 'TV subreddits', query: title, subreddits: s.kind === 'movie' ? FILM_SCOPE : TV_SCOPE, sort, time: 'all' });
+  if (s.episodeName) plan.push({ label: 'all of Reddit', query: `${title} ${quote(s.episodeName)}`, subreddits: [], sort, time: 'all' });
+  else if (s.season !== undefined) plan.push({ label: 'all of Reddit', query: `${title} season ${s.season}`, subreddits: [], sort, time: 'all' });
+  plan.push({ label: 'all of Reddit', query: title, subreddits: [], sort, time: 'all' });
   return plan.slice(0, 4);
 }
 

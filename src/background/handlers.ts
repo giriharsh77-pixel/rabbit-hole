@@ -92,6 +92,7 @@ export function createHandlers(deps: HandlerDeps): { handlers: Handlers; context
         ...(p?.subreddits ? { subreddits: sanitizeSubredditList(p.subreddits, 10) } : {}),
         ...(p?.time && SEARCH_WINDOWS.includes(p.time) ? { time: p.time } : {}),
         ...(p?.strict === true ? { strict: true } : {}),
+        ...(p?.order === 'new' ? { order: 'new' as const } : {}),
       });
     },
 
@@ -110,7 +111,7 @@ export function createHandlers(deps: HandlerDeps): { handlers: Handlers; context
           ...(episodeName ? { episodeName } : {}),
           ...(season !== undefined ? { season } : {}),
         },
-        { signal, ...(p?.limit !== undefined ? { limit: p.limit } : {}) },
+        { signal, ...(p?.limit !== undefined ? { limit: p.limit } : {}), ...(p?.order === 'new' ? { order: 'new' as const } : {}) },
       );
     },
 

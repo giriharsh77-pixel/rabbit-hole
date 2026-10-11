@@ -315,6 +315,7 @@ export function App({ mode, sourceTabId }: AppProps) {
           titleLoading={!!titleSubject && titleLoading}
           onFindReading={onFindReading}
           onSearch={focusSearch}
+          onSortChange={(sort) => update({ reddit: { sort } })}
         />
         <ReadingPanel
           idPrefix={idPrefix}

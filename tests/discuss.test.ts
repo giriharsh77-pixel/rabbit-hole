@@ -90,4 +90,35 @@ describe('where Discuss looks', () => {
     expect(r.scopes).toEqual(['r/DunderMifflin', 'TV subreddits', 'all of Reddit']);
     expect(fetchImpl.calls.length).toBe(4);
   });
+
+  it('"Newest" asks Reddit for its newest matches and lists them newest first — still only about the show', async () => {
+    const plan = discussPlan(office, 'new');
+    expect(plan.every((p) => p.sort === 'new')).toBe(true);
+    expect(discussPlan({ ...office, episodeName: undefined, season: undefined }, 'new')[0]).toMatchObject({ query: 'subreddit:DunderMifflin', sort: 'new' });
+
+    const fetchImpl = mockFetch((url) => {
+      if (!url.hostname.endsWith('reddit.com')) return undefined;
+      return jsonResponse(
+        listing([
+          { id: 'old001', title: 'The Basketball episode, ten years later', subreddit: 'DunderMifflin', score: 9000, ageHours: 24 * 365 },
+          { id: 'new001', title: 'Just watched Basketball for the first time', subreddit: 'DunderMifflin', score: 12, ageHours: 2 },
+          { id: 'mid001', title: 'The Office season 1 rewatch thread', subreddit: 'television', score: 300, ageHours: 24 * 30 },
+          { id: 'work01', title: 'New hire keeps eating my lunch at the office', subreddit: 'antiwork', score: 5000, ageHours: 1 },
+        ]),
+      );
+    });
+    const services = createServices({ local: new MemoryStore(), session: new MemoryStore(), fetchImpl });
+    const r = await services.reddit.discuss(office, { order: 'new' });
+    expect(fetchImpl.calls.every((u) => new URL(u).searchParams.get('sort') === 'new')).toBe(true);
+    expect(r.posts.map((p) => p.id)).toEqual(['new001', 'mid001', 'old001']);
+    const relevant = await services.reddit.discuss(office); // a separate search, best match first
+    expect(relevant.posts[0]?.id).toBe('old001');
+  });
+
+  it('the sort is a remembered setting', async () => {
+    const services = createServices({ local: new MemoryStore(), session: new MemoryStore(), fetchImpl: mockFetch() });
+    expect((await services.settings.get()).reddit.sort).toBe('relevance');
+    expect((await services.settings.update({ reddit: { sort: 'new' } })).reddit.sort).toBe('new');
+    expect((await services.settings.update({ reddit: { sort: 'top' as never } })).reddit.sort).toBe('relevance');
+  });
 });

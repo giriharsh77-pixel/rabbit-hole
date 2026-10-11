@@ -136,6 +136,8 @@ export class RedditService {
     time?: SearchRequest['time'];
     /** Only threads that clearly match a query — never pad with Reddit's loose matches. */
     strict?: boolean;
+    /** Best match first (default), or newest first. */
+    order?: 'relevance' | 'new';
     signal?: AbortSignal;
   }): Promise<RedditSearchResponse> {
     const settings = await this.deps.getSettings();
@@ -148,7 +150,8 @@ export class RedditService {
     const subs = opts.subreddits ?? [];
     const limit = clamp(opts.limit ?? 8, 1, 25);
     const time = opts.time ?? 'month';
-    const key = `reddit:search:${hashString(queries.join('|'))}:${hashString(subs.join(','))}:${time}:${settings.reddit.includeNsfw ? 1 : 0}`;
+    const order = opts.order === 'new' ? 'new' : 'relevance';
+    const key = `reddit:search:${hashString(queries.join('|'))}:${hashString(subs.join(','))}:${time}:${order}:${settings.reddit.includeNsfw ? 1 : 0}`;
 
     const result = await this.deps.cache.getOrFetch<CachedSearch>(
       key,
@@ -157,7 +160,7 @@ export class RedditService {
         const providers = await this.providers(settings);
         const { value, provider, degradedFrom } = await this.runChain(providers, async (p) => {
           const lists = await Promise.all(
-            queries.map((query) => p.search({ query, subreddits: subs, limit: 12, sort: 'relevance', time }, signal)),
+            queries.map((query) => p.search({ query, subreddits: subs, limit: 12, sort: order, time }, signal)),
           );
           return lists;
         });
@@ -188,7 +191,9 @@ export class RedditService {
     // Drop off-topic threads Reddit's search padded the results with — unless that would leave almost
     // nothing for a free-form search. Strict callers ("threads about this video") never get padding.
     const onTopic = ranked.filter((x) => x.match >= 0.34);
-    const posts = (opts.strict || onTopic.length >= 3 ? onTopic : ranked).slice(0, limit).map((x) => x.p);
+    const chosen = opts.strict || onTopic.length >= 3 ? onTopic : ranked;
+    if (order === 'new') chosen.sort((a, b) => b.p.createdUtc - a.p.createdUtc);
+    const posts = chosen.slice(0, limit).map((x) => x.p);
 
     return { posts, meta: result.value.meta, query: queries[0] ?? '' };
   }
@@ -201,9 +206,10 @@ export class RedditService {
    * the show (see reddit/aboutTitle.ts).  All time: the best episode
    * discussions are often years old.
    */
-  async discuss(subject: DiscussSubject, opts: { limit?: number; signal?: AbortSignal } = {}): Promise<DiscussResponse> {
+  async discuss(subject: DiscussSubject, opts: { limit?: number; order?: 'relevance' | 'new'; signal?: AbortSignal } = {}): Promise<DiscussResponse> {
     const settings = await this.deps.getSettings();
-    const plan = discussPlan(subject);
+    const order = opts.order === 'new' ? 'new' : 'relevance';
+    const plan = discussPlan(subject, order);
     const limit = clamp(opts.limit ?? 15, 1, 25);
     const key = `reddit:discuss:${hashString(JSON.stringify(plan))}:${settings.reddit.includeNsfw ? 1 : 0}`;
 
@@ -231,7 +237,8 @@ export class RedditService {
       .map((p) => ({ p, m: titleMatch(subject, p) }))
       .filter((x) => x.m.keep)
       .map((x) => ({ p: x.p, sort: (0.4 + x.m.match) * x.m.boost * (1 + Math.log10(1 + x.p.trendingScore) + 0.25 * Math.log10(1 + (x.p.score ?? 0))) }))
-      .sort((a, b) => b.sort - a.sort)
+      // newest first: still only threads about the show, just ordered by when they were posted
+      .sort((a, b) => (order === 'new' ? b.p.createdUtc - a.p.createdUtc : b.sort - a.sort))
       .slice(0, limit)
       .map((x) => x.p);
 

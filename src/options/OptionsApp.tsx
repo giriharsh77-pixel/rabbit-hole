@@ -95,6 +95,17 @@ export function OptionsApp() {
           />
         </Row>
 
+        <Row title="Sort Discuss by" help="Most relevant: the best-matching threads, from the show’s own subreddit first. Newest: the latest threads about it — still only ones that are clearly about the show.">
+          <RadioGroup
+            value={r.sort}
+            label="Sort Discuss by"
+            options={[
+              { value: 'relevance', label: 'Most relevant' },
+              { value: 'new', label: 'Newest' },
+            ]}
+            onChange={(v) => change({ reddit: { sort: v } })}
+          />
+        </Row>
         <Row title="Show thumbnails" help="Loads small preview images from Reddit's image servers.">
           <Switch checked={r.showThumbnails} onChange={(v) => change({ reddit: { showThumbnails: v } })} label="Show thumbnails" />
         </Row>

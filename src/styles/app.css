@@ -2100,3 +2100,12 @@ details.used dd {
 .filter-bar .chip {
   height: 38px;
 }
+
+/* Discuss: Most relevant | Newest */
+.segmented.sort-control {
+  margin: 0 0 10px;
+}
+
+.segmented.sort-control .seg {
+  height: 28px;
+}

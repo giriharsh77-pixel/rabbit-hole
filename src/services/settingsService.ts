@@ -18,6 +18,7 @@ export const DEFAULT_SETTINGS: Settings = {
     showThumbnails: true,
     includeNsfw: false,
     useBrowserSession: false,
+    sort: 'relevance',
   },
   reading: {
     recommendationCount: 12,
@@ -76,6 +77,7 @@ export function validateSettings(raw: unknown): Settings {
       showThumbnails: bool(reddit.showThumbnails, d.reddit.showThumbnails),
       includeNsfw: bool(reddit.includeNsfw, d.reddit.includeNsfw),
       useBrowserSession: bool(reddit.useBrowserSession, d.reddit.useBrowserSession),
+      sort: reddit.sort === 'new' ? 'new' : 'relevance',
     },
     reading: {
       recommendationCount: clampInt(reading.recommendationCount, 5, 30, d.reading.recommendationCount),
